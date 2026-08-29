@@ -18,10 +18,7 @@ class HomeScreen extends StatelessWidget {
             children: [
               Text('KABUCA', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 4),
-              Text(
-                '今日も、1パック。',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
+              Text('今日も、1パック。', style: Theme.of(context).textTheme.bodyLarge),
               const SizedBox(height: 28),
               DailyPackCard(onOpen: () => _showComingSoon(context)),
               const SizedBox(height: 16),
@@ -46,8 +43,6 @@ class HomeScreen extends StatelessWidget {
   void _showComingSoon(BuildContext context) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('パック開封はTask003で実装予定です')),
-      );
+      ..showSnackBar(const SnackBar(content: Text('パック開封はTask003で実装予定です')));
   }
 }

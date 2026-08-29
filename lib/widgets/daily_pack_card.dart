@@ -83,12 +83,7 @@ class _PackVisual extends StatelessWidget {
         child: Stack(
           children: [
             const Positioned(left: 0, right: 0, top: 10, child: _SealLine()),
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 10,
-              child: _SealLine(),
-            ),
+            const Positioned(left: 0, right: 0, bottom: 10, child: _SealLine()),
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,

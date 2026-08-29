@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/app_theme.dart';
 
 class HomeStatCard extends StatelessWidget {
-  const HomeStatCard({
-    super.key,
-    required this.label,
-    required this.value,
-  });
+  const HomeStatCard({super.key, required this.label, required this.value});
 
   final String label;
   final String value;
@@ -28,9 +24,9 @@ class HomeStatCard extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 5),
           Text(
