@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_theme.dart';
 import '../../data/card_catalog.dart';
 import '../../models/company_card.dart';
+import '../card/card_detail_screen.dart';
 import '../../state/game_state.dart';
 import '../../theme/company_theme.dart';
 import '../../widgets/card_rarity_style.dart';
@@ -72,15 +73,29 @@ class _CollectionScreenState extends State<CollectionScreen> {
               key: const Key('collection-grid'),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                childAspectRatio: 0.72,
+                childAspectRatio: 0.64,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
               ),
               itemCount: cards.length,
-              itemBuilder: (context, index) => _CatalogCard(
-                card: cards[index],
-                ownedCount: widget.gameState.ownedCount(cards[index].id),
-              ),
+              itemBuilder: (context, index) {
+                final card = cards[index];
+                final ownedCount = widget.gameState.ownedCount(card.id);
+                return _CatalogCard(
+                  card: card,
+                  ownedCount: ownedCount,
+                  onTap: ownedCount == 0
+                      ? null
+                      : () => Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) => CardDetailScreen(
+                              card: card,
+                              gameState: widget.gameState,
+                            ),
+                          ),
+                        ),
+                );
+              },
             ),
           ),
         ],
@@ -112,74 +127,91 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _CatalogCard extends StatelessWidget {
-  const _CatalogCard({required this.card, required this.ownedCount});
+  const _CatalogCard({
+    required this.card,
+    required this.ownedCount,
+    required this.onTap,
+  });
   final CompanyCard card;
   final int ownedCount;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final owned = ownedCount > 0;
     final company = CompanyTheme.forCompany(card.companyId);
     final rarity = CardRarityStyle.of(card.rarity);
-    return Container(
-      key: Key('catalog-card-${card.id}'),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: owned ? company.baseColor : const Color(0xFFE3E5E2),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: owned ? rarity.border : AppColors.outline,
-          width: owned ? 2 : 1,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        key: Key('catalog-card-${card.id}'),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: owned ? company.baseColor : const Color(0xFFE3E5E2),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: owned ? rarity.border : AppColors.outline,
+            width: owned ? 2 : 1,
+          ),
+          boxShadow: owned
+              ? const [
+                  BoxShadow(
+                    color: Color(0x18174A3A),
+                    blurRadius: 10,
+                    offset: Offset(0, 5),
+                  ),
+                ]
+              : null,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            card.rarity.label,
-            textAlign: TextAlign.right,
-            style: TextStyle(
-              color: owned ? rarity.accent : AppColors.textSecondary,
-              fontWeight: FontWeight.w800,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              card.rarity.label,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: owned ? rarity.accent : AppColors.textSecondary,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-          const Spacer(),
-          Icon(
-            owned ? company.abstractSymbol : Icons.lock_outline_rounded,
-            color: owned ? company.accentColor : Colors.grey,
-            size: 38,
-          ),
-          const Spacer(),
-          Text(
-            owned ? card.companyName : '？？？',
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: owned ? Colors.white : AppColors.textSecondary,
-              fontWeight: FontWeight.w700,
+            const Spacer(),
+            Icon(
+              owned ? company.abstractSymbol : Icons.lock_outline_rounded,
+              color: owned ? company.accentColor : Colors.grey,
+              size: 38,
             ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            '${card.ticker} ・ ${card.industry}',
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            style: TextStyle(
-              color: owned ? company.accentColor : AppColors.textSecondary,
-              fontSize: 10,
+            const Spacer(),
+            Text(
+              owned ? card.companyName : '？？？',
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: owned ? Colors.white : AppColors.textSecondary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            owned ? '所持 ×$ownedCount' : '未取得',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: owned ? rarity.accent : AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
+            const SizedBox(height: 5),
+            Text(
+              '${card.ticker} ・ ${card.industry}',
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              style: TextStyle(
+                color: owned ? company.accentColor : AppColors.textSecondary,
+                fontSize: 10,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              owned ? '所持 ×$ownedCount' : '未取得',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: owned ? rarity.accent : AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

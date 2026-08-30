@@ -63,14 +63,18 @@ void main() {
     expect(find.byKey(const Key('card-description')), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, '次へ'));
-    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
     await tester.pumpAndSettle();
     expect(find.text('CARD 2 / 3'), findsOneWidget);
     expect(find.byKey(const Key('card-title')), findsOneWidget);
     expect(find.byKey(const Key('card-description')), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, '次へ'));
-    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
     await tester.pumpAndSettle();
     expect(find.text('CARD 3 / 3'), findsOneWidget);
     expect(find.byKey(const Key('card-title')), findsOneWidget);
