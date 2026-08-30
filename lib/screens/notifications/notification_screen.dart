@@ -16,12 +16,16 @@ class NotificationScreen extends StatelessWidget {
     this.predictionStore,
     this.pointWallet,
     this.rewardService,
+    this.onPredictAgain,
+    this.onOpenExchange,
   });
 
   final NotificationStore store;
   final PredictionStore? predictionStore;
   final PointWallet? pointWallet;
   final PredictionRewardService? rewardService;
+  final VoidCallback? onPredictAgain;
+  final VoidCallback? onOpenExchange;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -100,6 +104,8 @@ class NotificationScreen extends StatelessWidget {
           predictionStore: predictionStore,
           pointWallet: pointWallet,
           rewardService: rewardService,
+          onPredictAgain: onPredictAgain,
+          onOpenExchange: onOpenExchange,
         ),
       ),
     );

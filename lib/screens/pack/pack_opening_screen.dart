@@ -11,7 +11,16 @@ import '../../widgets/tearable_pack.dart';
 import '../../widgets/company_card_artwork.dart';
 import '../../widgets/kabuca_card_back.dart';
 
-class PackOpeningRoute extends MaterialPageRoute<List<CompanyCard>> {
+enum PackOpeningDestination { home, collection }
+
+class PackOpeningResult {
+  const PackOpeningResult({required this.cards, required this.destination});
+
+  final List<CompanyCard> cards;
+  final PackOpeningDestination destination;
+}
+
+class PackOpeningRoute extends MaterialPageRoute<PackOpeningResult> {
   PackOpeningRoute({
     required List<CompanyCard> cards,
     required VoidCallback onPackOpened,
@@ -89,7 +98,20 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
                   ? _PackComplete(
                       key: const ValueKey('complete'),
                       cardCount: widget.cards.length,
-                      onDone: () => Navigator.pop(context, widget.cards),
+                      onShowCollection: () => Navigator.pop(
+                        context,
+                        PackOpeningResult(
+                          cards: widget.cards,
+                          destination: PackOpeningDestination.collection,
+                        ),
+                      ),
+                      onShowHome: () => Navigator.pop(
+                        context,
+                        PackOpeningResult(
+                          cards: widget.cards,
+                          destination: PackOpeningDestination.home,
+                        ),
+                      ),
                     )
                   : _showCard
                   ? Center(
@@ -255,11 +277,13 @@ class _PackComplete extends StatelessWidget {
   const _PackComplete({
     super.key,
     required this.cardCount,
-    required this.onDone,
+    required this.onShowCollection,
+    required this.onShowHome,
   });
 
   final int cardCount;
-  final VoidCallback onDone;
+  final VoidCallback onShowCollection;
+  final VoidCallback onShowHome;
 
   @override
   Widget build(BuildContext context) => Center(
@@ -284,12 +308,18 @@ class _PackComplete extends StatelessWidget {
         const SizedBox(height: 28),
         FilledButton(
           key: const Key('collect-cards-button'),
-          onPressed: onDone,
+          onPressed: onShowCollection,
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.mutedGold,
             foregroundColor: AppColors.deepGreen,
           ),
-          child: const Text('ホームへ戻る'),
+          child: const Text('図鑑を見る'),
+        ),
+        TextButton(
+          key: const Key('pack-complete-home-button'),
+          onPressed: onShowHome,
+          style: TextButton.styleFrom(foregroundColor: Colors.white70),
+          child: const Text('ホームへ'),
         ),
       ],
     ),

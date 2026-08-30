@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../widgets/daily_pack_card.dart';
 import '../../widgets/home_stat_card.dart';
-import '../../models/company_card.dart';
 import '../../services/card_pack_service.dart';
 import '../../services/stock_price_service.dart';
 import '../../services/trading_calendar_service.dart';
@@ -32,6 +31,7 @@ class HomeScreen extends StatelessWidget {
     this.pointWallet,
     this.rewardService,
     this.exchangeService,
+    this.onShowCollection,
   });
 
   final GameState gameState;
@@ -44,6 +44,7 @@ class HomeScreen extends StatelessWidget {
   final PointWallet? pointWallet;
   final PredictionRewardService? rewardService;
   final PackExchangeService? exchangeService;
+  final VoidCallback? onShowCollection;
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +96,11 @@ class HomeScreen extends StatelessWidget {
                             predictionStore: predictionStore,
                             pointWallet: pointWallet,
                             rewardService: rewardService,
+                            onPredictAgain: () => _openPrediction(context),
+                            onOpenExchange:
+                                pointWallet == null || exchangeService == null
+                                ? null
+                                : () => _openExchange(context),
                           ),
                         ),
                       ),
@@ -103,7 +109,10 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '集めよう、日本の企業。',
+                  gameState.totalOwnedCardCount == 0
+                      ? '企業を集めて、未来を予想しよう。'
+                      : '集めよう、日本の企業。',
+                  key: const Key('home-guidance-copy'),
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 28),
@@ -112,24 +121,6 @@ class HomeScreen extends StatelessWidget {
                   onOpen: gameState.packCount > 0
                       ? () => _openPack(context)
                       : null,
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: HomeStatCard(
-                        label: '所持カード',
-                        value: '${gameState.totalOwnedCardCount}枚',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: HomeStatCard(
-                        label: '図鑑コンプリート率',
-                        value: '${gameState.registeredCardCount * 100 ~/ 80}%',
-                      ),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: 18),
                 Card(
@@ -150,31 +141,13 @@ class HomeScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         FilledButton.icon(
                           key: const Key('start-prediction-button'),
-                          onPressed: () => Navigator.of(context).push<void>(
-                            MaterialPageRoute(
-                              builder: (_) => CompanyPredictionSelectScreen(
-                                gameState: gameState,
-                                predictionStore: predictionStore,
-                                stockPriceService: stockPriceService,
-                                tradingCalendarService: tradingCalendarService,
-                              ),
-                            ),
-                          ),
+                          onPressed: () => _openPrediction(context),
                           icon: const Icon(Icons.insights_rounded),
                           label: const Text('予想する'),
                         ),
                         TextButton(
                           key: const Key('waiting-predictions-button'),
-                          onPressed: () => Navigator.of(context).push<void>(
-                            MaterialPageRoute(
-                              builder: (_) => PredictionListScreen(
-                                store: predictionStore,
-                                resolutionService: predictionResolutionService,
-                                pointWallet: pointWallet,
-                                rewardService: rewardService,
-                              ),
-                            ),
-                          ),
+                          onPressed: () => _openPredictionList(context),
                           child: Text(
                             '予想中を見る（${predictionStore.waitingPredictions.length}）',
                           ),
@@ -182,6 +155,24 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: HomeStatCard(
+                        label: '所持カード',
+                        value: '${gameState.totalOwnedCardCount}枚',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: HomeStatCard(
+                        label: '図鑑コンプリート率',
+                        value: '${gameState.registeredCardCount * 100 ~/ 80}%',
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -202,22 +193,78 @@ class HomeScreen extends StatelessWidget {
       ),
     );
     if (exchanged == true && context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('スタートパックを1個獲得しました')));
+      final openNow = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          key: const Key('pack-exchange-success-dialog'),
+          icon: const Icon(Icons.inventory_2_rounded, color: Color(0xFFB39450)),
+          title: const Text('スタートパックを1個獲得しました'),
+          actions: [
+            TextButton(
+              key: const Key('pack-exchange-later-button'),
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('あとで'),
+            ),
+            FilledButton(
+              key: const Key('pack-exchange-open-button'),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('開封する'),
+            ),
+          ],
+        ),
+      );
+      if (openNow == true && context.mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        await _openPack(context);
+      }
     }
   }
 
+  Future<void> _openPrediction(BuildContext context) =>
+      Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => CompanyPredictionSelectScreen(
+            gameState: gameState,
+            predictionStore: predictionStore,
+            stockPriceService: stockPriceService,
+            tradingCalendarService: tradingCalendarService,
+          ),
+        ),
+      );
+
+  Future<void> _openPredictionList(BuildContext context) =>
+      Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => PredictionListScreen(
+            store: predictionStore,
+            resolutionService: predictionResolutionService,
+            pointWallet: pointWallet,
+            rewardService: rewardService,
+            gameState: gameState,
+            onPredict: () => _openPrediction(context),
+            onOpenPack: () {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            },
+            onOpenExchange: pointWallet == null || exchangeService == null
+                ? null
+                : () => _openExchange(context),
+          ),
+        ),
+      );
+
   Future<void> _openPack(BuildContext context) async {
-    final cards = await Navigator.of(context).push<List<CompanyCard>>(
+    final result = await Navigator.of(context).push<PackOpeningResult>(
       PackOpeningRoute(
         cards: (cardPackService ?? CardPackService()).openPack(),
         onPackOpened: _consumePack,
         gameState: gameState,
       ),
     );
-    if (cards == null) return;
-    await gameState.addCards(cards);
+    if (result == null) return;
+    await gameState.addCards(result.cards);
+    if (result.destination == PackOpeningDestination.collection) {
+      onShowCollection?.call();
+    }
   }
 
   void _consumePack() {

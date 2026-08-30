@@ -31,16 +31,17 @@ void main() {
   }
 
   testWidgets('3パックから1つ消費し、3枚を順番に獲得できる', (tester) async {
+    final gameState = GameState.memory();
     await tester.pumpWidget(
       KabucaApp(
-        gameState: GameState.memory(),
+        gameState: gameState,
         predictionStore: PredictionStore.memory(),
         notificationStore: NotificationStore.memory(),
       ),
     );
 
     expect(find.text('KABUCA'), findsNWidgets(2));
-    expect(find.text('集めよう、日本の企業。'), findsOneWidget);
+    expect(find.text('企業を集めて、未来を予想しよう。'), findsOneWidget);
     expect(find.text('KABUCA PACK'), findsNothing);
     expect(find.text('スタートパック'), findsOneWidget);
     expect(find.byKey(const Key('home-brand-logo')), findsOneWidget);
@@ -130,6 +131,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('3枚獲得！'), findsOneWidget);
     await tester.tap(find.byKey(const Key('collect-cards-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('collection-scroll')), findsOneWidget);
+    expect(find.text('3 / 80  ・  コンプリート率 3%'), findsOneWidget);
+
+    await tester.tap(find.text('ホーム'));
     await tester.pumpAndSettle();
     expect(find.text('所持パック  2'), findsOneWidget);
     expect(find.text('3枚'), findsOneWidget);

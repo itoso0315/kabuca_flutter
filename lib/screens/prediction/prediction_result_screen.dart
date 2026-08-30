@@ -15,11 +15,15 @@ class PredictionResultScreen extends StatefulWidget {
     this.predictionStore,
     this.pointWallet,
     this.rewardService,
+    this.onPredictAgain,
+    this.onOpenExchange,
   });
   final StockPrediction prediction;
   final PredictionStore? predictionStore;
   final PointWallet? pointWallet;
   final PredictionRewardService? rewardService;
+  final VoidCallback? onPredictAgain;
+  final VoidCallback? onOpenExchange;
 
   @override
   State<PredictionResultScreen> createState() => _PredictionResultScreenState();
@@ -197,6 +201,21 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                     ),
                   ),
                 ),
+                if (widget.onPredictAgain != null) ...[
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    key: const Key('prediction-result-next-prediction'),
+                    onPressed: widget.onPredictAgain,
+                    icon: const Icon(Icons.insights_rounded),
+                    label: Text(correct ? '他の企業を予想する' : 'もう一度予想する'),
+                  ),
+                  if (correct && widget.onOpenExchange != null)
+                    TextButton(
+                      key: const Key('prediction-result-open-exchange'),
+                      onPressed: widget.onOpenExchange,
+                      child: const Text('ポイント交換を見る'),
+                    ),
+                ],
               ],
             ),
           ),

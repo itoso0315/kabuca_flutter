@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -21,19 +22,27 @@ abstract interface class HistoricalStockPriceProvider {
 }
 
 class StockPriceException implements Exception {
-  const StockPriceException(this.message);
+  const StockPriceException(
+    this.message, {
+    this.kind = StockPriceErrorKind.temporary,
+    this.retryable = true,
+  });
   final String message;
+  final StockPriceErrorKind kind;
+  final bool retryable;
 
   @override
   String toString() => message;
 }
+
+enum StockPriceErrorKind { configuration, dataNotFound, temporary, invalidData }
 
 class StockPriceService {
   const StockPriceService(this.provider);
   final StockPriceProvider provider;
 
   factory StockPriceService.production() =>
-      StockPriceService(YahooFinanceStockPriceProvider());
+      StockPriceService(BackendStockPriceProvider());
 
   Future<StockQuote> fetchCurrentPrice({
     required String ticker,
@@ -71,60 +80,34 @@ class StockPriceService {
   }
 }
 
-class YahooFinanceStockPriceProvider
+class BackendStockPriceProvider
     implements StockPriceProvider, HistoricalStockPriceProvider {
-  YahooFinanceStockPriceProvider({
+  BackendStockPriceProvider({
     http.Client? client,
-    DateTime Function()? now,
+    String? baseUrl,
+    this.timeout = const Duration(seconds: 12),
   }) : _client = client ?? http.Client(),
-       _now = now ?? DateTime.now;
+       baseUrl =
+           baseUrl ?? const String.fromEnvironment('KABUCA_BACKEND_BASE_URL');
 
   final http.Client _client;
-  final DateTime Function() _now;
+  final String baseUrl;
+  final Duration timeout;
 
   @override
   Future<StockQuote> fetchQuote({
     required String ticker,
     required String companyId,
   }) async {
-    final symbol = ticker.endsWith('.T') ? ticker : '$ticker.T';
-    final uri = Uri.https(
-      'query1.finance.yahoo.com',
-      '/v8/finance/chart/$symbol',
-      const {'interval': '1m', 'range': '1d'},
+    final json = await _get('api/market-data/quote', query: {'ticker': ticker});
+    final price = json['price'];
+    final fetchedAt = json['fetchedAt'];
+    if (price is! num || fetchedAt is! String) throw _invalidResponse();
+    return StockQuote(
+      ticker: json['ticker'] as String? ?? ticker,
+      price: price.toDouble(),
+      fetchedAt: DateTime.parse(fetchedAt).toUtc(),
     );
-    try {
-      final response = await _client
-          .get(
-            uri,
-            headers: const {
-              'Accept': 'application/json',
-              'User-Agent': 'Mozilla/5.0 KABUCA-Flutter',
-            },
-          )
-          .timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200) {
-        throw StockPriceException('株価取得に失敗しました (${response.statusCode})');
-      }
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
-      final chart = json['chart'] as Map<String, dynamic>?;
-      final results = chart?['result'] as List<dynamic>?;
-      final result = results?.firstOrNull as Map<String, dynamic>?;
-      final meta = result?['meta'] as Map<String, dynamic>?;
-      final value = meta?['regularMarketPrice'];
-      if (value is! num) {
-        throw const StockPriceException('現在の株価が応答に含まれていません');
-      }
-      return StockQuote(
-        ticker: ticker,
-        price: value.toDouble(),
-        fetchedAt: _now().toUtc(),
-      );
-    } on StockPriceException {
-      rethrow;
-    } catch (_) {
-      throw const StockPriceException('現在の株価を取得できませんでした');
-    }
   }
 
   @override
@@ -133,81 +116,93 @@ class YahooFinanceStockPriceProvider
     required DateTime tradingDate,
     required DateTime sinceDate,
   }) async {
-    final symbol = ticker.endsWith('.T') ? ticker : '$ticker.T';
-    final start = DateTime.utc(
-      sinceDate.year,
-      sinceDate.month,
-      sinceDate.day,
-    ).subtract(const Duration(days: 2));
-    final end = DateTime.utc(
-      tradingDate.year,
-      tradingDate.month,
-      tradingDate.day,
-    ).add(const Duration(days: 2));
-    final uri =
-        Uri.https('query1.finance.yahoo.com', '/v8/finance/chart/$symbol', {
-          'interval': '1d',
-          'period1': '${start.millisecondsSinceEpoch ~/ 1000}',
-          'period2': '${end.millisecondsSinceEpoch ~/ 1000}',
-          'events': 'splits',
-        });
-    try {
-      final response = await _client
-          .get(
-            uri,
-            headers: const {
-              'Accept': 'application/json',
-              'User-Agent': 'Mozilla/5.0 KABUCA-Flutter',
-            },
-          )
-          .timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200) {
-        throw StockPriceException('終値取得に失敗しました (${response.statusCode})');
-      }
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
-      final chart = json['chart'] as Map<String, dynamic>?;
-      final results = chart?['result'] as List<dynamic>?;
-      final result = results?.firstOrNull as Map<String, dynamic>?;
-      final timestamps = result?['timestamp'] as List<dynamic>?;
-      final indicators = result?['indicators'] as Map<String, dynamic>?;
-      final quotes = indicators?['quote'] as List<dynamic>?;
-      final quote = quotes?.firstOrNull as Map<String, dynamic>?;
-      final closes = quote?['close'] as List<dynamic>?;
-      if (timestamps == null || closes == null) {
-        throw const StockPriceException('指定日の終値が応答に含まれていません');
-      }
-      num? close;
-      for (var index = 0; index < timestamps.length; index++) {
-        final seconds = timestamps[index];
-        if (seconds is! num || index >= closes.length) continue;
-        final date = DateTime.fromMillisecondsSinceEpoch(
-          seconds.toInt() * 1000,
-          isUtc: true,
-        ).add(const Duration(hours: 9));
-        if (date.year == tradingDate.year &&
-            date.month == tradingDate.month &&
-            date.day == tradingDate.day &&
-            closes[index] is num) {
-          close = closes[index] as num;
-          break;
-        }
-      }
-      if (close == null) {
-        throw const StockPriceException('指定日の終値を取得できませんでした');
-      }
-      final events = result?['events'] as Map<String, dynamic>?;
-      final splits = events?['splits'] as Map<String, dynamic>?;
-      return HistoricalStockPrice(
-        ticker: ticker,
-        tradingDate: tradingDate,
-        close: close.toDouble(),
-        fetchedAt: _now().toUtc(),
-        splitDetected: splits?.isNotEmpty ?? false,
+    final historical = await _get(
+      'api/market-data/history',
+      query: {'ticker': ticker, 'tradingDate': _formatDate(tradingDate)},
+    );
+    final splits = await _get(
+      'api/market-data/splits',
+      query: {
+        'ticker': ticker,
+        'from': _formatDate(sinceDate),
+        'to': _formatDate(tradingDate),
+      },
+    );
+    final close = historical['close'];
+    final responseDate = historical['tradingDate'];
+    final fetchedAt = historical['fetchedAt'];
+    final hasSplit = splits['hasSplit'];
+    if (close is! num ||
+        responseDate is! String ||
+        fetchedAt is! String ||
+        hasSplit is! bool) {
+      throw _invalidResponse();
+    }
+    return HistoricalStockPrice(
+      ticker: historical['ticker'] as String? ?? ticker,
+      tradingDate: DateTime.parse(responseDate),
+      close: close.toDouble(),
+      fetchedAt: DateTime.parse(fetchedAt).toUtc(),
+      splitDetected: hasSplit,
+    );
+  }
+
+  Future<Map<String, dynamic>> _get(
+    String path, {
+    required Map<String, String> query,
+  }) async {
+    final value = baseUrl.trim();
+    if (value.isEmpty) {
+      throw const StockPriceException(
+        '株価データサービスが設定されていません',
+        kind: StockPriceErrorKind.configuration,
+        retryable: false,
       );
+    }
+    try {
+      final base = Uri.parse(value.endsWith('/') ? value : '$value/');
+      final uri = base.resolve(path).replace(queryParameters: query);
+      final response = await _client
+          .get(uri, headers: const {'Accept': 'application/json'})
+          .timeout(timeout);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw _httpError(response.statusCode);
+      }
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) throw _invalidResponse();
+      return decoded;
     } on StockPriceException {
       rethrow;
+    } on TimeoutException {
+      throw const StockPriceException('株価データサービスへの接続がタイムアウトしました');
     } catch (_) {
-      throw const StockPriceException('過去の終値を取得できませんでした');
+      throw const StockPriceException('株価データを取得できませんでした');
     }
   }
+
+  static StockPriceException _httpError(int statusCode) => switch (statusCode) {
+    400 => const StockPriceException(
+      '銘柄情報を確認できませんでした',
+      kind: StockPriceErrorKind.invalidData,
+      retryable: false,
+    ),
+    404 => const StockPriceException(
+      '対象日の株価データがありません',
+      kind: StockPriceErrorKind.dataNotFound,
+      retryable: false,
+    ),
+    429 || 502 || 503 => const StockPriceException('株価データを一時的に取得できません'),
+    _ => const StockPriceException('株価データサービスでエラーが発生しました'),
+  };
+
+  static StockPriceException _invalidResponse() => const StockPriceException(
+    '株価データの形式が正しくありません',
+    kind: StockPriceErrorKind.invalidData,
+    retryable: false,
+  );
+
+  static String _formatDate(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-'
+      '${value.month.toString().padLeft(2, '0')}-'
+      '${value.day.toString().padLeft(2, '0')}';
 }

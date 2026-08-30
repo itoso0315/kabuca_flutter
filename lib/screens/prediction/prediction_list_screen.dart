@@ -7,6 +7,7 @@ import '../../services/prediction_resolution_service.dart';
 import '../../state/prediction_store.dart';
 import '../../state/point_wallet.dart';
 import '../../services/prediction_reward_service.dart';
+import '../../state/game_state.dart';
 import 'prediction_result_screen.dart';
 
 class PredictionListScreen extends StatefulWidget {
@@ -16,11 +17,19 @@ class PredictionListScreen extends StatefulWidget {
     this.resolutionService,
     this.pointWallet,
     this.rewardService,
+    this.gameState,
+    this.onPredict,
+    this.onOpenPack,
+    this.onOpenExchange,
   });
   final PredictionStore store;
   final PredictionResolutionService? resolutionService;
   final PointWallet? pointWallet;
   final PredictionRewardService? rewardService;
+  final GameState? gameState;
+  final VoidCallback? onPredict;
+  final VoidCallback? onOpenPack;
+  final VoidCallback? onOpenExchange;
 
   @override
   State<PredictionListScreen> createState() => _PredictionListScreenState();
@@ -69,7 +78,11 @@ class _PredictionListScreenState extends State<PredictionListScreen> {
       builder: (context, _) {
         final predictions = widget.store.predictions.reversed.toList();
         if (predictions.isEmpty) {
-          return const Center(child: Text('保存した予想はありません'));
+          final hasCards = (widget.gameState?.totalOwnedCardCount ?? 0) > 0;
+          return _PredictionEmptyState(
+            hasCards: hasCards,
+            onAction: hasCards ? widget.onPredict : widget.onOpenPack,
+          );
         }
         return Column(
           children: [
@@ -95,6 +108,8 @@ class _PredictionListScreenState extends State<PredictionListScreen> {
                               predictionStore: widget.store,
                               pointWallet: widget.pointWallet,
                               rewardService: widget.rewardService,
+                              onPredictAgain: widget.onPredict,
+                              onOpenExchange: widget.onOpenExchange,
                             ),
                           ),
                         )
@@ -105,6 +120,51 @@ class _PredictionListScreenState extends State<PredictionListScreen> {
           ],
         );
       },
+    ),
+  );
+}
+
+class _PredictionEmptyState extends StatelessWidget {
+  const _PredictionEmptyState({required this.hasCards, required this.onAction});
+
+  final bool hasCards;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        key: const Key('prediction-list-empty-state'),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.query_stats_rounded,
+            color: AppColors.mutedGold,
+            size: 48,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'まだ予想はありません',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            hasCards ? '持っている企業の未来を予想してみよう' : 'まずは企業カードを集めよう',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            key: Key(
+              hasCards
+                  ? 'prediction-list-predict-button'
+                  : 'prediction-list-open-pack-button',
+            ),
+            onPressed: onAction,
+            child: Text(hasCards ? '予想する' : 'パックを開ける'),
+          ),
+        ],
+      ),
     ),
   );
 }

@@ -33,13 +33,36 @@ class CompanyPredictionSelectScreen extends StatelessWidget {
         surfaceTintColor: Colors.transparent,
       ),
       body: companies.isEmpty
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(32),
-                child: Text(
-                  'まずはパックを開けて\n企業カードを集めよう',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 17, height: 1.6),
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  key: const Key('prediction-company-empty-state'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.insights_rounded,
+                      color: AppColors.mutedGold,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '予想できる企業がありません',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    const Text('まずは企業カードを集めよう'),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      key: const Key('prediction-empty-open-pack-button'),
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.inventory_2_outlined),
+                      label: const Text('パックを開ける'),
+                    ),
+                  ],
                 ),
               ),
             )

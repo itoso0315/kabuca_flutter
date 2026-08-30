@@ -73,6 +73,22 @@ class _PackExchangeScreenState extends State<PackExchangeScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            if (points == 0) ...[
+              const Row(
+                key: Key('pack-exchange-earning-hint'),
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.insights_rounded,
+                    size: 19,
+                    color: AppColors.deepGreen,
+                  ),
+                  SizedBox(width: 8),
+                  Flexible(child: Text('株価予想を当てるとポイントが貯まります')),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(22),

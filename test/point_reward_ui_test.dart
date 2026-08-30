@@ -112,6 +112,10 @@ void main() {
     expect(find.text('50 pt'), findsOneWidget);
     expect(gameState.packCount, 4);
     expect(find.text('スタートパックを1個獲得しました'), findsOneWidget);
+    expect(find.byKey(const Key('pack-exchange-open-button')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('pack-exchange-open-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('tearable-pack')), findsOneWidget);
   });
 }
 

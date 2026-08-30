@@ -97,10 +97,12 @@ class _MainScreenState extends State<MainScreen> {
         pointWallet: _pointWallet,
         rewardService: _rewardService,
         exchangeService: _exchangeService,
+        onShowCollection: () => setState(() => _selectedIndex = 1),
       ),
       CollectionScreen(
         gameState: widget.gameState,
         predictionStore: widget.predictionStore,
+        onOpenPack: () => setState(() => _selectedIndex = 0),
       ),
       ProfileScreen(
         gameState: widget.gameState,

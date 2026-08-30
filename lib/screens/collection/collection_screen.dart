@@ -13,9 +13,11 @@ class CollectionScreen extends StatefulWidget {
     super.key,
     required this.gameState,
     required this.predictionStore,
+    this.onOpenPack,
   });
   final GameState gameState;
   final PredictionStore predictionStore;
+  final VoidCallback? onOpenPack;
 
   @override
   State<CollectionScreen> createState() => _CollectionScreenState();
@@ -49,6 +51,10 @@ class _CollectionScreenState extends State<CollectionScreen> {
                     key: const Key('collection-progress'),
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
+                  if (registered == 0) ...[
+                    const SizedBox(height: 18),
+                    _CollectionEmptyState(onOpenPack: widget.onOpenPack),
+                  ],
                   const SizedBox(height: 16),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -107,6 +113,46 @@ class _CollectionScreenState extends State<CollectionScreen> {
         ],
       );
     },
+  );
+}
+
+class _CollectionEmptyState extends StatelessWidget {
+  const _CollectionEmptyState({this.onOpenPack});
+
+  final VoidCallback? onOpenPack;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const Key('collection-empty-state'),
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF1E8CE),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.style_outlined, color: Color(0xFFB39450), size: 38),
+        const SizedBox(width: 15),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'まだカードを持っていません',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              SizedBox(height: 3),
+              Text('パックを開けて企業を集めよう'),
+            ],
+          ),
+        ),
+        TextButton(
+          key: const Key('collection-open-pack-button'),
+          onPressed: onOpenPack,
+          child: const Text('パックを開ける'),
+        ),
+      ],
+    ),
   );
 }
 
