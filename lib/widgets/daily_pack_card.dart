@@ -86,9 +86,9 @@ class _PackVisual extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF08715C), Color(0xFF063B31)],
+            colors: [Color(0xFF123C31), Color(0xFF071A15), Color(0xFF030A08)],
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFFD8B45E), width: 1.2),
           boxShadow: const [
             BoxShadow(
@@ -111,7 +111,7 @@ class _PackVisual extends StatelessWidget {
               top: 28,
               left: 18,
               child: Text(
-                'OPEN  ›››  ─────────  ›',
+                '‹ ─── OPEN ─── ›',
                 style: TextStyle(
                   color: Color(0xFFFFE4A0),
                   fontSize: 7,
@@ -126,24 +126,34 @@ class _PackVisual extends StatelessWidget {
               right: 0,
               child: Column(
                 children: [
-                  Icon(
-                    Icons.trending_up_rounded,
-                    color: Color(0xFFFFD879),
-                    size: 42,
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.fromBorderSide(
+                        BorderSide(color: Color(0xFFFFD879)),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(
+                        Icons.trending_up_rounded,
+                        color: Color(0xFFFFD879),
+                        size: 30,
+                      ),
+                    ),
                   ),
                   SizedBox(height: 3),
                   Text(
                     'KABUCA',
                     style: TextStyle(
                       color: Color(0xFFFFE2A0),
-                      fontFamily: 'serif',
-                      fontSize: 25,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.7,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 4,
                     ),
                   ),
                   Text(
-                    'STOCK  ×  CARD',
+                    'START PACK',
                     style: TextStyle(
                       color: Color(0xFFFFE2A0),
                       fontSize: 6.5,
@@ -166,7 +176,7 @@ class _PackVisual extends StatelessWidget {
                   borderRadius: BorderRadius.circular(3),
                 ),
                 child: const Text(
-                  'START PACK',
+                  '3 CARDS',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0xFFFFE2A0),
@@ -209,30 +219,16 @@ class _PackPainter extends CustomPainter {
       ..cubicTo(111, 135, 133, 104, 174, 90);
     canvas.drawPath(chart, gold);
 
-    final whitePanel = Path()
-      ..moveTo(0, 188)
-      ..cubicTo(43, 161, 91, 174, 176, 128)
-      ..lineTo(176, 222)
-      ..cubicTo(121, 187, 72, 188, 0, 228)
-      ..close();
-    canvas.drawPath(whitePanel, Paint()..color = const Color(0xFFF6F0E2));
-
-    final upperEdge = Path()
-      ..moveTo(0, 188)
-      ..cubicTo(43, 161, 91, 174, 176, 128);
-    final lowerEdge = Path()
-      ..moveTo(0, 228)
-      ..cubicTo(72, 188, 121, 187, 176, 222);
-    canvas.drawPath(upperEdge, gold..strokeWidth = 2.2);
-    canvas.drawPath(lowerEdge, gold);
-
-    final candlePaint = Paint()..color = const Color(0x789FB673);
-    const heights = [24.0, 35.0, 20.0, 43.0, 29.0, 48.0];
-    for (var i = 0; i < heights.length; i++) {
-      final x = 13.0 + i * 17;
-      final top = 178 - heights[i];
-      canvas.drawLine(Offset(x + 4, top - 8), Offset(x + 4, 184), faintGold);
-      canvas.drawRect(Rect.fromLTWH(x, top, 8, heights[i]), candlePaint);
+    for (double y = 52; y < 226; y += 22) {
+      for (double x = -11; x < size.width; x += 22) {
+        final diamond = Path()
+          ..moveTo(x, y + 11)
+          ..lineTo(x + 11, y)
+          ..lineTo(x + 22, y + 11)
+          ..lineTo(x + 11, y + 22)
+          ..close();
+        canvas.drawPath(diamond, faintGold);
+      }
     }
   }
 

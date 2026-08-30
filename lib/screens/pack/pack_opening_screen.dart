@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -5,9 +7,9 @@ import '../../app/app_theme.dart';
 import '../../models/company_card.dart';
 import '../../screens/card/card_detail_screen.dart';
 import '../../state/game_state.dart';
-import '../../theme/company_theme.dart';
 import '../../widgets/tearable_pack.dart';
-import '../../widgets/card_rarity_style.dart';
+import '../../widgets/company_card_artwork.dart';
+import '../../widgets/kabuca_card_back.dart';
 
 class PackOpeningRoute extends MaterialPageRoute<List<CompanyCard>> {
   PackOpeningRoute({
@@ -122,15 +124,10 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
                               behavior: HitTestBehavior.opaque,
                               onTap: _handleCardTap,
                               onLongPress: _openCardDetail,
-                              child: ScaleTransition(
-                                scale: reveal,
-                                child: FadeTransition(
-                                  opacity: reveal,
-                                  child: _CompanyCardView(
-                                    key: ValueKey(widget.cards[_cardIndex].id),
-                                    card: widget.cards[_cardIndex],
-                                  ),
-                                ),
+                              child: _CardFlipReveal(
+                                key: ValueKey(widget.cards[_cardIndex].id),
+                                animation: _controller,
+                                card: widget.cards[_cardIndex],
                               ),
                             ),
                             const SizedBox(height: 22),
@@ -351,115 +348,39 @@ class _PreludeLine extends StatelessWidget {
   );
 }
 
-class _CompanyCardView extends StatelessWidget {
-  const _CompanyCardView({super.key, required this.card});
+class _CardFlipReveal extends StatelessWidget {
+  const _CardFlipReveal({
+    super.key,
+    required this.animation,
+    required this.card,
+  });
 
+  final Animation<double> animation;
   final CompanyCard card;
 
   @override
-  Widget build(BuildContext context) {
-    final style = CardRarityStyle.of(card.rarity);
-    final company = CompanyTheme.forCompany(card.companyId);
-    return Semantics(
-      label: '${card.companyName} ${card.ticker} ${card.rarity.label}',
-      child: Container(
-        width: 250,
-        height: 350,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8F1DF),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: style.border, width: 3),
-          boxShadow: [
-            BoxShadow(
-              color: style.border.withValues(alpha: style.glowAlpha),
-              blurRadius: 36,
-              spreadRadius: 5,
-            ),
-          ],
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: animation,
+    builder: (context, _) {
+      final eased = Curves.easeOutCubic.transform(animation.value);
+      final angle = math.pi * (1 - eased);
+      final showFront = angle <= math.pi / 2;
+      final transform = Matrix4.identity()
+        ..setEntry(3, 2, .0014)
+        ..translateByDouble(0, 28 * (1 - eased), 0, 1)
+        ..rotateY(showFront ? angle : angle + math.pi);
+      return Opacity(
+        opacity: (.2 + eased * .8).clamp(0, 1),
+        child: Transform(
+          alignment: Alignment.center,
+          transform: transform,
+          child: showFront
+              ? CompanyCardArtwork(card: card, width: 250, height: 350)
+              : const KabucaCardBack(),
         ),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [company.secondaryColor, company.baseColor],
-            ),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: style.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                card.rarity.label,
-                key: const Key('card-rarity'),
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                  color: style.accent,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Icon(
-                company.abstractSymbol,
-                color: company.accentColor,
-                size: 54,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                card.companyName,
-                key: const Key('card-company-name'),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${card.ticker}  |  ${card.industry}',
-                key: const Key('card-metadata'),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: style.accent,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                card.title,
-                key: const Key('card-title'),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: style.accent,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                card.description,
-                key: const Key('card-description'),
-                textAlign: TextAlign.center,
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  height: 1.45,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+      );
+    },
+  );
 }
 
 class _GlowBackground extends StatelessWidget {
@@ -470,7 +391,7 @@ class _GlowBackground extends StatelessWidget {
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: RadialGradient(
-          colors: [Color(0xFF3E8069), AppColors.deepGreen],
+          colors: [Color(0xFF21483C), Color(0xFF06110E)],
           radius: 0.8,
         ),
       ),

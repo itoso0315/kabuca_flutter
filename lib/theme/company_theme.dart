@@ -6,12 +6,14 @@ class CompanyTheme {
     required this.secondaryColor,
     required this.accentColor,
     required this.abstractSymbol,
+    required this.artworkKind,
   });
 
   final Color baseColor;
   final Color secondaryColor;
   final Color accentColor;
   final IconData abstractSymbol;
+  final CompanyArtworkKind artworkKind;
 
   static CompanyTheme forCompany(String companyId) {
     final base = _baseColors[companyId] ?? const Color(0xFF174A3A);
@@ -20,6 +22,7 @@ class CompanyTheme {
       secondaryColor: Color.lerp(base, Colors.white, 0.24)!,
       accentColor: Color.lerp(base, const Color(0xFFFFEDC0), 0.72)!,
       abstractSymbol: _symbols[companyId] ?? Icons.business_rounded,
+      artworkKind: _artworkKinds[companyId] ?? CompanyArtworkKind.geometry,
     );
   }
 
@@ -68,4 +71,38 @@ class CompanyTheme {
     'mhi': Icons.rocket_launch_rounded,
     'inpex': Icons.energy_savings_leaf_rounded,
   };
+
+  static const _artworkKinds = <String, CompanyArtworkKind>{
+    'toyota': CompanyArtworkKind.motion,
+    'nintendo': CompanyArtworkKind.play,
+    'sony': CompanyArtworkKind.wave,
+    'mufg': CompanyArtworkKind.city,
+    'ntt': CompanyArtworkKind.network,
+    'keyence': CompanyArtworkKind.network,
+    'fast_retailing': CompanyArtworkKind.geometry,
+    'itochu': CompanyArtworkKind.city,
+    'nyk': CompanyArtworkKind.wave,
+    'tel': CompanyArtworkKind.network,
+    'advantest': CompanyArtworkKind.network,
+    'ajinomoto': CompanyArtworkKind.flow,
+    'kagome': CompanyArtworkKind.flow,
+    'nitori': CompanyArtworkKind.geometry,
+    'saizeriya': CompanyArtworkKind.flow,
+    'oriental_land': CompanyArtworkKind.play,
+    'shiseido': CompanyArtworkKind.flow,
+    'takeda': CompanyArtworkKind.network,
+    'mhi': CompanyArtworkKind.motion,
+    'inpex': CompanyArtworkKind.layers,
+  };
+}
+
+enum CompanyArtworkKind {
+  motion,
+  play,
+  wave,
+  city,
+  network,
+  flow,
+  layers,
+  geometry,
 }

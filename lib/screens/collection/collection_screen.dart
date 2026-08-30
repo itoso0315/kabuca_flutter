@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../app/app_theme.dart';
 import '../../data/card_catalog.dart';
 import '../../models/company_card.dart';
 import '../card/card_detail_screen.dart';
 import '../../state/game_state.dart';
 import '../../state/prediction_store.dart';
-import '../../theme/company_theme.dart';
 import '../../widgets/card_rarity_style.dart';
+import '../../widgets/company_card_artwork.dart';
 
 class CollectionScreen extends StatefulWidget {
   const CollectionScreen({
@@ -79,7 +78,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
               key: const Key('collection-grid'),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                childAspectRatio: 0.64,
+                childAspectRatio: 2.5 / 3.5,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
               ),
@@ -146,79 +145,87 @@ class _CatalogCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final owned = ownedCount > 0;
-    final company = CompanyTheme.forCompany(card.companyId);
     final rarity = CardRarityStyle.of(card.rarity);
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: Stack(
         key: Key('catalog-card-${card.id}'),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: owned ? company.baseColor : const Color(0xFFE3E5E2),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: owned ? rarity.border : AppColors.outline,
-            width: owned ? 2 : 1,
-          ),
-          boxShadow: owned
-              ? const [
-                  BoxShadow(
-                    color: Color(0x18174A3A),
-                    blurRadius: 10,
-                    offset: Offset(0, 5),
+        fit: StackFit.expand,
+        children: [
+          if (owned)
+            FittedBox(
+              fit: BoxFit.fill,
+              child: CompanyCardArtwork(
+                card: card,
+                width: 175,
+                height: 245,
+                compact: true,
+              ),
+            )
+          else
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF242927), Color(0xFF0B0E0D)],
+                ),
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: rarity.border.withValues(alpha: .42)),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.lock_outline_rounded,
+                    color: rarity.border.withValues(alpha: .48),
+                    size: 34,
                   ),
-                ]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              card.rarity.label,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                color: owned ? rarity.accent : AppColors.textSecondary,
-                fontWeight: FontWeight.w800,
+                  const SizedBox(height: 10),
+                  Text(
+                    '？？？',
+                    style: TextStyle(
+                      color: rarity.border.withValues(alpha: .54),
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    card.rarity.label,
+                    style: TextStyle(
+                      color: rarity.border.withValues(alpha: .64),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const Spacer(),
-            Icon(
-              owned ? company.abstractSymbol : Icons.lock_outline_rounded,
-              color: owned ? company.accentColor : Colors.grey,
-              size: 38,
-            ),
-            const Spacer(),
-            Text(
-              owned ? card.companyName : '？？？',
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: owned ? Colors.white : AppColors.textSecondary,
-                fontWeight: FontWeight.w700,
+          if (owned)
+            Positioned(
+              right: 7,
+              bottom: 7,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xDD07100D),
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(
+                    color: rarity.border.withValues(alpha: .7),
+                  ),
+                ),
+                child: Text(
+                  '×$ownedCount',
+                  style: TextStyle(
+                    color: rarity.accent,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 5),
-            Text(
-              '${card.ticker} ・ ${card.industry}',
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              style: TextStyle(
-                color: owned ? company.accentColor : AppColors.textSecondary,
-                fontSize: 10,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              owned ? '所持 ×$ownedCount' : '未取得',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: owned ? rarity.accent : AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }

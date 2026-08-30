@@ -40,96 +40,115 @@ class CardDetailScreen extends StatelessWidget {
         foregroundColor: AppColors.deepGreen,
         surfaceTintColor: Colors.transparent,
       ),
-      body: ListView(
+      body: SingleChildScrollView(
         key: const Key('card-detail-screen'),
         padding: const EdgeInsets.fromLTRB(24, 18, 24, 40),
-        children: [
-          Center(child: CompanyCardArtwork(card: card)),
-          const SizedBox(height: 30),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  card.companyName,
-                  style: Theme.of(context).textTheme.headlineMedium,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 12),
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    companyTheme.baseColor.withValues(alpha: .9),
+                    const Color(0xFF07100D),
+                  ],
+                  radius: 1.05,
                 ),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(color: rarity.border.withValues(alpha: .5)),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: rarity.border.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: rarity.border),
-                ),
-                child: Text(
-                  card.rarity.label,
-                  style: TextStyle(
-                    color: rarity.border,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 7),
-          Text(
-            '${card.ticker}  ・  ${card.industry}',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 24),
-          _InformationPanel(card: card),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.outline),
-            ),
-            child: Text(
-              '所持 ×${_ownedCount(card.id)}',
-              key: const Key('detail-owned-count'),
-              style: const TextStyle(
-                color: AppColors.deepGreen,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+              child: Center(
+                child: CompanyCardArtwork(card: card, width: 294, height: 412),
               ),
             ),
-          ),
-          const SizedBox(height: 30),
-          Text('この企業のカード', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              for (final related in CardCatalog.cards.where(
-                (item) => item.companyId == card.companyId,
-              ))
+            const SizedBox(height: 30),
+            Row(
+              children: [
                 Expanded(
-                  child: _RarityStatus(
-                    card: related,
-                    owned: _ownedCount(related.id) > 0,
+                  child: Text(
+                    card.companyName,
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
                 ),
-            ],
-          ),
-          if (predictionStore != null && gameState.owns(card.id)) ...[
-            const SizedBox(height: 28),
-            OutlinedButton.icon(
-              key: const Key('predict-this-company-button'),
-              onPressed: () => _openPrediction(context),
-              icon: const Icon(Icons.insights_rounded),
-              label: const Text('この企業を予想する'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: companyTheme.baseColor,
-                side: BorderSide(color: companyTheme.baseColor),
-                minimumSize: const Size.fromHeight(46),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: rarity.border.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(color: rarity.border),
+                  ),
+                  child: Text(
+                    card.rarity.label,
+                    style: TextStyle(
+                      color: rarity.border,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            Text(
+              '${card.ticker}  ・  ${card.industry}',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 24),
+            _InformationPanel(card: card),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.outline),
+              ),
+              child: Text(
+                '所持 ×${_ownedCount(card.id)}',
+                key: const Key('detail-owned-count'),
+                style: const TextStyle(
+                  color: AppColors.deepGreen,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
+            const SizedBox(height: 30),
+            Text('この企業のカード', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                for (final related in CardCatalog.cards.where(
+                  (item) => item.companyId == card.companyId,
+                ))
+                  Expanded(
+                    child: _RarityStatus(
+                      card: related,
+                      owned: _ownedCount(related.id) > 0,
+                    ),
+                  ),
+              ],
+            ),
+            if (predictionStore != null && gameState.owns(card.id)) ...[
+              const SizedBox(height: 28),
+              OutlinedButton.icon(
+                key: const Key('predict-this-company-button'),
+                onPressed: () => _openPrediction(context),
+                icon: const Icon(Icons.insights_rounded),
+                label: const Text('この企業を予想する'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: companyTheme.baseColor,
+                  side: BorderSide(color: companyTheme.baseColor),
+                  minimumSize: const Size.fromHeight(46),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

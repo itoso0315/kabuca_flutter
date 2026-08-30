@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../models/company_card.dart';
@@ -9,95 +11,383 @@ class CompanyCardArtwork extends StatelessWidget {
     super.key,
     required this.card,
     this.width = 286,
-    this.height = 402,
+    this.height = 400,
+    this.compact = false,
   });
 
   final CompanyCard card;
   final double width;
   final double height;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final company = CompanyTheme.forCompany(card.companyId);
     final rarity = CardRarityStyle.of(card.rarity);
-    return Container(
-      key: const Key('card-artwork-surface'),
-      width: width,
-      height: height,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F1DF),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: rarity.border, width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: rarity.border.withValues(alpha: rarity.glowAlpha),
-            blurRadius: card.rarity == CardRarity.ur ? 34 : 24,
-            spreadRadius: card.rarity.index >= CardRarity.sr.index ? 3 : 0,
+    final radius = compact ? 10.0 : 15.0;
+    return RepaintBoundary(
+      child: Semantics(
+        label: '${card.companyName} ${card.ticker} ${card.rarity.label}',
+        image: true,
+        child: Container(
+          key: const Key('card-artwork-surface'),
+          width: width,
+          height: height,
+          padding: EdgeInsets.all(compact ? 4 : 7),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [rarity.accent, rarity.border, const Color(0xFF604820)],
+            ),
+            border: Border.all(color: rarity.border, width: 2),
+            borderRadius: BorderRadius.circular(radius + 4),
+            boxShadow: [
+              BoxShadow(
+                color: rarity.border.withValues(alpha: rarity.glowAlpha),
+                blurRadius: card.rarity == CardRarity.ur ? 28 : 15,
+                spreadRadius: card.rarity.index >= CardRarity.sr.index ? 2 : 0,
+              ),
+              const BoxShadow(
+                color: Color(0x66000000),
+                blurRadius: 12,
+                offset: Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [company.secondaryColor, company.baseColor],
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.lerp(
+                    company.secondaryColor,
+                    const Color(0xFF141817),
+                    .58,
+                  )!,
+                  Color.lerp(company.baseColor, const Color(0xFF050B09), .48)!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(radius),
+              border: Border.all(color: rarity.border.withValues(alpha: .85)),
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: CompanyArtworkPainter(
+                      theme: company,
+                      rarity: card.rarity,
+                    ),
+                  ),
+                ),
+                if (card.rarity.index >= CardRarity.sr.index)
+                  Positioned.fill(child: _CardSheen(rarity: card.rarity)),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    compact ? 9 : 15,
+                    compact ? 8 : 13,
+                    compact ? 9 : 15,
+                    compact ? 7 : 11,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            card.ticker,
+                            key: const Key('card-metadata'),
+                            style: TextStyle(
+                              color: rarity.accent,
+                              fontSize: compact ? 9 : 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: compact ? 5 : 7,
+                              vertical: compact ? 2 : 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0x99050A08),
+                              border: Border.all(color: rarity.border),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              card.rarity.label,
+                              key: const Key('card-rarity'),
+                              style: TextStyle(
+                                color: rarity.accent,
+                                fontSize: compact ? 9 : 11,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: compact ? 5 : 8),
+                      Text(
+                        card.companyName,
+                        key: const Key('card-company-name'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: compact ? 12 : 19,
+                          fontWeight: FontWeight.w700,
+                          height: 1.12,
+                        ),
+                      ),
+                      const Spacer(),
+                      Center(
+                        child: Container(
+                          width: compact ? 48 : 82,
+                          height: compact ? 48 : 82,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0x44000000),
+                            border: Border.all(
+                              color: company.accentColor.withValues(alpha: .72),
+                            ),
+                          ),
+                          child: Icon(
+                            company.abstractSymbol,
+                            color: company.accentColor,
+                            size: compact ? 27 : 45,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: compact ? 7 : 11,
+                          vertical: compact ? 7 : 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xB8070D0B),
+                          border: Border(
+                            top: BorderSide(
+                              color: rarity.border.withValues(alpha: .8),
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              card.title,
+                              key: const Key('card-title'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: rarity.accent,
+                                fontSize: compact ? 9 : 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (!compact) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                card.industry,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: .7),
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: compact ? 4 : 7),
+                      Text(
+                        'K A B U C A',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: rarity.accent,
+                          fontSize: compact ? 6 : 8,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: compact ? 1 : 2,
+                        ),
+                      ),
+                      const SizedBox.shrink(key: Key('card-description')),
+                    ],
+                  ),
+                ),
+                if (card.rarity == CardRarity.ur)
+                  const Positioned.fill(child: _UltraFrame()),
+                Positioned(
+                  width: 0,
+                  height: 0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [company.secondaryColor, company.baseColor],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: rarity.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              card.rarity.label,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                color: rarity.accent,
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2.5,
-              ),
-            ),
-            const Spacer(),
-            Icon(company.abstractSymbol, color: company.accentColor, size: 72),
-            const Spacer(),
-            Text(
-              card.companyName,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                height: 1.2,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${card.ticker}  |  ${card.industry}',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: company.accentColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              card.title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: rarity.accent,
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
         ),
       ),
     );
   }
+}
+
+class _CardSheen extends StatelessWidget {
+  const _CardSheen({required this.rarity});
+  final CardRarity rarity;
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: const Alignment(-1.2, -1),
+          end: const Alignment(1.1, 1),
+          colors: [
+            Colors.transparent,
+            Colors.white.withValues(alpha: rarity == CardRarity.ur ? .13 : .07),
+            Colors.transparent,
+          ],
+          stops: const [.32, .5, .68],
+        ),
+      ),
+    ),
+  );
+}
+
+class _UltraFrame extends StatelessWidget {
+  const _UltraFrame();
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: Padding(
+      padding: const EdgeInsets.all(6),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xAAFFE39B)),
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    ),
+  );
+}
+
+class CompanyArtworkPainter extends CustomPainter {
+  const CompanyArtworkPainter({required this.theme, required this.rarity});
+  final CompanyTheme theme;
+  final CardRarity rarity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final line = Paint()
+      ..color = theme.accentColor.withValues(alpha: .14)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final fill = Paint()..color = theme.secondaryColor.withValues(alpha: .12);
+    switch (theme.artworkKind) {
+      case CompanyArtworkKind.city:
+        for (var i = 0; i < 8; i++) {
+          final w = size.width / 10;
+          final h = size.height * (.13 + (i % 4) * .045);
+          canvas.drawRect(
+            Rect.fromLTWH(i * w * 1.35, size.height * .67 - h, w, h),
+            fill,
+          );
+        }
+      case CompanyArtworkKind.network:
+        final nodes = List.generate(
+          9,
+          (i) => Offset(
+            size.width * (.12 + (i % 3) * .37),
+            size.height * (.24 + (i ~/ 3) * .2),
+          ),
+        );
+        for (var i = 0; i < nodes.length - 1; i++) {
+          canvas.drawLine(nodes[i], nodes[i + 1], line);
+        }
+        for (final node in nodes) {
+          canvas.drawCircle(node, 2.3, fill);
+        }
+      case CompanyArtworkKind.wave:
+        for (var i = 0; i < 5; i++) {
+          final path = Path()..moveTo(0, size.height * (.3 + i * .09));
+          for (double x = 0; x <= size.width; x += 8) {
+            path.lineTo(
+              x,
+              size.height * (.3 + i * .09) + math.sin(x * .05 + i) * 10,
+            );
+          }
+          canvas.drawPath(path, line);
+        }
+      case CompanyArtworkKind.motion:
+        for (var i = 0; i < 8; i++) {
+          canvas.drawLine(
+            Offset(-20, size.height * (.35 + i * .055)),
+            Offset(size.width * .9, size.height * (.13 + i * .04)),
+            line,
+          );
+        }
+      case CompanyArtworkKind.layers:
+        for (var i = 0; i < 7; i++) {
+          final path = Path()
+            ..moveTo(0, size.height * (.38 + i * .06))
+            ..quadraticBezierTo(
+              size.width * .5,
+              size.height * (.32 + i * .07),
+              size.width,
+              size.height * (.4 + i * .055),
+            );
+          canvas.drawPath(path, line);
+        }
+      case CompanyArtworkKind.flow:
+        for (var i = 0; i < 5; i++) {
+          final path = Path()
+            ..moveTo(size.width * (.1 + i * .18), size.height)
+            ..cubicTo(
+              size.width * (.35 + i * .08),
+              size.height * .68,
+              size.width * (.05 + i * .2),
+              size.height * .38,
+              size.width * (.2 + i * .15),
+              0,
+            );
+          canvas.drawPath(path, line);
+        }
+      case CompanyArtworkKind.play:
+        for (var i = 0; i < 6; i++) {
+          final rect = Rect.fromCenter(
+            center: Offset(
+              size.width * (.2 + (i % 3) * .3),
+              size.height * (.32 + (i ~/ 3) * .24),
+            ),
+            width: 28 + i * 2,
+            height: 28 + i * 2,
+          );
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(rect, const Radius.circular(7)),
+            line,
+          );
+        }
+      case CompanyArtworkKind.geometry:
+        for (var i = 0; i < 7; i++) {
+          canvas.drawRect(
+            Rect.fromCenter(
+              center: Offset(size.width / 2, size.height / 2),
+              width: 45 + i * 25,
+              height: 45 + i * 25,
+            ),
+            line,
+          );
+        }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CompanyArtworkPainter oldDelegate) =>
+      oldDelegate.theme != theme || oldDelegate.rarity != rarity;
 }

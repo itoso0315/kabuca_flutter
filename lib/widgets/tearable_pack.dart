@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../app/app_theme.dart';
+import 'kabuca_card_back.dart';
 
 class TearablePack extends StatefulWidget {
   const TearablePack({super.key, required this.onOpened});
@@ -208,6 +208,15 @@ class _PackLayers extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          if (progress > .7)
+            Positioned(
+              left: 35,
+              top: 56 - completionLift * 12,
+              child: Opacity(
+                opacity: ((progress - .7) / .3).clamp(0, 1) * .9,
+                child: const KabucaCardBack(width: 210, height: 294),
+              ),
+            ),
           if (progress < 1)
             Positioned(
               left: tearX,
@@ -334,10 +343,11 @@ class _PackBody extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF08715C), Color(0xFF032F27)],
+          colors: [Color(0xFF123C31), Color(0xFF071B16), Color(0xFF030A08)],
+          stops: [0, .58, 1],
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.mutedGold, width: 1.5),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF8D6C2E), width: 1.2),
         boxShadow: const [
           BoxShadow(
             color: Color(0x66102C24),
@@ -351,19 +361,31 @@ class _PackBody extends StatelessWidget {
           const Positioned.fill(
             child: CustomPaint(painter: _PackBodyPainter()),
           ),
-          for (final top in [10.0, 17.0, 24.0])
+          for (final top in [7.0, 11.0, 15.0, 19.0, 23.0])
             Positioned(
-              left: 8,
-              right: 8,
+              left: 0,
+              right: 0,
               top: top,
-              child: const Divider(height: 1, color: Color(0x779AD8C8)),
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFF70501D),
+                      Color(0xFFFFE8A3),
+                      Color(0xFF8C6827),
+                    ],
+                  ),
+                ),
+                child: SizedBox(height: 1.4),
+              ),
             ),
           const Positioned(
-            left: 40,
-            right: 18,
+            left: 20,
+            right: 20,
             top: 42,
             child: Text(
-              'OPEN  ›››  ─────────────  ›',
+              '‹  ‹  ─────  OPEN  ─────  ›  ›',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: Color(0xFFFFE09A),
                 fontSize: 9,
@@ -376,24 +398,34 @@ class _PackBody extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.trending_up_rounded,
-                  color: Color(0xFFFFD879),
-                  size: 68,
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.fromBorderSide(
+                      BorderSide(color: Color(0xFFFFD879)),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Icon(
+                      Icons.trending_up_rounded,
+                      color: Color(0xFFFFD879),
+                      size: 42,
+                    ),
+                  ),
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: 15),
                 Text(
                   'KABUCA',
                   style: TextStyle(
                     color: Color(0xFFFFE2A0),
-                    fontFamily: 'serif',
-                    fontSize: 38,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 2.5,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 6,
                   ),
                 ),
                 Text(
-                  'STOCK  ×  CARD',
+                  'START PACK',
                   style: TextStyle(
                     color: Color(0xFFFFE2A0),
                     fontSize: 9,
@@ -405,30 +437,38 @@ class _PackBody extends StatelessWidget {
             ),
           ),
           const Positioned(
-            left: 52,
-            right: 52,
-            bottom: 31,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border.fromBorderSide(
-                  BorderSide(color: AppColors.mutedGold),
-                ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'START PACK',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFFFFE2A0),
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 2,
-                  ),
-                ),
+            left: 0,
+            right: 0,
+            bottom: 37,
+            child: Text(
+              '3 CARDS',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFFFFE2A0),
+                fontSize: 8,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2,
               ),
             ),
           ),
+          for (final bottom in [7.0, 11.0, 15.0, 19.0, 23.0])
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: bottom,
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0xFF70501D),
+                      Color(0xFFFFE8A3),
+                      Color(0xFF8C6827),
+                    ],
+                  ),
+                ),
+                child: SizedBox(height: 1.4),
+              ),
+            ),
         ],
       ),
     );
@@ -545,21 +585,28 @@ class _PackBodyPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0x35D8B45E)
+      ..color = const Color(0x20D8B45E)
       ..style = PaintingStyle.stroke;
-    for (var i = 1; i < 7; i++) {
-      final x = size.width * i / 7;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    for (double y = 76; y < size.height - 40; y += 28) {
+      for (double x = -14; x < size.width; x += 28) {
+        final diamond = Path()
+          ..moveTo(x, y + 14)
+          ..lineTo(x + 14, y)
+          ..lineTo(x + 28, y + 14)
+          ..lineTo(x + 14, y + 28)
+          ..close();
+        canvas.drawPath(diamond, paint);
+      }
     }
     final chart = Path()
-      ..moveTo(0, size.height * 0.77)
+      ..moveTo(0, size.height * 0.82)
       ..cubicTo(
         size.width * 0.25,
-        size.height * 0.72,
+        size.height * 0.78,
         size.width * 0.46,
-        size.height * 0.5,
+        size.height * 0.62,
         size.width,
-        size.height * 0.24,
+        size.height * 0.38,
       );
     canvas.drawPath(
       chart,
