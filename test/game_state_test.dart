@@ -22,6 +22,16 @@ void main() {
     expect(restored.ownedCount(card.id), 2);
     expect(restored.totalOwnedCardCount, 2);
     expect(restored.registeredCardCount, 1);
+
+    await restored.resetDevelopmentData();
+    expect(restored.packCount, 3);
+    expect(restored.totalOwnedCardCount, 0);
+    expect(restored.registeredCardCount, 0);
+
+    final resetRestored = await GameState.load(storage: storage);
+    expect(resetRestored.packCount, 3);
+    expect(resetRestored.totalOwnedCardCount, 0);
+    expect(resetRestored.registeredCardCount, 0);
   });
 }
 

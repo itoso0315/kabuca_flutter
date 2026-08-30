@@ -53,7 +53,10 @@ class _MainScreenState extends State<MainScreen> {
         predictionStore: widget.predictionStore,
       ),
       CollectionScreen(gameState: widget.gameState),
-      const ProfileScreen(),
+      ProfileScreen(
+        gameState: widget.gameState,
+        predictionStore: widget.predictionStore,
+      ),
     ];
     return Scaffold(
       body: SafeArea(

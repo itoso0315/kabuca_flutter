@@ -48,6 +48,8 @@ class SharedPreferencesGameStorage implements GameStorage {
 }
 
 class GameState extends ChangeNotifier {
+  static const initialPackCount = 3;
+
   GameState._(this._storage, this._packCount, Map<String, int> cardCounts)
     : _cardCounts = Map.of(cardCounts);
 
@@ -72,12 +74,15 @@ class GameState extends ChangeNotifier {
     ]);
     return GameState._(
       targetStorage,
-      results[0] as int? ?? 3,
+      results[0] as int? ?? initialPackCount,
       results[1]! as Map<String, int>,
     );
   }
 
-  static GameState memory({int packCount = 3, Map<String, int>? cardCounts}) {
+  static GameState memory({
+    int packCount = initialPackCount,
+    Map<String, int>? cardCounts,
+  }) {
     return GameState._(_MemoryGameStorage(), packCount, cardCounts ?? const {});
   }
 
@@ -94,6 +99,16 @@ class GameState extends ChangeNotifier {
     }
     notifyListeners();
     await _storage.writeCardCounts(_cardCounts);
+  }
+
+  Future<void> resetDevelopmentData() async {
+    _packCount = initialPackCount;
+    _cardCounts.clear();
+    notifyListeners();
+    await Future.wait<void>([
+      _storage.writePackCount(_packCount),
+      _storage.writeCardCounts(_cardCounts),
+    ]);
   }
 }
 

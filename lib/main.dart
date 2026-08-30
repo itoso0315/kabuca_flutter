@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import 'app/app.dart';
 import 'screens/splash/title_screen.dart';
@@ -36,7 +36,10 @@ Future<_AppDependencies> _loadDependencies() async {
 }
 
 class _AppDependencies {
-  const _AppDependencies({required this.gameState, required this.predictionStore});
+  const _AppDependencies({
+    required this.gameState,
+    required this.predictionStore,
+  });
 
   final GameState gameState;
   final PredictionStore predictionStore;

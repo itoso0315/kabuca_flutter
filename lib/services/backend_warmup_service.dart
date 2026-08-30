@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:http/http.dart' as http;
 
 enum BackendWarmupStatus { ready, failed, timedOut, skipped }
@@ -12,8 +14,8 @@ class HttpBackendWarmupService implements BackendWarmupService {
     String? baseUrl,
     this.timeout = const Duration(milliseconds: 2800),
   }) : _client = client ?? http.Client(),
-       baseUrl = baseUrl ??
-           const String.fromEnvironment('KABUCA_BACKEND_BASE_URL');
+       baseUrl =
+           baseUrl ?? const String.fromEnvironment('KABUCA_BACKEND_BASE_URL');
 
   final http.Client _client;
   final String baseUrl;
@@ -25,7 +27,10 @@ class HttpBackendWarmupService implements BackendWarmupService {
     try {
       final base = Uri.parse(baseUrl.endsWith('/') ? baseUrl : '$baseUrl/');
       final response = await _client
-          .get(base.resolve('health'), headers: const {'Accept': 'application/json'})
+          .get(
+            base.resolve('health'),
+            headers: const {'Accept': 'application/json'},
+          )
           .timeout(timeout);
       return response.statusCode >= 200 && response.statusCode < 300
           ? BackendWarmupStatus.ready

@@ -95,6 +95,12 @@ class PredictionStore extends ChangeNotifier {
     await _storage.writePredictions(_predictions);
     return prediction;
   }
+
+  Future<void> resetDevelopmentData() async {
+    _predictions.clear();
+    notifyListeners();
+    await _storage.writePredictions(_predictions);
+  }
 }
 
 class _MemoryPredictionStorage implements PredictionStorage {

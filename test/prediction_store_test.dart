@@ -59,6 +59,10 @@ void main() {
       ),
       isTrue,
     );
+
+    await restored.resetDevelopmentData();
+    expect(restored.predictions, isEmpty);
+    expect((await PredictionStore.load(storage: storage)).predictions, isEmpty);
   });
 
   test('同一企業・同一期間のwaitingは重複不可、別期間は登録可能', () async {

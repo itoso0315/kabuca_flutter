@@ -30,7 +30,8 @@ class _TitleScreenState<T> extends State<TitleScreen<T>>
   late final AnimationController _animation;
   T? _initializedValue;
   bool _finished = false;
-  BackendWarmupStatus? _warmupStatus;
+  Timer? _minimumTimer;
+  Timer? _maximumTimer;
 
   @override
   void initState() {
@@ -44,23 +45,33 @@ class _TitleScreenState<T> extends State<TitleScreen<T>>
 
   Future<void> _start() async {
     final initialization = widget.initialize();
-    final minimum = Future<void>.delayed(widget.minimumDuration);
-    final warmup = widget.warmupService.warmUp().then((status) {
-      _warmupStatus = status;
-    });
-    final normalGate = Future.wait<void>([minimum, warmup]);
-    await Future.any<void>([
-      normalGate,
-      Future<void>.delayed(widget.maximumDuration),
-    ]);
+    final minimum = Completer<void>();
+    _minimumTimer = Timer(widget.minimumDuration, minimum.complete);
+    final maximum = Completer<void>();
+    _maximumTimer = Timer(widget.maximumDuration, maximum.complete);
+    final warmup = _warmUp();
+    final normalGate = Future.wait<void>([minimum.future, warmup]);
+    await Future.any<void>([normalGate, maximum.future]);
+    _minimumTimer?.cancel();
+    _maximumTimer?.cancel();
     final value = await initialization;
     if (!mounted || _finished) return;
     _finished = true;
     setState(() => _initializedValue = value);
   }
 
+  Future<void> _warmUp() async {
+    try {
+      await widget.warmupService.warmUp();
+    } catch (_) {
+      // Warm-up is best effort. App startup must continue while offline.
+    }
+  }
+
   @override
   void dispose() {
+    _minimumTimer?.cancel();
+    _maximumTimer?.cancel();
     _animation.dispose();
     super.dispose();
   }
@@ -82,7 +93,10 @@ class _TitleScreenState<T> extends State<TitleScreen<T>>
             child: AnimatedBuilder(
               animation: _animation,
               builder: (context, child) => Transform.translate(
-                offset: Offset(0, 10 * (1 - Curves.easeOut.transform(_animation.value))),
+                offset: Offset(
+                  0,
+                  10 * (1 - Curves.easeOut.transform(_animation.value)),
+                ),
                 child: child,
               ),
               child: const _TitleContent(),
@@ -140,9 +154,18 @@ class _CardMark extends StatelessWidget {
     child: Stack(
       alignment: Alignment.center,
       children: [
-        Transform.rotate(angle: -0.16, child: const _MiniCard(color: Color(0xFF789888))),
-        Transform.rotate(angle: 0.16, child: const _MiniCard(color: Color(0xFFB89A58))),
-        const _MiniCard(color: AppColors.deepGreen, foreground: AppColors.mutedGold),
+        Transform.rotate(
+          angle: -0.16,
+          child: const _MiniCard(color: Color(0xFF789888)),
+        ),
+        Transform.rotate(
+          angle: 0.16,
+          child: const _MiniCard(color: Color(0xFFB89A58)),
+        ),
+        const _MiniCard(
+          color: AppColors.deepGreen,
+          foreground: AppColors.mutedGold,
+        ),
       ],
     ),
   );
@@ -163,7 +186,11 @@ class _MiniCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       border: Border.all(color: foreground.withValues(alpha: 0.75)),
       boxShadow: const [
-        BoxShadow(color: Color(0x1F002A20), blurRadius: 16, offset: Offset(0, 7)),
+        BoxShadow(
+          color: Color(0x1F002A20),
+          blurRadius: 16,
+          offset: Offset(0, 7),
+        ),
       ],
     ),
     child: Icon(Icons.trending_up_rounded, color: foreground, size: 28),
