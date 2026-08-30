@@ -61,14 +61,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/toyota_card.png
-    - assets/ntt_card.png
-    - assets/mufg_card.png
-    - assets/sony_card.png
-    - assets/inpex_card.png
-    - assets/keyence_card.png
-    - assets/softbank_card.png
-    - assets/recruit_card.png
+    - assets/company_art/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -15,14 +15,25 @@ class CompanyArtworkAsset {
 /// Add one entry here when a new company artwork asset becomes available.
 abstract final class CompanyArtworkRegistry {
   static const _assets = <String, CompanyArtworkAsset>{
-    'toyota': CompanyArtworkAsset(assetPath: 'assets/toyota_card.png'),
-    'ntt': CompanyArtworkAsset(assetPath: 'assets/ntt_card.png'),
-    'mufg': CompanyArtworkAsset(assetPath: 'assets/mufg_card.png'),
-    'sony': CompanyArtworkAsset(assetPath: 'assets/sony_card.png'),
-    'inpex': CompanyArtworkAsset(assetPath: 'assets/inpex_card.png'),
-    'keyence': CompanyArtworkAsset(assetPath: 'assets/keyence_card.png'),
-    'softbank': CompanyArtworkAsset(assetPath: 'assets/softbank_card.png'),
-    'recruit': CompanyArtworkAsset(assetPath: 'assets/recruit_card.png'),
+    'toyota': CompanyArtworkAsset(assetPath: 'assets/company_art/toyota.png'),
+    'nintendo': CompanyArtworkAsset(
+      assetPath: 'assets/company_art/nintendo.png',
+    ),
+    'ntt': CompanyArtworkAsset(assetPath: 'assets/company_art/ntt.png'),
+    'mufg': CompanyArtworkAsset(assetPath: 'assets/company_art/mufg.png'),
+    'sony': CompanyArtworkAsset(assetPath: 'assets/company_art/sony.png'),
+    'inpex': CompanyArtworkAsset(assetPath: 'assets/company_art/inpex.png'),
+    'keyence': CompanyArtworkAsset(assetPath: 'assets/company_art/keyence.png'),
+    'fast_retailing': CompanyArtworkAsset(
+      assetPath: 'assets/company_art/fast_retailing.png',
+    ),
+    'itochu': CompanyArtworkAsset(assetPath: 'assets/company_art/itochu.png'),
+    'nyk': CompanyArtworkAsset(assetPath: 'assets/company_art/nyk.png'),
+    'tel': CompanyArtworkAsset(assetPath: 'assets/company_art/tel.png'),
+    'softbank': CompanyArtworkAsset(
+      assetPath: 'assets/company_art/softbank.png',
+    ),
+    'recruit': CompanyArtworkAsset(assetPath: 'assets/company_art/recruit.png'),
   };
 
   static CompanyArtworkAsset? forCompany(String companyId) =>

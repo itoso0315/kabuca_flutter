@@ -7,14 +7,19 @@ import 'package:kabuca_flutter/widgets/company_card_artwork.dart';
 
 void main() {
   const expectedAssets = <String, String>{
-    'toyota': 'assets/toyota_card.png',
-    'ntt': 'assets/ntt_card.png',
-    'mufg': 'assets/mufg_card.png',
-    'sony': 'assets/sony_card.png',
-    'inpex': 'assets/inpex_card.png',
-    'keyence': 'assets/keyence_card.png',
-    'softbank': 'assets/softbank_card.png',
-    'recruit': 'assets/recruit_card.png',
+    'toyota': 'assets/company_art/toyota.png',
+    'nintendo': 'assets/company_art/nintendo.png',
+    'ntt': 'assets/company_art/ntt.png',
+    'mufg': 'assets/company_art/mufg.png',
+    'sony': 'assets/company_art/sony.png',
+    'inpex': 'assets/company_art/inpex.png',
+    'keyence': 'assets/company_art/keyence.png',
+    'fast_retailing': 'assets/company_art/fast_retailing.png',
+    'itochu': 'assets/company_art/itochu.png',
+    'nyk': 'assets/company_art/nyk.png',
+    'tel': 'assets/company_art/tel.png',
+    'softbank': 'assets/company_art/softbank.png',
+    'recruit': 'assets/company_art/recruit.png',
   };
 
   test('companyIdから実在する企業アートを引ける', () {
@@ -38,7 +43,7 @@ void main() {
                 CompanyArtworkRegistry.forCompany(card.companyId)?.assetPath,
           )
           .toSet(),
-      {'assets/toyota_card.png'},
+      {'assets/company_art/toyota.png'},
     );
   });
 
@@ -46,8 +51,8 @@ void main() {
     final toyota = CardCatalog.cards.firstWhere(
       (card) => card.companyId == 'toyota',
     );
-    final nintendo = CardCatalog.cards.firstWhere(
-      (card) => card.companyId == 'nintendo',
+    final advantest = CardCatalog.cards.firstWhere(
+      (card) => card.companyId == 'advantest',
     );
 
     await tester.pumpWidget(
@@ -61,7 +66,7 @@ void main() {
               compact: true,
             ),
             CompanyCardArtwork(
-              card: nintendo,
+              card: advantest,
               width: 125,
               height: 175,
               compact: true,
