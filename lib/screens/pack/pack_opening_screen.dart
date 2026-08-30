@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../../app/app_theme.dart';
 import '../../models/company_card.dart';
+import '../../screens/card/card_detail_screen.dart';
+import '../../state/game_state.dart';
 import '../../theme/company_theme.dart';
 import '../../widgets/tearable_pack.dart';
 import '../../widgets/card_rarity_style.dart';
@@ -11,9 +13,13 @@ class PackOpeningRoute extends MaterialPageRoute<List<CompanyCard>> {
   PackOpeningRoute({
     required List<CompanyCard> cards,
     required VoidCallback onPackOpened,
+    required GameState gameState,
   }) : super(
-         builder: (_) =>
-             PackOpeningScreen(cards: cards, onPackOpened: onPackOpened),
+         builder: (_) => PackOpeningScreen(
+           cards: cards,
+           onPackOpened: onPackOpened,
+           gameState: gameState,
+         ),
        );
 
   @override
@@ -25,10 +31,12 @@ class PackOpeningScreen extends StatefulWidget {
     super.key,
     required this.cards,
     required this.onPackOpened,
+    required this.gameState,
   });
 
   final List<CompanyCard> cards;
   final VoidCallback onPackOpened;
+  final GameState gameState;
 
   @override
   State<PackOpeningScreen> createState() => _PackOpeningScreenState();
@@ -40,6 +48,9 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
   bool _showCard = false;
   bool _packFinished = false;
   bool _packConsumed = false;
+  bool _showCompletion = false;
+  bool _inputEnabled = false;
+  bool _transitioning = false;
   int _cardIndex = 0;
 
   @override
@@ -72,7 +83,13 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
             const Positioned.fill(child: _GlowBackground()),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
-              child: _showCard
+              child: _showCompletion
+                  ? _PackComplete(
+                      key: const ValueKey('complete'),
+                      cardCount: widget.cards.length,
+                      onDone: () => Navigator.pop(context, widget.cards),
+                    )
+                  : _showCard
                   ? Center(
                       key: const ValueKey('card'),
                       child: Padding(
@@ -100,34 +117,33 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
                               ),
                             ),
                             const SizedBox(height: 26),
-                            ScaleTransition(
-                              scale: reveal,
-                              child: FadeTransition(
-                                opacity: reveal,
-                                child: _CompanyCardView(
-                                  key: ValueKey(widget.cards[_cardIndex].id),
-                                  card: widget.cards[_cardIndex],
+                            GestureDetector(
+                              key: const Key('card-confirmation-gesture'),
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _handleCardTap,
+                              onLongPress: _openCardDetail,
+                              child: ScaleTransition(
+                                scale: reveal,
+                                child: FadeTransition(
+                                  opacity: reveal,
+                                  child: _CompanyCardView(
+                                    key: ValueKey(widget.cards[_cardIndex].id),
+                                    card: widget.cards[_cardIndex],
+                                  ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 30),
+                            const SizedBox(height: 22),
                             FadeTransition(
                               opacity: reveal,
-                              child: SizedBox(
-                                width: 260,
-                                child: FilledButton(
-                                  key: const Key('card-action-button'),
-                                  onPressed: _advanceCard,
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: AppColors.mutedGold,
-                                    foregroundColor: AppColors.deepGreen,
-                                    minimumSize: const Size.fromHeight(52),
-                                  ),
-                                  child: Text(
-                                    _cardIndex == widget.cards.length - 1
-                                        ? '${widget.cards.length}枚獲得！'
-                                        : '次へ',
-                                  ),
+                              child: const Text(
+                                'タップで次へ  ・  長押しで詳細',
+                                key: Key('card-operation-hint'),
+                                style: TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                             ),
@@ -200,9 +216,16 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
     await _revealCurrentCard();
   }
 
-  Future<void> _advanceCard() async {
+  Future<void> _handleCardTap() async {
+    if (!_inputEnabled || _transitioning) return;
+    _inputEnabled = false;
+    _transitioning = true;
     if (_cardIndex == widget.cards.length - 1) {
-      Navigator.pop(context, widget.cards);
+      setState(() {
+        _showCard = false;
+        _showCompletion = true;
+      });
+      _transitioning = false;
       return;
     }
     await _controller.reverse();
@@ -214,7 +237,21 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
     await _revealCurrentCard();
   }
 
+  Future<void> _openCardDetail() async {
+    if (!_inputEnabled || _transitioning) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => CardDetailScreen(
+          card: widget.cards[_cardIndex],
+          gameState: widget.gameState,
+          pendingCards: widget.cards,
+        ),
+      ),
+    );
+  }
+
   Future<void> _revealCurrentCard() async {
+    _inputEnabled = false;
     final rarity = widget.cards[_cardIndex].rarity;
     final delay = switch (rarity) {
       CardRarity.sr => const Duration(milliseconds: 450),
@@ -226,8 +263,56 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
     if (delay != Duration.zero) await Future<void>.delayed(delay);
     if (!mounted) return;
     setState(() => _showCard = true);
-    _controller.forward(from: 0);
+    await _controller.forward(from: 0);
+    if (!mounted) return;
+    _inputEnabled = true;
+    _transitioning = false;
   }
+}
+
+class _PackComplete extends StatelessWidget {
+  const _PackComplete({
+    super.key,
+    required this.cardCount,
+    required this.onDone,
+  });
+
+  final int cardCount;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          Icons.auto_awesome_rounded,
+          color: AppColors.mutedGold,
+          size: 52,
+        ),
+        const SizedBox(height: 18),
+        Text(
+          '$cardCount枚獲得！',
+          key: const Key('pack-complete-title'),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 28),
+        FilledButton(
+          key: const Key('collect-cards-button'),
+          onPressed: onDone,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.mutedGold,
+            foregroundColor: AppColors.deepGreen,
+          ),
+          child: const Text('ホームへ戻る'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _RarityPrelude extends StatelessWidget {

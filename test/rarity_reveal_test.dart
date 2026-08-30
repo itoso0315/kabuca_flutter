@@ -3,12 +3,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kabuca_flutter/data/card_catalog.dart';
 import 'package:kabuca_flutter/models/company_card.dart';
 import 'package:kabuca_flutter/screens/pack/pack_opening_screen.dart';
+import 'package:kabuca_flutter/state/game_state.dart';
 
 void main() {
   Future<void> tearToPrelude(WidgetTester tester, CompanyCard card) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: PackOpeningScreen(cards: [card], onPackOpened: () {}),
+        home: PackOpeningScreen(
+          cards: [card],
+          onPackOpened: () {},
+          gameState: GameState.memory(),
+        ),
       ),
     );
     final topLeft = tester.getTopLeft(find.byKey(const Key('tearable-pack')));
@@ -30,8 +35,11 @@ void main() {
     expect(find.byKey(const Key('sr-reveal-prelude')), findsOneWidget);
     expect(find.byKey(const Key('card-company-name')), findsNothing);
     await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.byKey(const Key('card-confirmation-gesture')));
+    await tester.pump(const Duration(milliseconds: 650));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('card-company-name')), findsOneWidget);
+    expect(find.byKey(const Key('pack-complete-title')), findsNothing);
   });
 
   testWidgets('URはSRとは異なる専用予兆を表示する', (tester) async {

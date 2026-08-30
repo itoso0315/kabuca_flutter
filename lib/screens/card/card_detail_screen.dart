@@ -12,10 +12,16 @@ class CardDetailScreen extends StatelessWidget {
     super.key,
     required this.card,
     required this.gameState,
+    this.pendingCards = const [],
   });
 
   final CompanyCard card;
   final GameState gameState;
+  final List<CompanyCard> pendingCards;
+
+  int _ownedCount(String cardId) =>
+      gameState.ownedCount(cardId) +
+      pendingCards.where((pending) => pending.id == cardId).length;
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +83,7 @@ class CardDetailScreen extends StatelessWidget {
               border: Border.all(color: AppColors.outline),
             ),
             child: Text(
-              '所持 ×${gameState.ownedCount(card.id)}',
+              '所持 ×${_ownedCount(card.id)}',
               key: const Key('detail-owned-count'),
               style: const TextStyle(
                 color: AppColors.deepGreen,
@@ -97,7 +103,7 @@ class CardDetailScreen extends StatelessWidget {
                 Expanded(
                   child: _RarityStatus(
                     card: related,
-                    owned: gameState.owns(related.id),
+                    owned: _ownedCount(related.id) > 0,
                   ),
                 ),
             ],

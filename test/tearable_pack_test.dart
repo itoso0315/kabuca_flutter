@@ -51,4 +51,48 @@ void main() {
     expect(key.currentState!.progress, 1);
     expect(openCount, 1);
   });
+
+  testWidgets('上部の広い範囲と左端より内側から開始できる', (tester) async {
+    final key = GlobalKey<TearablePackState>();
+    await tester.pumpWidget(subject(key, () {}));
+    final topLeft = tester.getTopLeft(find.byKey(const Key('tearable-pack')));
+
+    final gesture = await tester.startGesture(topLeft + const Offset(112, 98));
+    await gesture.moveBy(const Offset(55, 0));
+    await tester.pump();
+    expect(key.currentState!.progress, greaterThan(0));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(key.currentState!.progress, 0);
+  });
+
+  testWidgets('上下にずれても横移動が優勢なら完全開封できる', (tester) async {
+    final key = GlobalKey<TearablePackState>();
+    var opened = false;
+    await tester.pumpWidget(subject(key, () => opened = true));
+    final topLeft = tester.getTopLeft(find.byKey(const Key('tearable-pack')));
+
+    final gesture = await tester.startGesture(topLeft + const Offset(80, 70));
+    await gesture.moveBy(const Offset(175, 34));
+    await tester.pump();
+    expect(key.currentState!.progress, greaterThanOrEqualTo(0.7));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(key.currentState!.progress, 1);
+    expect(opened, isTrue);
+  });
+
+  testWidgets('パック中央から下では開封操作を開始しない', (tester) async {
+    final key = GlobalKey<TearablePackState>();
+    await tester.pumpWidget(subject(key, () {}));
+    final topLeft = tester.getTopLeft(find.byKey(const Key('tearable-pack')));
+
+    await tester.dragFrom(
+      topLeft + const Offset(40, 230),
+      const Offset(230, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(key.currentState!.progress, 0);
+    expect(key.currentState!.isOpened, isFalse);
+  });
 }

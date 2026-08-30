@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kabuca_flutter/app/app.dart';
 import 'package:kabuca_flutter/screens/home/home_screen.dart';
 import 'package:kabuca_flutter/state/game_state.dart';
+import 'package:kabuca_flutter/state/prediction_store.dart';
 import 'package:kabuca_flutter/widgets/tearable_pack.dart';
 
 void main() {
@@ -29,7 +30,12 @@ void main() {
   }
 
   testWidgets('3パックから1つ消費し、3枚を順番に獲得できる', (tester) async {
-    await tester.pumpWidget(KabucaApp(gameState: GameState.memory()));
+    await tester.pumpWidget(
+      KabucaApp(
+        gameState: GameState.memory(),
+        predictionStore: PredictionStore.memory(),
+      ),
+    );
 
     expect(find.text('KABUCA'), findsNWidgets(2));
     expect(find.text('集めよう、日本の企業。'), findsOneWidget);
@@ -61,18 +67,39 @@ void main() {
     expect(find.byKey(const Key('card-rarity')), findsOneWidget);
     expect(find.byKey(const Key('card-title')), findsOneWidget);
     expect(find.byKey(const Key('card-description')), findsOneWidget);
+    expect(find.byKey(const Key('card-operation-hint')), findsOneWidget);
+    expect(find.text('次へ'), findsNothing);
 
-    await tester.tap(find.widgetWithText(FilledButton, '次へ'));
+    await tester.longPress(find.byKey(const Key('card-confirmation-gesture')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('card-detail-screen')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('detail-owned-count')),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('所持 ×1'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('CARD 1 / 3'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('card-confirmation-gesture')));
+    await tester.tap(find.byKey(const Key('card-confirmation-gesture')));
     await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 900));
     await tester.pumpAndSettle();
     expect(find.text('CARD 2 / 3'), findsOneWidget);
+    expect(find.text('CARD 3 / 3'), findsNothing);
     expect(find.byKey(const Key('card-title')), findsOneWidget);
     expect(find.byKey(const Key('card-description')), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(FilledButton, '次へ'));
+    await tester.tap(find.byKey(const Key('card-confirmation-gesture')));
     await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 900));
     await tester.pumpAndSettle();
@@ -80,7 +107,10 @@ void main() {
     expect(find.byKey(const Key('card-title')), findsOneWidget);
     expect(find.byKey(const Key('card-description')), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(FilledButton, '3枚獲得！'));
+    await tester.tap(find.byKey(const Key('card-confirmation-gesture')));
+    await tester.pumpAndSettle();
+    expect(find.text('3枚獲得！'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('collect-cards-button')));
     await tester.pumpAndSettle();
     expect(find.text('所持パック  2'), findsOneWidget);
     expect(find.text('3枚'), findsOneWidget);
@@ -109,7 +139,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeScreen(gameState: GameState.memory(packCount: 0)),
+          body: HomeScreen(
+            gameState: GameState.memory(packCount: 0),
+            predictionStore: PredictionStore.memory(),
+          ),
         ),
       ),
     );

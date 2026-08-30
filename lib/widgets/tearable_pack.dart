@@ -17,13 +17,15 @@ class TearablePack extends StatefulWidget {
 class TearablePackState extends State<TearablePack>
     with TickerProviderStateMixin {
   static const _completionThreshold = 0.7;
-  static const _tearDistance = 248.0;
 
   late final AnimationController _progress;
   late final AnimationController _completionLift;
-  double _dragStartX = 0;
+  Offset _dragStartPosition = Offset.zero;
+  double _activeTearDistance = 248;
   double _progressAtDragStart = 0;
-  bool _acceptingDrag = false;
+  bool _trackingGesture = false;
+  bool _gestureActivated = false;
+  bool _eligibleStart = false;
   bool _opened = false;
 
   double get progress => _progress.value;
@@ -46,28 +48,42 @@ class TearablePackState extends State<TearablePack>
     super.dispose();
   }
 
-  void _onDragStart(DragStartDetails details) {
+  void _onPanDown(DragDownDetails details) {
     if (_opened) return;
     final position = details.localPosition;
-    _acceptingDrag = position.dy <= 112 && position.dx <= 76;
-    if (!_acceptingDrag) return;
-    _progress.stop();
-    _dragStartX = position.dx;
-    _progressAtDragStart = _progress.value;
+    _eligibleStart = position.dy <= 105 && position.dx <= 126;
+    _dragStartPosition = position;
   }
 
-  void _onDragUpdate(DragUpdateDetails details) {
-    if (!_acceptingDrag || _opened) return;
-    final next =
-        (_progressAtDragStart +
-                (details.localPosition.dx - _dragStartX) / _tearDistance)
-            .clamp(0.0, 1.0);
+  void _onPanStart(DragStartDetails details) {
+    if (_opened || !_eligibleStart) return;
+    _trackingGesture = true;
+    _progress.stop();
+    _activeTearDistance = math.max(140, 280 - _dragStartPosition.dx);
+    _progressAtDragStart = _progress.value;
+    _gestureActivated = false;
+  }
+
+  void _onPanUpdate(DragUpdateDetails details) {
+    if (!_trackingGesture || _opened) return;
+    final offset = details.localPosition - _dragStartPosition;
+    if (!_gestureActivated) {
+      final horizontalIsPrimary = offset.dx >= offset.dy.abs() * 0.75;
+      if (offset.dx < 10 || !horizontalIsPrimary) return;
+      _gestureActivated = true;
+    }
+    final next = (_progressAtDragStart + offset.dx / _activeTearDistance).clamp(
+      0.0,
+      1.0,
+    );
     _progress.value = next;
   }
 
-  Future<void> _onDragEnd(DragEndDetails details) async {
-    if (!_acceptingDrag || _opened) return;
-    _acceptingDrag = false;
+  Future<void> _onPanEnd(DragEndDetails details) async {
+    if (!_trackingGesture || _opened) return;
+    _trackingGesture = false;
+    _eligibleStart = false;
+    if (!_gestureActivated) return;
     if (_progress.value < _completionThreshold) {
       await _progress.animateBack(
         0,
@@ -90,9 +106,10 @@ class TearablePackState extends State<TearablePack>
     widget.onOpened();
   }
 
-  void _onDragCancel() {
-    if (!_acceptingDrag || _opened) return;
-    _acceptingDrag = false;
+  void _onPanCancel() {
+    if (!_trackingGesture || _opened) return;
+    _trackingGesture = false;
+    _eligibleStart = false;
     _progress.animateBack(
       0,
       duration: const Duration(milliseconds: 280),
@@ -108,10 +125,11 @@ class TearablePackState extends State<TearablePack>
       child: GestureDetector(
         key: const Key('tearable-pack'),
         behavior: HitTestBehavior.opaque,
-        onHorizontalDragStart: _onDragStart,
-        onHorizontalDragUpdate: _onDragUpdate,
-        onHorizontalDragEnd: _onDragEnd,
-        onHorizontalDragCancel: _onDragCancel,
+        onPanDown: _onPanDown,
+        onPanStart: _onPanStart,
+        onPanUpdate: _onPanUpdate,
+        onPanEnd: _onPanEnd,
+        onPanCancel: _onPanCancel,
         child: AnimatedBuilder(
           animation: Listenable.merge([_progress, _completionLift]),
           builder: (context, _) => _PackLayers(
