@@ -20,6 +20,7 @@ class TearablePackState extends State<TearablePack>
 
   late final AnimationController _progress;
   late final AnimationController _completionLift;
+  late final AnimationController _guidance;
   Offset _dragStartPosition = Offset.zero;
   double _activeTearDistance = 248;
   double _progressAtDragStart = 0;
@@ -27,9 +28,12 @@ class TearablePackState extends State<TearablePack>
   bool _gestureActivated = false;
   bool _eligibleStart = false;
   bool _opened = false;
+  bool _guidanceVisible = true;
 
   double get progress => _progress.value;
   bool get isOpened => _opened;
+  bool get isGuidanceVisible => _guidanceVisible;
+  double get guidanceProgress => _guidance.value;
 
   @override
   void initState() {
@@ -39,20 +43,29 @@ class TearablePackState extends State<TearablePack>
       vsync: this,
       duration: const Duration(milliseconds: 180),
     );
+    _guidance = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat();
   }
 
   @override
   void dispose() {
     _progress.dispose();
     _completionLift.dispose();
+    _guidance.dispose();
     super.dispose();
   }
 
   void _onPanDown(DragDownDetails details) {
     if (_opened) return;
     final position = details.localPosition;
-    _eligibleStart = position.dy <= 105 && position.dx <= 126;
+    _eligibleStart = position.dy <= 126 && position.dx <= 168;
     _dragStartPosition = position;
+    if (_eligibleStart && _guidanceVisible) {
+      _guidance.stop();
+      setState(() => _guidanceVisible = false);
+    }
   }
 
   void _onPanStart(DragStartDetails details) {
@@ -131,12 +144,18 @@ class TearablePackState extends State<TearablePack>
         onPanEnd: _onPanEnd,
         onPanCancel: _onPanCancel,
         child: AnimatedBuilder(
-          animation: Listenable.merge([_progress, _completionLift]),
+          animation: Listenable.merge([
+            _progress,
+            _completionLift,
+            _guidance,
+          ]),
           builder: (context, _) => _PackLayers(
             progress: _progress.value,
             completionLift: Curves.easeOutCubic.transform(
               _completionLift.value,
             ),
+            guidanceProgress: _guidance.value,
+            showGuidance: _guidanceVisible,
           ),
         ),
       ),
@@ -145,10 +164,17 @@ class TearablePackState extends State<TearablePack>
 }
 
 class _PackLayers extends StatelessWidget {
-  const _PackLayers({required this.progress, required this.completionLift});
+  const _PackLayers({
+    required this.progress,
+    required this.completionLift,
+    required this.guidanceProgress,
+    required this.showGuidance,
+  });
 
   final double progress;
   final double completionLift;
+  final double guidanceProgress;
+  final bool showGuidance;
 
   @override
   Widget build(BuildContext context) {
@@ -160,7 +186,24 @@ class _PackLayers extends StatelessWidget {
     final glow = ((progress - 0.18) / 0.82).clamp(0.0, 1.0);
 
     if (progress == 0) {
-      return const SizedBox(width: width, height: height, child: _PackBody());
+      return SizedBox(
+        width: width,
+        height: height,
+        child: Stack(
+          children: [
+            const _PackBody(),
+            if (showGuidance)
+              Positioned(
+                key: const Key('pack-open-guidance'),
+                left: 28,
+                right: 20,
+                top: 31,
+                height: 45,
+                child: _OpenGuidance(progress: guidanceProgress),
+              ),
+          ],
+        ),
+      );
     }
 
     return SizedBox(
@@ -224,6 +267,60 @@ class _PackLayers extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _OpenGuidance extends StatelessWidget {
+  const _OpenGuidance({required this.progress});
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final pulse = 0.5 + math.sin(progress * math.pi * 2) * 0.12;
+    return Stack(
+      clipBehavior: Clip.hardEdge,
+      children: [
+        Positioned(
+          left: 4,
+          top: 3,
+          width: 72,
+          height: 27,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFFE3A1).withValues(alpha: pulse * 0.42),
+                  blurRadius: 13,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+          ),
+        ),
+        Align(
+          alignment: Alignment(-1 + progress * 2, 0),
+          child: Transform.rotate(
+            angle: -0.18,
+            child: Container(
+              key: const Key('pack-open-guidance-sheen'),
+              width: 42,
+              height: 52,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0x00FFE7AA),
+                    Color(0x99FFE7AA),
+                    Color(0x00FFE7AA),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

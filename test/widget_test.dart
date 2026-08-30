@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kabuca_flutter/app/app.dart';
 import 'package:kabuca_flutter/screens/home/home_screen.dart';
 import 'package:kabuca_flutter/state/game_state.dart';
+import 'package:kabuca_flutter/state/notification_store.dart';
 import 'package:kabuca_flutter/state/prediction_store.dart';
 import 'package:kabuca_flutter/widgets/tearable_pack.dart';
 
@@ -34,6 +35,7 @@ void main() {
       KabucaApp(
         gameState: GameState.memory(),
         predictionStore: PredictionStore.memory(),
+        notificationStore: NotificationStore.memory(),
       ),
     );
 
@@ -44,6 +46,8 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'パックを開ける'), findsOneWidget);
     expect(find.text('0枚'), findsOneWidget);
 
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'パックを開ける'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'パックを開ける'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('pack-back-button')), findsOneWidget);
@@ -57,6 +61,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('所持パック  3'), findsOneWidget);
 
+    await tester.ensureVisible(find.widgetWithText(FilledButton, 'パックを開ける'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'パックを開ける'));
     await tester.pumpAndSettle();
     await finishOpening(tester);
@@ -142,6 +148,7 @@ void main() {
           body: HomeScreen(
             gameState: GameState.memory(packCount: 0),
             predictionStore: PredictionStore.memory(),
+            notificationStore: NotificationStore.memory(),
           ),
         ),
       ),

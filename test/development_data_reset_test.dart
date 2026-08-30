@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kabuca_flutter/data/card_catalog.dart';
 import 'package:kabuca_flutter/models/stock_prediction.dart';
+import 'package:kabuca_flutter/models/app_notification.dart';
 import 'package:kabuca_flutter/screens/profile/profile_screen.dart';
 import 'package:kabuca_flutter/state/game_state.dart';
 import 'package:kabuca_flutter/state/prediction_store.dart';
+import 'package:kabuca_flutter/state/notification_store.dart';
 
 void main() {
   testWidgets('確認ダイアログのキャンセルではデータを残す', (tester) async {
@@ -15,6 +17,7 @@ void main() {
           body: ProfileScreen(
             gameState: states.gameState,
             predictionStore: states.predictionStore,
+            notificationStore: states.notificationStore,
           ),
         ),
       ),
@@ -43,6 +46,7 @@ void main() {
           body: ProfileScreen(
             gameState: states.gameState,
             predictionStore: states.predictionStore,
+            notificationStore: states.notificationStore,
           ),
         ),
       ),
@@ -52,6 +56,7 @@ void main() {
     expect(find.text('所持カード  2枚'), findsOneWidget);
     expect(find.text('図鑑登録  1 / 80'), findsOneWidget);
     expect(find.text('保存済み予想  1件'), findsOneWidget);
+    expect(find.text('お知らせ  1件'), findsOneWidget);
     await tester.drag(
       find.byKey(const Key('profile-screen')),
       const Offset(0, -180),
@@ -67,7 +72,33 @@ void main() {
     expect(find.text('所持カード  0枚'), findsOneWidget);
     expect(find.text('図鑑登録  0 / 80'), findsOneWidget);
     expect(find.text('保存済み予想  0件'), findsOneWidget);
+    expect(find.text('お知らせ  0件'), findsOneWidget);
+    expect(states.notificationStore.notifications, isEmpty);
     expect(find.text('開発用データを初期化しました'), findsOneWidget);
+  });
+
+  testWidgets('開発ビルドでサンプル通知を追加できる', (tester) async {
+    final states = await _populatedStates();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ProfileScreen(
+            gameState: states.gameState,
+            predictionStore: states.predictionStore,
+            notificationStore: states.notificationStore,
+          ),
+        ),
+      ),
+    );
+    await tester.drag(
+      find.byKey(const Key('profile-screen')),
+      const Offset(0, -260),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('add-sample-notification-button')));
+    await tester.pumpAndSettle();
+    expect(states.notificationStore.notifications, hasLength(2));
+    expect(states.notificationStore.unreadCount, 2);
   });
 }
 
@@ -87,11 +118,23 @@ Future<_States> _populatedStates() async {
     basePriceAt: DateTime.utc(2026, 8, 30),
     targetDate: DateTime.utc(2026, 9, 7),
   );
-  return _States(gameState, predictionStore);
+  final notificationStore = NotificationStore.memory();
+  await notificationStore.add(
+    AppNotification(
+      id: 'sample',
+      type: NotificationType.general,
+      title: 'サンプル',
+      message: 'リセット対象',
+      createdAt: DateTime.utc(2026, 8, 30),
+      isRead: false,
+    ),
+  );
+  return _States(gameState, predictionStore, notificationStore);
 }
 
 class _States {
-  const _States(this.gameState, this.predictionStore);
+  const _States(this.gameState, this.predictionStore, this.notificationStore);
   final GameState gameState;
   final PredictionStore predictionStore;
+  final NotificationStore notificationStore;
 }

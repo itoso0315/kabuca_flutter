@@ -7,7 +7,9 @@ import '../../services/card_pack_service.dart';
 import '../../services/stock_price_service.dart';
 import '../../services/trading_calendar_service.dart';
 import '../../state/game_state.dart';
+import '../../state/notification_store.dart';
 import '../../state/prediction_store.dart';
+import '../notifications/notification_screen.dart';
 import '../prediction/company_prediction_select_screen.dart';
 import '../prediction/prediction_list_screen.dart';
 import '../pack/pack_opening_screen.dart';
@@ -17,6 +19,7 @@ class HomeScreen extends StatelessWidget {
     super.key,
     required this.gameState,
     required this.predictionStore,
+    required this.notificationStore,
     this.cardPackService,
     this.stockPriceService,
     this.tradingCalendarService,
@@ -24,6 +27,7 @@ class HomeScreen extends StatelessWidget {
 
   final GameState gameState;
   final PredictionStore predictionStore;
+  final NotificationStore notificationStore;
   final CardPackService? cardPackService;
   final StockPriceService? stockPriceService;
   final TradingCalendarService? tradingCalendarService;
@@ -31,7 +35,11 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([gameState, predictionStore]),
+      listenable: Listenable.merge([
+        gameState,
+        predictionStore,
+        notificationStore,
+      ]),
       builder: (context, _) => SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
         child: Center(
@@ -40,9 +48,24 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'KABUCA',
-                  style: Theme.of(context).textTheme.headlineMedium,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'KABUCA',
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                    ),
+                    _NotificationBell(
+                      unreadCount: notificationStore.unreadCount,
+                      onPressed: () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              NotificationScreen(store: notificationStore),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -145,4 +168,47 @@ class HomeScreen extends StatelessWidget {
   void _consumePack() {
     gameState.consumePack();
   }
+}
+
+class _NotificationBell extends StatelessWidget {
+  const _NotificationBell({required this.unreadCount, required this.onPressed});
+
+  final int unreadCount;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      IconButton(
+        key: const Key('notification-bell-button'),
+        tooltip: 'お知らせ',
+        onPressed: onPressed,
+        icon: const Icon(Icons.notifications_none_rounded),
+      ),
+      if (unreadCount > 0)
+        Positioned(
+          key: const Key('notification-unread-badge'),
+          right: 2,
+          top: 2,
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 17, minHeight: 17),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: const BoxDecoration(
+              color: Color(0xFFB7654F),
+              borderRadius: BorderRadius.all(Radius.circular(9)),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              unreadCount > 9 ? '9+' : '$unreadCount',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+    ],
+  );
 }

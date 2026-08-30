@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../app/app_theme.dart';
+import '../../models/app_notification.dart';
 import '../../state/game_state.dart';
+import '../../state/notification_store.dart';
 import '../../state/prediction_store.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -9,10 +12,12 @@ class ProfileScreen extends StatefulWidget {
     super.key,
     required this.gameState,
     required this.predictionStore,
+    required this.notificationStore,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
+  final NotificationStore notificationStore;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -24,7 +29,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([widget.gameState, widget.predictionStore]),
+      listenable: Listenable.merge([
+        widget.gameState,
+        widget.predictionStore,
+        widget.notificationStore,
+      ]),
       builder: (context, _) => ListView(
         key: const Key('profile-screen'),
         padding: const EdgeInsets.fromLTRB(20, 32, 20, 40),
@@ -43,6 +52,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text('所持カード  ${widget.gameState.totalOwnedCardCount}枚'),
                   Text('図鑑登録  ${widget.gameState.registeredCardCount} / 80'),
                   Text('保存済み予想  ${widget.predictionStore.predictions.length}件'),
+                  Text(
+                    'お知らせ  ${widget.notificationStore.notifications.length}件',
+                  ),
                 ],
               ),
             ),
@@ -77,7 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  '実機テスト用に、パック・カード・図鑑・予想を初期状態へ戻します。',
+                  '実機テスト用に、パック・カード・図鑑・予想・お知らせを初期状態へ戻します。',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     height: 1.45,
@@ -101,6 +113,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     minimumSize: const Size.fromHeight(48),
                   ),
                 ),
+                if (kDebugMode) ...[
+                  const SizedBox(height: 10),
+                  TextButton.icon(
+                    key: const Key('add-sample-notification-button'),
+                    onPressed: _addSampleNotification,
+                    icon: const Icon(Icons.add_alert_rounded),
+                    label: const Text('サンプル通知を追加'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -137,11 +158,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await Future.wait<void>([
       widget.gameState.resetDevelopmentData(),
       widget.predictionStore.resetDevelopmentData(),
+      widget.notificationStore.deleteAll(),
     ]);
     if (!mounted) return;
     setState(() => _resetting = false);
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('開発用データを初期化しました')));
+  }
+
+  Future<void> _addSampleNotification() async {
+    final index = widget.notificationStore.notifications.length % 3;
+    final now = DateTime.now().toUtc();
+    final sample = switch (index) {
+      0 => AppNotification(
+        id: 'sample_${now.microsecondsSinceEpoch}',
+        type: NotificationType.predictionResult,
+        title: '予想結果が出ました',
+        message: '任天堂・1週間後 UP の答え合わせができます',
+        createdAt: now,
+        isRead: false,
+        relatedCompanyId: 'nintendo',
+      ),
+      1 => AppNotification(
+        id: 'sample_${now.microsecondsSinceEpoch}',
+        type: NotificationType.featureUpdate,
+        title: 'KABUCAに新機能！',
+        message: '株価予想が遊べるようになりました',
+        createdAt: now,
+        isRead: false,
+      ),
+      _ => AppNotification(
+        id: 'sample_${now.microsecondsSinceEpoch}',
+        type: NotificationType.reward,
+        title: 'パックを獲得しました',
+        message: '新しいパックを1個獲得しました',
+        createdAt: now,
+        isRead: false,
+      ),
+    };
+    await widget.notificationStore.add(sample);
   }
 }

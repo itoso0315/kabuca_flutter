@@ -6,6 +6,7 @@ import 'package:kabuca_flutter/models/stock_quote.dart';
 import 'package:kabuca_flutter/screens/home/home_screen.dart';
 import 'package:kabuca_flutter/state/game_state.dart';
 import 'package:kabuca_flutter/state/prediction_store.dart';
+import 'package:kabuca_flutter/state/notification_store.dart';
 import 'package:kabuca_flutter/services/stock_price_service.dart';
 import 'package:kabuca_flutter/services/trading_calendar_service.dart';
 
@@ -26,6 +27,7 @@ void main() {
           body: HomeScreen(
             gameState: gameState,
             predictionStore: predictionStore,
+            notificationStore: NotificationStore.memory(),
             stockPriceService: StockPriceService(_SuccessfulQuoteProvider()),
             tradingCalendarService: TradingCalendarService(
               holidayProvider: _NoHolidays(),

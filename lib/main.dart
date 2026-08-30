@@ -4,6 +4,7 @@ import 'app/app.dart';
 import 'screens/splash/title_screen.dart';
 import 'services/backend_warmup_service.dart';
 import 'state/game_state.dart';
+import 'state/notification_store.dart';
 import 'state/prediction_store.dart';
 
 Future<void> main() async {
@@ -18,6 +19,7 @@ Future<void> main() async {
         homeBuilder: (dependencies) => KabucaApp(
           gameState: dependencies.gameState,
           predictionStore: dependencies.predictionStore,
+          notificationStore: dependencies.notificationStore,
         ),
       ),
     ),
@@ -28,10 +30,12 @@ Future<_AppDependencies> _loadDependencies() async {
   final values = await Future.wait<Object>([
     GameState.load(),
     PredictionStore.load(),
+    NotificationStore.load(),
   ]);
   return _AppDependencies(
     gameState: values[0] as GameState,
     predictionStore: values[1] as PredictionStore,
+    notificationStore: values[2] as NotificationStore,
   );
 }
 
@@ -39,8 +43,10 @@ class _AppDependencies {
   const _AppDependencies({
     required this.gameState,
     required this.predictionStore,
+    required this.notificationStore,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
+  final NotificationStore notificationStore;
 }

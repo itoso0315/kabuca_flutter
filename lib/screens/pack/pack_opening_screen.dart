@@ -165,20 +165,6 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text(
-                              '左から右へ、封を破ろう',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            const Text(
-                              'パック上部を指でなぞってください',
-                              style: TextStyle(color: Color(0xBFFFFFFF)),
-                            ),
-                            const SizedBox(height: 24),
                             TearablePack(onOpened: _handleOpened),
                           ],
                         ),

@@ -4,6 +4,7 @@ import '../screens/collection/collection_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../state/game_state.dart';
+import '../state/notification_store.dart';
 import '../state/prediction_store.dart';
 import 'app_theme.dart';
 
@@ -12,10 +13,12 @@ class KabucaApp extends StatelessWidget {
     super.key,
     required this.gameState,
     required this.predictionStore,
+    required this.notificationStore,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
+  final NotificationStore notificationStore;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +26,11 @@ class KabucaApp extends StatelessWidget {
       title: 'KABUCA',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: MainScreen(gameState: gameState, predictionStore: predictionStore),
+      home: MainScreen(
+        gameState: gameState,
+        predictionStore: predictionStore,
+        notificationStore: notificationStore,
+      ),
     );
   }
 }
@@ -33,10 +40,12 @@ class MainScreen extends StatefulWidget {
     super.key,
     required this.gameState,
     required this.predictionStore,
+    required this.notificationStore,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
+  final NotificationStore notificationStore;
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -51,11 +60,13 @@ class _MainScreenState extends State<MainScreen> {
       HomeScreen(
         gameState: widget.gameState,
         predictionStore: widget.predictionStore,
+        notificationStore: widget.notificationStore,
       ),
       CollectionScreen(gameState: widget.gameState),
       ProfileScreen(
         gameState: widget.gameState,
         predictionStore: widget.predictionStore,
+        notificationStore: widget.notificationStore,
       ),
     ];
     return Scaffold(
