@@ -62,7 +62,10 @@ class _MainScreenState extends State<MainScreen> {
         predictionStore: widget.predictionStore,
         notificationStore: widget.notificationStore,
       ),
-      CollectionScreen(gameState: widget.gameState),
+      CollectionScreen(
+        gameState: widget.gameState,
+        predictionStore: widget.predictionStore,
+      ),
       ProfileScreen(
         gameState: widget.gameState,
         predictionStore: widget.predictionStore,

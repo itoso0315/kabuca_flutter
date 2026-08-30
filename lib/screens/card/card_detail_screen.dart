@@ -3,20 +3,26 @@ import 'package:flutter/material.dart';
 import '../../app/app_theme.dart';
 import '../../data/card_catalog.dart';
 import '../../models/company_card.dart';
+import '../../services/owned_company_service.dart';
 import '../../state/game_state.dart';
+import '../../state/prediction_store.dart';
+import '../../theme/company_theme.dart';
 import '../../widgets/card_rarity_style.dart';
 import '../../widgets/company_card_artwork.dart';
+import '../prediction/prediction_screen.dart';
 
 class CardDetailScreen extends StatelessWidget {
   const CardDetailScreen({
     super.key,
     required this.card,
     required this.gameState,
+    this.predictionStore,
     this.pendingCards = const [],
   });
 
   final CompanyCard card;
   final GameState gameState;
+  final PredictionStore? predictionStore;
   final List<CompanyCard> pendingCards;
 
   int _ownedCount(String cardId) =>
@@ -26,6 +32,7 @@ class CardDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rarity = CardRarityStyle.of(card.rarity);
+    final companyTheme = CompanyTheme.forCompany(card.companyId);
     return Scaffold(
       appBar: AppBar(
         title: const Text('カード詳細'),
@@ -108,7 +115,42 @@ class CardDetailScreen extends StatelessWidget {
                 ),
             ],
           ),
+          if (predictionStore != null && gameState.owns(card.id)) ...[
+            const SizedBox(height: 28),
+            OutlinedButton.icon(
+              key: const Key('predict-this-company-button'),
+              onPressed: () => _openPrediction(context),
+              icon: const Icon(Icons.insights_rounded),
+              label: const Text('この企業を予想する'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: companyTheme.baseColor,
+                side: BorderSide(color: companyTheme.baseColor),
+                minimumSize: const Size.fromHeight(46),
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  void _openPrediction(BuildContext context) {
+    final ownedCards = CardCatalog.cards
+        .where(
+          (candidate) =>
+              candidate.companyId == card.companyId &&
+              gameState.owns(candidate.id),
+        )
+        .toList();
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => PredictionScreen(
+          company: OwnedCompanySummary(
+            companyId: card.companyId,
+            cards: ownedCards,
+          ),
+          predictionStore: predictionStore!,
+        ),
       ),
     );
   }

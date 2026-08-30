@@ -1,4 +1,4 @@
-                            import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../app/app_theme.dart';
 
@@ -22,8 +22,11 @@ class DailyPackCard extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              'KABUCA PACK',
-              style: theme.textTheme.titleLarge,
+              'スタートパック',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: AppColors.deepGreen,
+                fontWeight: FontWeight.w600,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
@@ -74,7 +77,7 @@ class _PackVisual extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       image: true,
-      label: 'KABUCAデイリーパック',
+      label: 'KABUCAスタートパック',
       child: Container(
         width: 176,
         height: 264,
@@ -163,7 +166,7 @@ class _PackVisual extends StatelessWidget {
                   borderRadius: BorderRadius.circular(3),
                 ),
                 child: const Text(
-                  'DAILY PACK',
+                  'START PACK',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0xFFFFE2A0),

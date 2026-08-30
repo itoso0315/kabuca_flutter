@@ -51,9 +51,19 @@ class HomeScreen extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        'KABUCA',
-                        style: Theme.of(context).textTheme.headlineMedium,
+                      child: Semantics(
+                        header: true,
+                        child: const Text(
+                          'KABUCA',
+                          key: Key('home-brand-logo'),
+                          style: TextStyle(
+                            color: Color(0xFF123D33),
+                            fontSize: 31,
+                            height: 1,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 6.2,
+                          ),
+                        ),
                       ),
                     ),
                     _NotificationBell(

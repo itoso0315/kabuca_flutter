@@ -52,18 +52,37 @@ void main() {
     expect(openCount, 1);
   });
 
-  testWidgets('上部の広い範囲と左端より内側から開始できる', (tester) async {
+  testWidgets('上部30%・左側60%付近とOPEN周辺から開始できる', (tester) async {
     final key = GlobalKey<TearablePackState>();
     await tester.pumpWidget(subject(key, () {}));
     final topLeft = tester.getTopLeft(find.byKey(const Key('tearable-pack')));
 
-    final gesture = await tester.startGesture(topLeft + const Offset(112, 98));
+    final gesture = await tester.startGesture(topLeft + const Offset(160, 120));
     await gesture.moveBy(const Offset(55, 0));
     await tester.pump();
     expect(key.currentState!.progress, greaterThan(0));
     await gesture.up();
     await tester.pumpAndSettle();
     expect(key.currentState!.progress, 0);
+  });
+
+  testWidgets('OPEN付近の光が左から右へ流れ、操作開始後に消える', (tester) async {
+    final key = GlobalKey<TearablePackState>();
+    await tester.pumpWidget(subject(key, () {}));
+    final topLeft = tester.getTopLeft(find.byKey(const Key('tearable-pack')));
+
+    expect(find.byKey(const Key('pack-open-guidance')), findsOneWidget);
+    final initialPosition = key.currentState!.guidanceProgress;
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(key.currentState!.guidanceProgress, greaterThan(initialPosition));
+
+    final gesture = await tester.startGesture(topLeft + const Offset(48, 52));
+    await tester.pump();
+    expect(key.currentState!.isGuidanceVisible, isFalse);
+    expect(find.byKey(const Key('pack-open-guidance')), findsNothing);
+    await gesture.moveBy(const Offset(40, 5));
+    await gesture.up();
+    await tester.pumpAndSettle();
   });
 
   testWidgets('上下にずれても横移動が優勢なら完全開封できる', (tester) async {

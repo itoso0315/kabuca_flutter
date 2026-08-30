@@ -5,12 +5,18 @@ import '../../data/card_catalog.dart';
 import '../../models/company_card.dart';
 import '../card/card_detail_screen.dart';
 import '../../state/game_state.dart';
+import '../../state/prediction_store.dart';
 import '../../theme/company_theme.dart';
 import '../../widgets/card_rarity_style.dart';
 
 class CollectionScreen extends StatefulWidget {
-  const CollectionScreen({super.key, required this.gameState});
+  const CollectionScreen({
+    super.key,
+    required this.gameState,
+    required this.predictionStore,
+  });
   final GameState gameState;
+  final PredictionStore predictionStore;
 
   @override
   State<CollectionScreen> createState() => _CollectionScreenState();
@@ -91,6 +97,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                             builder: (_) => CardDetailScreen(
                               card: card,
                               gameState: widget.gameState,
+                              predictionStore: widget.predictionStore,
                             ),
                           ),
                         ),

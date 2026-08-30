@@ -164,9 +164,7 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
                         padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            TearablePack(onOpened: _handleOpened),
-                          ],
+                          children: [TearablePack(onOpened: _handleOpened)],
                         ),
                       ),
                     ),

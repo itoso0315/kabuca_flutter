@@ -41,7 +41,15 @@ void main() {
 
     expect(find.text('KABUCA'), findsNWidgets(2));
     expect(find.text('集めよう、日本の企業。'), findsOneWidget);
-    expect(find.text('KABUCA PACK'), findsOneWidget);
+    expect(find.text('KABUCA PACK'), findsNothing);
+    expect(find.text('スタートパック'), findsOneWidget);
+    expect(find.byKey(const Key('home-brand-logo')), findsOneWidget);
+    final homeLogo = tester.widget<Text>(
+      find.byKey(const Key('home-brand-logo')),
+    );
+    expect(homeLogo.style?.letterSpacing, greaterThanOrEqualTo(6));
+    expect(homeLogo.style?.fontWeight, FontWeight.w600);
+    expect(find.byKey(const Key('notification-bell-button')), findsOneWidget);
     expect(find.text('所持パック  3'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'パックを開ける'), findsOneWidget);
     expect(find.text('0枚'), findsOneWidget);
@@ -51,6 +59,9 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'パックを開ける'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('pack-back-button')), findsOneWidget);
+    expect(find.text('左から右へ、封を破ろう'), findsNothing);
+    expect(find.text('パック上部を指でなぞってください'), findsNothing);
+    expect(find.byKey(const Key('pack-open-guidance')), findsOneWidget);
     expect(
       ModalRoute.of(
         tester.element(find.byType(TearablePack)),

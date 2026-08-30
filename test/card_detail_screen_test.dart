@@ -4,6 +4,7 @@ import 'package:kabuca_flutter/data/card_catalog.dart';
 import 'package:kabuca_flutter/models/company_card.dart';
 import 'package:kabuca_flutter/screens/collection/collection_screen.dart';
 import 'package:kabuca_flutter/state/game_state.dart';
+import 'package:kabuca_flutter/state/prediction_store.dart';
 import 'package:kabuca_flutter/theme/company_theme.dart';
 import 'package:kabuca_flutter/widgets/card_rarity_style.dart';
 
@@ -21,7 +22,12 @@ void main() {
     final state = GameState.memory(cardCounts: {toyotaN.id: 2});
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: CollectionScreen(gameState: state)),
+        home: Scaffold(
+          body: CollectionScreen(
+            gameState: state,
+            predictionStore: PredictionStore.memory(),
+          ),
+        ),
       ),
     );
 
@@ -75,6 +81,20 @@ void main() {
     expect(find.text('？？？'), findsNWidgets(3));
     expect(find.text(toyotaSr.title), findsNothing);
     expect(find.text(toyotaSr.description), findsNothing);
+    expect(
+      find.byKey(const Key('predict-this-company-button')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('predict-this-company-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('prediction-screen')), findsOneWidget);
+    expect(find.text(toyotaN.companyName), findsWidgets);
+    expect(find.byKey(const Key('owned-insight-n')), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('card-detail-screen')), findsOneWidget);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();

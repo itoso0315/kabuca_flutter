@@ -46,7 +46,7 @@ class TearablePackState extends State<TearablePack>
     _guidance = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
-    )..repeat();
+    )..forward();
   }
 
   @override
@@ -144,11 +144,7 @@ class TearablePackState extends State<TearablePack>
         onPanEnd: _onPanEnd,
         onPanCancel: _onPanCancel,
         child: AnimatedBuilder(
-          animation: Listenable.merge([
-            _progress,
-            _completionLift,
-            _guidance,
-          ]),
+          animation: Listenable.merge([_progress, _completionLift, _guidance]),
           builder: (context, _) => _PackLayers(
             progress: _progress.value,
             completionLift: Curves.easeOutCubic.transform(
@@ -292,7 +288,9 @@ class _OpenGuidance extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFFFE3A1).withValues(alpha: pulse * 0.42),
+                  color: const Color(
+                    0xFFFFE3A1,
+                  ).withValues(alpha: pulse * 0.42),
                   blurRadius: 13,
                   spreadRadius: 1,
                 ),
@@ -419,7 +417,7 @@ class _PackBody extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
                 child: Text(
-                  'DAILY PACK',
+                  'START PACK',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0xFFFFE2A0),
