@@ -1,0 +1,461 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../app/app_theme.dart';
+
+class TearablePack extends StatefulWidget {
+  const TearablePack({super.key, required this.onOpened});
+
+  final VoidCallback onOpened;
+
+  @override
+  TearablePackState createState() => TearablePackState();
+}
+
+class TearablePackState extends State<TearablePack>
+    with TickerProviderStateMixin {
+  static const _completionThreshold = 0.7;
+  static const _tearDistance = 248.0;
+
+  late final AnimationController _progress;
+  late final AnimationController _completionLift;
+  double _dragStartX = 0;
+  double _progressAtDragStart = 0;
+  bool _acceptingDrag = false;
+  bool _opened = false;
+
+  double get progress => _progress.value;
+  bool get isOpened => _opened;
+
+  @override
+  void initState() {
+    super.initState();
+    _progress = AnimationController(vsync: this, value: 0);
+    _completionLift = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
+  }
+
+  @override
+  void dispose() {
+    _progress.dispose();
+    _completionLift.dispose();
+    super.dispose();
+  }
+
+  void _onDragStart(DragStartDetails details) {
+    if (_opened) return;
+    final position = details.localPosition;
+    _acceptingDrag = position.dy <= 112 && position.dx <= 76;
+    if (!_acceptingDrag) return;
+    _progress.stop();
+    _dragStartX = position.dx;
+    _progressAtDragStart = _progress.value;
+  }
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    if (!_acceptingDrag || _opened) return;
+    final next =
+        (_progressAtDragStart +
+                (details.localPosition.dx - _dragStartX) / _tearDistance)
+            .clamp(0.0, 1.0);
+    _progress.value = next;
+  }
+
+  Future<void> _onDragEnd(DragEndDetails details) async {
+    if (!_acceptingDrag || _opened) return;
+    _acceptingDrag = false;
+    if (_progress.value < _completionThreshold) {
+      await _progress.animateBack(
+        0,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+      return;
+    }
+
+    await _progress.animateTo(
+      1,
+      duration: const Duration(milliseconds: 190),
+      curve: Curves.easeInCubic,
+    );
+    if (!mounted || _opened) return;
+    _opened = true;
+    HapticFeedback.mediumImpact();
+    await _completionLift.forward();
+    if (!mounted) return;
+    widget.onOpened();
+  }
+
+  void _onDragCancel() {
+    if (!_acceptingDrag || _opened) return;
+    _acceptingDrag = false;
+    _progress.animateBack(
+      0,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'パック上部を左から右へ破る',
+      value: '${(_progress.value * 100).round()}%',
+      child: GestureDetector(
+        key: const Key('tearable-pack'),
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragStart: _onDragStart,
+        onHorizontalDragUpdate: _onDragUpdate,
+        onHorizontalDragEnd: _onDragEnd,
+        onHorizontalDragCancel: _onDragCancel,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_progress, _completionLift]),
+          builder: (context, _) => _PackLayers(
+            progress: _progress.value,
+            completionLift: Curves.easeOutCubic.transform(
+              _completionLift.value,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PackLayers extends StatelessWidget {
+  const _PackLayers({required this.progress, required this.completionLift});
+
+  final double progress;
+  final double completionLift;
+
+  @override
+  Widget build(BuildContext context) {
+    const width = 280.0;
+    const height = 420.0;
+    const tearY = 72.0;
+    final tearX = width * progress;
+    final gap = progress == 0 ? 0.0 : 1.2 + progress * 1.8;
+    final glow = ((progress - 0.18) / 0.82).clamp(0.0, 1.0);
+
+    if (progress == 0) {
+      return const SizedBox(width: width, height: height, child: _PackBody());
+    }
+
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          if (progress < 1)
+            Positioned(
+              left: tearX,
+              top: 0,
+              width: width - tearX,
+              height: height,
+              child: ClipRect(
+                child: OverflowBox(
+                  alignment: Alignment.topLeft,
+                  minWidth: width,
+                  maxWidth: width,
+                  minHeight: height,
+                  maxHeight: height,
+                  child: Transform.translate(
+                    offset: Offset(-tearX, 0),
+                    child: const SizedBox(
+                      width: width,
+                      height: height,
+                      child: _PackBody(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          Transform.translate(
+            offset: Offset(0, -gap - completionLift * 16),
+            child: ClipPath(
+              clipper: _TornUpperClipper(tearX: tearX, tearY: tearY),
+              child: const _PackBody(),
+            ),
+          ),
+          Transform.translate(
+            offset: Offset(0, gap),
+            child: ClipPath(
+              clipper: _TornLowerClipper(tearX: tearX, tearY: tearY),
+              child: const _PackBody(),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            top: tearY - 11,
+            width: math.max(1, tearX),
+            height: 25,
+            child: Opacity(
+              opacity: glow,
+              child: CustomPaint(
+                painter: _TearEdgePainter(
+                  progress: progress,
+                  tension: progress > 0.72 ? (progress - 0.72) / 0.28 : 0,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PackBody extends StatelessWidget {
+  const _PackBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF08715C), Color(0xFF032F27)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.mutedGold, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x66102C24),
+            blurRadius: 28,
+            offset: Offset(0, 16),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          const Positioned.fill(
+            child: CustomPaint(painter: _PackBodyPainter()),
+          ),
+          for (final top in [10.0, 17.0, 24.0])
+            Positioned(
+              left: 8,
+              right: 8,
+              top: top,
+              child: const Divider(height: 1, color: Color(0x779AD8C8)),
+            ),
+          const Positioned(
+            left: 40,
+            right: 18,
+            top: 42,
+            child: Text(
+              'OPEN  ›››  ─────────────  ›',
+              style: TextStyle(
+                color: Color(0xFFFFE09A),
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ),
+          const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.trending_up_rounded,
+                  color: Color(0xFFFFD879),
+                  size: 68,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'KABUCA',
+                  style: TextStyle(
+                    color: Color(0xFFFFE2A0),
+                    fontFamily: 'serif',
+                    fontSize: 38,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2.5,
+                  ),
+                ),
+                Text(
+                  'STOCK  ×  CARD',
+                  style: TextStyle(
+                    color: Color(0xFFFFE2A0),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Positioned(
+            left: 52,
+            right: 52,
+            bottom: 31,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.fromBorderSide(
+                  BorderSide(color: AppColors.mutedGold),
+                ),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'DAILY PACK',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFFFFE2A0),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+double _tearOffset(double x) =>
+    math.sin(x * 0.43) * 3.2 + math.sin(x * 0.17) * 1.8;
+
+class _TornUpperClipper extends CustomClipper<Path> {
+  const _TornUpperClipper({required this.tearX, required this.tearY});
+
+  final double tearX;
+  final double tearY;
+
+  @override
+  Path getClip(Size size) {
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(tearX, 0)
+      ..lineTo(tearX, tearY + _tearOffset(tearX));
+    for (double x = tearX; x >= 0; x -= 5) {
+      path.lineTo(x, tearY + _tearOffset(x));
+    }
+    return path..close();
+  }
+
+  @override
+  bool shouldReclip(covariant _TornUpperClipper oldClipper) =>
+      oldClipper.tearX != tearX || oldClipper.tearY != tearY;
+}
+
+class _TornLowerClipper extends CustomClipper<Path> {
+  const _TornLowerClipper({required this.tearX, required this.tearY});
+
+  final double tearX;
+  final double tearY;
+
+  @override
+  Path getClip(Size size) {
+    final path = Path()..moveTo(0, tearY + _tearOffset(0));
+    for (double x = 0; x <= tearX; x += 5) {
+      path.lineTo(x, tearY + _tearOffset(x));
+    }
+    return path
+      ..lineTo(tearX, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(covariant _TornLowerClipper oldClipper) =>
+      oldClipper.tearX != tearX || oldClipper.tearY != tearY;
+}
+
+class _TearEdgePainter extends CustomPainter {
+  const _TearEdgePainter({required this.progress, required this.tension});
+
+  final double progress;
+  final double tension;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress <= 0) return;
+    final shadow = Paint()
+      ..color = const Color(0xCC021A15)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+    final glow = Paint()
+      ..color = Color.lerp(
+        const Color(0xAAFFE6A5),
+        const Color(0xFFFFF3CC),
+        progress,
+      )!
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4.5
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    final fiber = Paint()
+      ..color = const Color(0xFFFFE6A5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3;
+    final path = Path();
+    for (double x = 0; x <= size.width; x += 5) {
+      final y = 11 + _tearOffset(x);
+      if (x == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    canvas.drawPath(path, glow);
+    canvas.drawPath(path, shadow);
+    canvas.drawPath(path, fiber);
+    if (tension > 0) {
+      final tip = Offset(size.width - 1, 11 + _tearOffset(size.width));
+      canvas.drawCircle(
+        tip,
+        3 + tension * 3,
+        Paint()
+          ..color = const Color(0xFFFFE6A5).withValues(alpha: tension)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TearEdgePainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.tension != tension;
+}
+
+class _PackBodyPainter extends CustomPainter {
+  const _PackBodyPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0x35D8B45E)
+      ..style = PaintingStyle.stroke;
+    for (var i = 1; i < 7; i++) {
+      final x = size.width * i / 7;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    final chart = Path()
+      ..moveTo(0, size.height * 0.77)
+      ..cubicTo(
+        size.width * 0.25,
+        size.height * 0.72,
+        size.width * 0.46,
+        size.height * 0.5,
+        size.width,
+        size.height * 0.24,
+      );
+    canvas.drawPath(
+      chart,
+      paint
+        ..color = const Color(0x99D8B45E)
+        ..strokeWidth = 1.6,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
