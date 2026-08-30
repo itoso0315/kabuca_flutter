@@ -2,12 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_theme.dart';
 import '../../models/app_notification.dart';
+import '../../models/stock_prediction.dart';
 import '../../state/notification_store.dart';
+import '../../state/prediction_store.dart';
+import '../prediction/prediction_result_screen.dart';
 
 class NotificationScreen extends StatelessWidget {
-  const NotificationScreen({super.key, required this.store});
+  const NotificationScreen({
+    super.key,
+    required this.store,
+    this.predictionStore,
+  });
 
   final NotificationStore store;
+  final PredictionStore? predictionStore;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -55,13 +63,36 @@ class NotificationScreen extends StatelessWidget {
             final notification = store.notifications[index];
             return _NotificationTile(
               notification: notification,
-              onTap: () => store.markAsRead(notification.id),
+              onTap: () => _openNotification(context, notification),
             );
           },
         );
       },
     ),
   );
+
+  Future<void> _openNotification(
+    BuildContext context,
+    AppNotification notification,
+  ) async {
+    await store.markAsRead(notification.id);
+    if (!context.mounted ||
+        notification.type != NotificationType.predictionResult ||
+        notification.relatedPredictionId == null) {
+      return;
+    }
+    final prediction = predictionStore?.findById(
+      notification.relatedPredictionId!,
+    );
+    if (prediction == null || prediction.status != PredictionStatus.completed) {
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => PredictionResultScreen(prediction: prediction),
+      ),
+    );
+  }
 }
 
 class _NotificationTile extends StatelessWidget {

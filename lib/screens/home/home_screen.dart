@@ -6,6 +6,7 @@ import '../../models/company_card.dart';
 import '../../services/card_pack_service.dart';
 import '../../services/stock_price_service.dart';
 import '../../services/trading_calendar_service.dart';
+import '../../services/prediction_resolution_service.dart';
 import '../../state/game_state.dart';
 import '../../state/notification_store.dart';
 import '../../state/prediction_store.dart';
@@ -23,6 +24,7 @@ class HomeScreen extends StatelessWidget {
     this.cardPackService,
     this.stockPriceService,
     this.tradingCalendarService,
+    this.predictionResolutionService,
   });
 
   final GameState gameState;
@@ -31,6 +33,7 @@ class HomeScreen extends StatelessWidget {
   final CardPackService? cardPackService;
   final StockPriceService? stockPriceService;
   final TradingCalendarService? tradingCalendarService;
+  final PredictionResolutionService? predictionResolutionService;
 
   @override
   Widget build(BuildContext context) {
@@ -70,8 +73,10 @@ class HomeScreen extends StatelessWidget {
                       unreadCount: notificationStore.unreadCount,
                       onPressed: () => Navigator.of(context).push<void>(
                         MaterialPageRoute(
-                          builder: (_) =>
-                              NotificationScreen(store: notificationStore),
+                          builder: (_) => NotificationScreen(
+                            store: notificationStore,
+                            predictionStore: predictionStore,
+                          ),
                         ),
                       ),
                     ),
@@ -143,8 +148,10 @@ class HomeScreen extends StatelessWidget {
                           key: const Key('waiting-predictions-button'),
                           onPressed: () => Navigator.of(context).push<void>(
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  PredictionListScreen(store: predictionStore),
+                              builder: (_) => PredictionListScreen(
+                                store: predictionStore,
+                                resolutionService: predictionResolutionService,
+                              ),
                             ),
                           ),
                           child: Text(

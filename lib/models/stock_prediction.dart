@@ -32,6 +32,11 @@ class StockPrediction {
     this.basePrice,
     this.basePriceAt,
     this.targetDate,
+    this.resultPrice,
+    this.resultPriceAt,
+    this.changePercent,
+    this.isCorrect,
+    this.awardedPoints,
   });
 
   final String id;
@@ -45,6 +50,37 @@ class StockPrediction {
   final double? basePrice;
   final DateTime? basePriceAt;
   final DateTime? targetDate;
+  final double? resultPrice;
+  final DateTime? resultPriceAt;
+  final double? changePercent;
+  final bool? isCorrect;
+  final int? awardedPoints;
+
+  StockPrediction copyWith({
+    PredictionStatus? status,
+    double? resultPrice,
+    DateTime? resultPriceAt,
+    double? changePercent,
+    bool? isCorrect,
+    int? awardedPoints,
+  }) => StockPrediction(
+    id: id,
+    companyId: companyId,
+    companyName: companyName,
+    ticker: ticker,
+    direction: direction,
+    horizon: horizon,
+    createdAt: createdAt,
+    status: status ?? this.status,
+    basePrice: basePrice,
+    basePriceAt: basePriceAt,
+    targetDate: targetDate,
+    resultPrice: resultPrice ?? this.resultPrice,
+    resultPriceAt: resultPriceAt ?? this.resultPriceAt,
+    changePercent: changePercent ?? this.changePercent,
+    isCorrect: isCorrect ?? this.isCorrect,
+    awardedPoints: awardedPoints ?? this.awardedPoints,
+  );
 
   Map<String, Object> toJson() {
     return {
@@ -59,6 +95,12 @@ class StockPrediction {
       'basePrice': ?basePrice,
       if (basePriceAt != null) 'basePriceAt': basePriceAt!.toIso8601String(),
       if (targetDate != null) 'targetDate': targetDate!.toIso8601String(),
+      'resultPrice': ?resultPrice,
+      if (resultPriceAt != null)
+        'resultPriceAt': resultPriceAt!.toIso8601String(),
+      'changePercent': ?changePercent,
+      'isCorrect': ?isCorrect,
+      'awardedPoints': ?awardedPoints,
     };
   }
 
@@ -81,6 +123,13 @@ class StockPrediction {
       targetDate: json['targetDate'] == null
           ? null
           : DateTime.parse(json['targetDate']! as String),
+      resultPrice: (json['resultPrice'] as num?)?.toDouble(),
+      resultPriceAt: json['resultPriceAt'] == null
+          ? null
+          : DateTime.parse(json['resultPriceAt']! as String),
+      changePercent: (json['changePercent'] as num?)?.toDouble(),
+      isCorrect: json['isCorrect'] as bool?,
+      awardedPoints: (json['awardedPoints'] as num?)?.toInt(),
     );
   }
 }

@@ -41,6 +41,11 @@ void main() {
     expect(prediction.basePrice, isNull);
     expect(prediction.basePriceAt, isNull);
     expect(prediction.targetDate, isNull);
+    expect(prediction.resultPrice, isNull);
+    expect(prediction.resultPriceAt, isNull);
+    expect(prediction.changePercent, isNull);
+    expect(prediction.isCorrect, isNull);
+    expect(prediction.awardedPoints, isNull);
   });
 }
 

@@ -64,6 +64,37 @@ class PredictionStore extends ChangeNotifier {
             prediction.status == PredictionStatus.waiting,
       );
 
+  StockPrediction? findById(String id) {
+    final index = _predictions.indexWhere((item) => item.id == id);
+    return index < 0 ? null : _predictions[index];
+  }
+
+  Future<StockPrediction?> complete({
+    required String id,
+    required double resultPrice,
+    required DateTime resultPriceAt,
+    required double changePercent,
+    required bool isCorrect,
+    required int awardedPoints,
+  }) async {
+    final index = _predictions.indexWhere((item) => item.id == id);
+    if (index < 0 || _predictions[index].status != PredictionStatus.waiting) {
+      return null;
+    }
+    final completed = _predictions[index].copyWith(
+      status: PredictionStatus.completed,
+      resultPrice: resultPrice,
+      resultPriceAt: resultPriceAt,
+      changePercent: changePercent,
+      isCorrect: isCorrect,
+      awardedPoints: awardedPoints,
+    );
+    _predictions[index] = completed;
+    notifyListeners();
+    await _storage.writePredictions(_predictions);
+    return completed;
+  }
+
   Future<StockPrediction?> addWaiting({
     required String companyId,
     required String companyName,

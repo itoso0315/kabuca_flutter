@@ -6,6 +6,7 @@ import '../screens/profile/profile_screen.dart';
 import '../state/game_state.dart';
 import '../state/notification_store.dart';
 import '../state/prediction_store.dart';
+import '../services/prediction_resolution_service.dart';
 import 'app_theme.dart';
 
 class KabucaApp extends StatelessWidget {
@@ -14,11 +15,13 @@ class KabucaApp extends StatelessWidget {
     required this.gameState,
     required this.predictionStore,
     required this.notificationStore,
+    this.predictionResolutionService,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
   final NotificationStore notificationStore;
+  final PredictionResolutionService? predictionResolutionService;
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +33,7 @@ class KabucaApp extends StatelessWidget {
         gameState: gameState,
         predictionStore: predictionStore,
         notificationStore: notificationStore,
+        predictionResolutionService: predictionResolutionService,
       ),
     );
   }
@@ -41,11 +45,13 @@ class MainScreen extends StatefulWidget {
     required this.gameState,
     required this.predictionStore,
     required this.notificationStore,
+    this.predictionResolutionService,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
   final NotificationStore notificationStore;
+  final PredictionResolutionService? predictionResolutionService;
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -55,12 +61,19 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    widget.predictionResolutionService?.resolveEligiblePredictions();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final screens = <Widget>[
       HomeScreen(
         gameState: widget.gameState,
         predictionStore: widget.predictionStore,
         notificationStore: widget.notificationStore,
+        predictionResolutionService: widget.predictionResolutionService,
       ),
       CollectionScreen(
         gameState: widget.gameState,
