@@ -70,6 +70,9 @@ class PredictionStore extends ChangeNotifier {
     required String ticker,
     required PredictionDirection direction,
     required PredictionHorizon horizon,
+    required double basePrice,
+    required DateTime basePriceAt,
+    required DateTime targetDate,
     DateTime? createdAt,
   }) async {
     if (hasWaiting(companyId, horizon)) return null;
@@ -83,6 +86,9 @@ class PredictionStore extends ChangeNotifier {
       horizon: horizon,
       createdAt: timestamp,
       status: PredictionStatus.waiting,
+      basePrice: basePrice,
+      basePriceAt: basePriceAt,
+      targetDate: targetDate,
     );
     _predictions.add(prediction);
     notifyListeners();

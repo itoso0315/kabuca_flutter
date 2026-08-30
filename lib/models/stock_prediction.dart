@@ -29,6 +29,9 @@ class StockPrediction {
     required this.horizon,
     required this.createdAt,
     required this.status,
+    this.basePrice,
+    this.basePriceAt,
+    this.targetDate,
   });
 
   final String id;
@@ -39,17 +42,25 @@ class StockPrediction {
   final PredictionHorizon horizon;
   final DateTime createdAt;
   final PredictionStatus status;
+  final double? basePrice;
+  final DateTime? basePriceAt;
+  final DateTime? targetDate;
 
-  Map<String, Object> toJson() => {
-    'id': id,
-    'companyId': companyId,
-    'companyName': companyName,
-    'ticker': ticker,
-    'direction': direction.name,
-    'horizon': horizon.name,
-    'createdAt': createdAt.toIso8601String(),
-    'status': status.name,
-  };
+  Map<String, Object> toJson() {
+    return {
+      'id': id,
+      'companyId': companyId,
+      'companyName': companyName,
+      'ticker': ticker,
+      'direction': direction.name,
+      'horizon': horizon.name,
+      'createdAt': createdAt.toIso8601String(),
+      'status': status.name,
+      'basePrice': ?basePrice,
+      if (basePriceAt != null) 'basePriceAt': basePriceAt!.toIso8601String(),
+      if (targetDate != null) 'targetDate': targetDate!.toIso8601String(),
+    };
+  }
 
   factory StockPrediction.fromJson(Map<String, Object?> json) {
     return StockPrediction(
@@ -63,6 +74,13 @@ class StockPrediction {
       horizon: PredictionHorizon.values.byName(json['horizon']! as String),
       createdAt: DateTime.parse(json['createdAt']! as String),
       status: PredictionStatus.values.byName(json['status']! as String),
+      basePrice: (json['basePrice'] as num?)?.toDouble(),
+      basePriceAt: json['basePriceAt'] == null
+          ? null
+          : DateTime.parse(json['basePriceAt']! as String),
+      targetDate: json['targetDate'] == null
+          ? null
+          : DateTime.parse(json['targetDate']! as String),
     );
   }
 }

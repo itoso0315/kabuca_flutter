@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_theme.dart';
 import '../../models/stock_prediction.dart';
+import '../../services/prediction_formatters.dart';
 import '../../state/prediction_store.dart';
 
 class PredictionListScreen extends StatelessWidget {
@@ -48,7 +49,10 @@ class _PredictionTile extends StatelessWidget {
         ),
         title: Text(prediction.companyName),
         subtitle: Text(
-          '${prediction.ticker}  ・  ${prediction.horizon.label}\n${prediction.direction.label}  ・  結果待ち',
+          '${prediction.ticker}  ・  ${prediction.horizon.label}\n'
+          '${prediction.direction.label}  ・  結果待ち'
+          '${prediction.basePrice == null ? '' : '\n基準 ${formatYen(prediction.basePrice!)}'}'
+          '${prediction.targetDate == null ? '' : '  ・  ${formatDate(prediction.targetDate!, includeYear: false)} 答え合わせ予定'}',
         ),
       ),
     );

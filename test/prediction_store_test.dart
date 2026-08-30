@@ -14,6 +14,9 @@ void main() {
       direction: PredictionDirection.up,
       horizon: PredictionHorizon.nextTradingDay,
       createdAt: DateTime(2026),
+      basePrice: 3000,
+      basePriceAt: DateTime.utc(2026),
+      targetDate: DateTime.utc(2026, 1, 5),
     );
     await store.addWaiting(
       companyId: 'toyota',
@@ -22,6 +25,9 @@ void main() {
       direction: PredictionDirection.down,
       horizon: PredictionHorizon.oneWeek,
       createdAt: DateTime(2026, 1, 2),
+      basePrice: 3001,
+      basePriceAt: DateTime.utc(2026, 1, 2),
+      targetDate: DateTime.utc(2026, 1, 9),
     );
     await store.addWaiting(
       companyId: 'nintendo',
@@ -30,6 +36,9 @@ void main() {
       direction: PredictionDirection.up,
       horizon: PredictionHorizon.oneMonth,
       createdAt: DateTime(2026, 1, 3),
+      basePrice: 10000,
+      basePriceAt: DateTime.utc(2026, 1, 3),
+      targetDate: DateTime.utc(2026, 2, 3),
     );
 
     expect(store.waitingPredictions, hasLength(3));
@@ -60,6 +69,9 @@ void main() {
       ticker: '7203',
       direction: PredictionDirection.up,
       horizon: PredictionHorizon.oneWeek,
+      basePrice: 3000,
+      basePriceAt: DateTime.utc(2026),
+      targetDate: DateTime.utc(2026, 1, 8),
     );
     final duplicate = await store.addWaiting(
       companyId: 'toyota',
@@ -67,6 +79,9 @@ void main() {
       ticker: '7203',
       direction: PredictionDirection.down,
       horizon: PredictionHorizon.oneWeek,
+      basePrice: 3000,
+      basePriceAt: DateTime.utc(2026),
+      targetDate: DateTime.utc(2026, 1, 8),
     );
     final anotherHorizon = await store.addWaiting(
       companyId: 'toyota',
@@ -74,6 +89,9 @@ void main() {
       ticker: '7203',
       direction: PredictionDirection.down,
       horizon: PredictionHorizon.oneMonth,
+      basePrice: 3000,
+      basePriceAt: DateTime.utc(2026),
+      targetDate: DateTime.utc(2026, 2, 2),
     );
 
     expect(first, isNotNull);

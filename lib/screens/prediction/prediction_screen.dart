@@ -4,6 +4,9 @@ import '../../app/app_theme.dart';
 import '../../models/company_card.dart';
 import '../../models/stock_prediction.dart';
 import '../../services/owned_company_service.dart';
+import '../../services/prediction_formatters.dart';
+import '../../services/stock_price_service.dart';
+import '../../services/trading_calendar_service.dart';
 import '../../state/prediction_store.dart';
 import '../../theme/company_theme.dart';
 
@@ -12,10 +15,14 @@ class PredictionScreen extends StatefulWidget {
     super.key,
     required this.company,
     required this.predictionStore,
+    this.stockPriceService,
+    this.tradingCalendarService,
   });
 
   final OwnedCompanySummary company;
   final PredictionStore predictionStore;
+  final StockPriceService? stockPriceService;
+  final TradingCalendarService? tradingCalendarService;
 
   @override
   State<PredictionScreen> createState() => _PredictionScreenState();
@@ -26,6 +33,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
   PredictionDirection? _direction;
   StockPrediction? _saved;
   String? _error;
+  bool _saving = false;
 
   @override
   Widget build(BuildContext context) {
@@ -99,10 +107,12 @@ class _PredictionScreenState extends State<PredictionScreen> {
                   key: Key('horizon-${horizon.name}'),
                   label: Text(horizon.label),
                   selected: _horizon == horizon,
-                  onSelected: (_) => setState(() {
-                    _horizon = horizon;
-                    _error = null;
-                  }),
+                  onSelected: _saving
+                      ? null
+                      : (_) => setState(() {
+                          _horizon = horizon;
+                          _error = null;
+                        }),
                 ),
             ],
           ),
@@ -118,8 +128,10 @@ class _PredictionScreenState extends State<PredictionScreen> {
                 child: _DirectionButton(
                   direction: PredictionDirection.up,
                   selected: _direction == PredictionDirection.up,
-                  onTap: () =>
-                      setState(() => _direction = PredictionDirection.up),
+                  onTap: _saving
+                      ? null
+                      : () =>
+                            setState(() => _direction = PredictionDirection.up),
                 ),
               ),
               const SizedBox(width: 12),
@@ -127,8 +139,11 @@ class _PredictionScreenState extends State<PredictionScreen> {
                 child: _DirectionButton(
                   direction: PredictionDirection.down,
                   selected: _direction == PredictionDirection.down,
-                  onTap: () =>
-                      setState(() => _direction = PredictionDirection.down),
+                  onTap: _saving
+                      ? null
+                      : () => setState(
+                          () => _direction = PredictionDirection.down,
+                        ),
                 ),
               ),
             ],
@@ -142,9 +157,25 @@ class _PredictionScreenState extends State<PredictionScreen> {
             ),
           ],
           const SizedBox(height: 24),
+          if (_saving) ...[
+            const Row(
+              key: Key('stock-price-loading'),
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 10),
+                Text('現在の株価を取得中…'),
+              ],
+            ),
+            const SizedBox(height: 14),
+          ],
           FilledButton(
             key: const Key('save-prediction-button'),
-            onPressed: _direction == null ? null : _save,
+            onPressed: _direction == null || _saving ? null : _save,
             child: const Text('この予想で決定'),
           ),
         ],
@@ -154,18 +185,48 @@ class _PredictionScreenState extends State<PredictionScreen> {
 
   Future<void> _save() async {
     final card = widget.company.representative;
-    final prediction = await widget.predictionStore.addWaiting(
-      companyId: widget.company.companyId,
-      companyName: card.companyName,
-      ticker: card.ticker,
-      direction: _direction!,
-      horizon: _horizon,
-    );
-    if (!mounted) return;
-    if (prediction == null) {
+    if (widget.predictionStore.hasWaiting(widget.company.companyId, _horizon)) {
       setState(() => _error = 'この企業・期間の予想はすでに結果待ちです');
-    } else {
-      setState(() => _saved = prediction);
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final priceService =
+          widget.stockPriceService ?? StockPriceService.production();
+      final quote = await priceService.fetchCurrentPrice(
+        ticker: card.ticker,
+        companyId: widget.company.companyId,
+      );
+      final calendar =
+          widget.tradingCalendarService ?? TradingCalendarService();
+      final prediction = await widget.predictionStore.addWaiting(
+        companyId: widget.company.companyId,
+        companyName: card.companyName,
+        ticker: card.ticker,
+        direction: _direction!,
+        horizon: _horizon,
+        createdAt: quote.fetchedAt,
+        basePrice: quote.price,
+        basePriceAt: quote.fetchedAt,
+        targetDate: calendar.resolveTargetTradingDay(quote.fetchedAt, _horizon),
+      );
+      if (!mounted) return;
+      if (prediction == null) {
+        setState(() => _error = 'この企業・期間の予想はすでに結果待ちです');
+      } else {
+        setState(() => _saved = prediction);
+      }
+    } on StockPriceException catch (error) {
+      if (mounted) setState(() => _error = '${error.message}\n時間をおいて再試行してください');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = '現在の株価を取得できませんでした\n再試行してください');
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 }
@@ -209,7 +270,7 @@ class _DirectionButton extends StatelessWidget {
   });
   final PredictionDirection direction;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -264,6 +325,20 @@ class _Completion extends StatelessWidget {
                 '${prediction.horizon.label}  ${prediction.direction.label}',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
+              const SizedBox(height: 8),
+              if (prediction.basePrice case final price?) ...[
+                Text(
+                  '基準株価  ${formatYen(price)}',
+                  key: const Key('completion-base-price'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 5),
+              ],
+              if (prediction.targetDate case final target?)
+                Text(
+                  '答え合わせ予定  ${formatDate(target)}',
+                  key: const Key('completion-target-date'),
+                ),
               const SizedBox(height: 8),
               const Text('結果を待とう'),
               const SizedBox(height: 28),

@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kabuca_flutter/data/card_catalog.dart';
 import 'package:kabuca_flutter/models/company_card.dart';
+import 'package:kabuca_flutter/models/stock_quote.dart';
 import 'package:kabuca_flutter/screens/home/home_screen.dart';
 import 'package:kabuca_flutter/state/game_state.dart';
 import 'package:kabuca_flutter/state/prediction_store.dart';
+import 'package:kabuca_flutter/services/stock_price_service.dart';
+import 'package:kabuca_flutter/services/trading_calendar_service.dart';
 
 void main() {
   testWidgets('所持情報だけを参照してUP予想を保存し結果待ち一覧で確認できる', (tester) async {
@@ -23,6 +26,10 @@ void main() {
           body: HomeScreen(
             gameState: gameState,
             predictionStore: predictionStore,
+            stockPriceService: StockPriceService(_SuccessfulQuoteProvider()),
+            tradingCalendarService: TradingCalendarService(
+              holidayProvider: _NoHolidays(),
+            ),
           ),
         ),
       ),
@@ -60,6 +67,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('prediction-complete')), findsOneWidget);
     expect(find.text('1週間後  UP'), findsOneWidget);
+    expect(find.text('基準株価  ¥12,340'), findsOneWidget);
+    expect(find.text('答え合わせ予定  2026/09/07'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, '企業一覧へ戻る'));
     await tester.pumpAndSettle();
@@ -75,4 +84,21 @@ void main() {
     expect(find.textContaining('1週間後'), findsOneWidget);
     expect(find.textContaining('UP  ・  結果待ち'), findsOneWidget);
   });
+}
+
+class _SuccessfulQuoteProvider implements StockPriceProvider {
+  @override
+  Future<StockQuote> fetchQuote({
+    required String ticker,
+    required String companyId,
+  }) async => StockQuote(
+    ticker: ticker,
+    price: 12340,
+    fetchedAt: DateTime.utc(2026, 8, 31, 6),
+  );
+}
+
+class _NoHolidays implements TradingHolidayProvider {
+  @override
+  bool isHoliday(DateTime japanDate) => false;
 }

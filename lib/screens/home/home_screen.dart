@@ -4,6 +4,8 @@ import '../../widgets/daily_pack_card.dart';
 import '../../widgets/home_stat_card.dart';
 import '../../models/company_card.dart';
 import '../../services/card_pack_service.dart';
+import '../../services/stock_price_service.dart';
+import '../../services/trading_calendar_service.dart';
 import '../../state/game_state.dart';
 import '../../state/prediction_store.dart';
 import '../prediction/company_prediction_select_screen.dart';
@@ -16,11 +18,15 @@ class HomeScreen extends StatelessWidget {
     required this.gameState,
     required this.predictionStore,
     this.cardPackService,
+    this.stockPriceService,
+    this.tradingCalendarService,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
   final CardPackService? cardPackService;
+  final StockPriceService? stockPriceService;
+  final TradingCalendarService? tradingCalendarService;
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +98,8 @@ class HomeScreen extends StatelessWidget {
                               builder: (_) => CompanyPredictionSelectScreen(
                                 gameState: gameState,
                                 predictionStore: predictionStore,
+                                stockPriceService: stockPriceService,
+                                tradingCalendarService: tradingCalendarService,
                               ),
                             ),
                           ),

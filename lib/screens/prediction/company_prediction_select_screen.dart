@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_theme.dart';
 import '../../services/owned_company_service.dart';
+import '../../services/stock_price_service.dart';
+import '../../services/trading_calendar_service.dart';
 import '../../state/game_state.dart';
 import '../../state/prediction_store.dart';
 import '../../theme/company_theme.dart';
@@ -12,10 +14,14 @@ class CompanyPredictionSelectScreen extends StatelessWidget {
     super.key,
     required this.gameState,
     required this.predictionStore,
+    this.stockPriceService,
+    this.tradingCalendarService,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
+  final StockPriceService? stockPriceService;
+  final TradingCalendarService? tradingCalendarService;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +73,8 @@ class CompanyPredictionSelectScreen extends StatelessWidget {
                         builder: (_) => PredictionScreen(
                           company: company,
                           predictionStore: predictionStore,
+                          stockPriceService: stockPriceService,
+                          tradingCalendarService: tradingCalendarService,
                         ),
                       ),
                     ),
