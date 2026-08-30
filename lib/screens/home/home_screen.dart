@@ -7,13 +7,17 @@ import '../../services/card_pack_service.dart';
 import '../../services/stock_price_service.dart';
 import '../../services/trading_calendar_service.dart';
 import '../../services/prediction_resolution_service.dart';
+import '../../services/prediction_reward_service.dart';
+import '../../services/pack_exchange_service.dart';
 import '../../state/game_state.dart';
 import '../../state/notification_store.dart';
 import '../../state/prediction_store.dart';
+import '../../state/point_wallet.dart';
 import '../notifications/notification_screen.dart';
 import '../prediction/company_prediction_select_screen.dart';
 import '../prediction/prediction_list_screen.dart';
 import '../pack/pack_opening_screen.dart';
+import '../rewards/pack_exchange_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -25,6 +29,9 @@ class HomeScreen extends StatelessWidget {
     this.stockPriceService,
     this.tradingCalendarService,
     this.predictionResolutionService,
+    this.pointWallet,
+    this.rewardService,
+    this.exchangeService,
   });
 
   final GameState gameState;
@@ -34,6 +41,9 @@ class HomeScreen extends StatelessWidget {
   final StockPriceService? stockPriceService;
   final TradingCalendarService? tradingCalendarService;
   final PredictionResolutionService? predictionResolutionService;
+  final PointWallet? pointWallet;
+  final PredictionRewardService? rewardService;
+  final PackExchangeService? exchangeService;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +52,7 @@ class HomeScreen extends StatelessWidget {
         gameState,
         predictionStore,
         notificationStore,
+        ?pointWallet,
       ]),
       builder: (context, _) => SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
@@ -69,6 +80,12 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                    _PointBalanceButton(
+                      points: pointWallet?.currentPoints ?? 0,
+                      onPressed: pointWallet == null || exchangeService == null
+                          ? null
+                          : () => _openExchange(context),
+                    ),
                     _NotificationBell(
                       unreadCount: notificationStore.unreadCount,
                       onPressed: () => Navigator.of(context).push<void>(
@@ -76,6 +93,8 @@ class HomeScreen extends StatelessWidget {
                           builder: (_) => NotificationScreen(
                             store: notificationStore,
                             predictionStore: predictionStore,
+                            pointWallet: pointWallet,
+                            rewardService: rewardService,
                           ),
                         ),
                       ),
@@ -151,6 +170,8 @@ class HomeScreen extends StatelessWidget {
                               builder: (_) => PredictionListScreen(
                                 store: predictionStore,
                                 resolutionService: predictionResolutionService,
+                                pointWallet: pointWallet,
+                                rewardService: rewardService,
                               ),
                             ),
                           ),
@@ -170,6 +191,23 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _openExchange(BuildContext context) async {
+    final exchanged = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => PackExchangeScreen(
+          pointWallet: pointWallet!,
+          gameState: gameState,
+          exchangeService: exchangeService!,
+        ),
+      ),
+    );
+    if (exchanged == true && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('スタートパックを1個獲得しました')));
+    }
+  }
+
   Future<void> _openPack(BuildContext context) async {
     final cards = await Navigator.of(context).push<List<CompanyCard>>(
       PackOpeningRoute(
@@ -185,6 +223,42 @@ class HomeScreen extends StatelessWidget {
   void _consumePack() {
     gameState.consumePack();
   }
+}
+
+class _PointBalanceButton extends StatelessWidget {
+  const _PointBalanceButton({required this.points, required this.onPressed});
+  final int points;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    key: const Key('home-point-balance'),
+    onTap: onPressed,
+    borderRadius: BorderRadius.circular(18),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4E9C8),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD6B870)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.stars_rounded, size: 15, color: Color(0xFFA67D2D)),
+          const SizedBox(width: 4),
+          Text(
+            '$points pt',
+            style: const TextStyle(
+              color: Color(0xFF5A481E),
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _NotificationBell extends StatelessWidget {

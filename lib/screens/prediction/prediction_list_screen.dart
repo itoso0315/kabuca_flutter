@@ -5,6 +5,8 @@ import '../../models/stock_prediction.dart';
 import '../../services/prediction_formatters.dart';
 import '../../services/prediction_resolution_service.dart';
 import '../../state/prediction_store.dart';
+import '../../state/point_wallet.dart';
+import '../../services/prediction_reward_service.dart';
 import 'prediction_result_screen.dart';
 
 class PredictionListScreen extends StatefulWidget {
@@ -12,9 +14,13 @@ class PredictionListScreen extends StatefulWidget {
     super.key,
     required this.store,
     this.resolutionService,
+    this.pointWallet,
+    this.rewardService,
   });
   final PredictionStore store;
   final PredictionResolutionService? resolutionService;
+  final PointWallet? pointWallet;
+  final PredictionRewardService? rewardService;
 
   @override
   State<PredictionListScreen> createState() => _PredictionListScreenState();
@@ -86,6 +92,9 @@ class _PredictionListScreenState extends State<PredictionListScreen> {
                           MaterialPageRoute(
                             builder: (_) => PredictionResultScreen(
                               prediction: predictions[index],
+                              predictionStore: widget.store,
+                              pointWallet: widget.pointWallet,
+                              rewardService: widget.rewardService,
                             ),
                           ),
                         )

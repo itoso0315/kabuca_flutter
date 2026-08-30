@@ -93,6 +93,14 @@ class GameState extends ChangeNotifier {
     await _storage.writePackCount(_packCount);
   }
 
+  Future<void> addPacks([int count = 1]) async {
+    if (count <= 0) return;
+    final next = _packCount + count;
+    await _storage.writePackCount(next);
+    _packCount = next;
+    notifyListeners();
+  }
+
   Future<void> addCards(Iterable<CompanyCard> cards) async {
     for (final card in cards) {
       _cardCounts.update(card.id, (count) => count + 1, ifAbsent: () => 1);

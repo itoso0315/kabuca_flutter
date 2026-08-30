@@ -88,11 +88,32 @@ class PredictionStore extends ChangeNotifier {
       changePercent: changePercent,
       isCorrect: isCorrect,
       awardedPoints: awardedPoints,
+      pointsClaimed: false,
     );
     _predictions[index] = completed;
     notifyListeners();
     await _storage.writePredictions(_predictions);
     return completed;
+  }
+
+  Future<StockPrediction?> markPointsClaimed(
+    String id, {
+    required bool claimed,
+    DateTime? claimedAt,
+  }) async {
+    final index = _predictions.indexWhere((item) => item.id == id);
+    if (index < 0 || _predictions[index].status != PredictionStatus.completed) {
+      return null;
+    }
+    final updated = _predictions[index].copyWith(
+      pointsClaimed: claimed,
+      pointsClaimedAt: claimed ? claimedAt ?? DateTime.now().toUtc() : null,
+    );
+    final next = List<StockPrediction>.of(_predictions)..[index] = updated;
+    await _storage.writePredictions(next);
+    _predictions[index] = updated;
+    notifyListeners();
+    return updated;
   }
 
   Future<StockPrediction?> addWaiting({

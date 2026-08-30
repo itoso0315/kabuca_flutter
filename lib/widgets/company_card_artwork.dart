@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../models/company_card.dart';
+import '../theme/company_artwork_registry.dart';
 import '../theme/company_theme.dart';
 import 'card_rarity_style.dart';
 
@@ -23,6 +24,7 @@ class CompanyCardArtwork extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final company = CompanyTheme.forCompany(card.companyId);
+    final artwork = CompanyArtworkRegistry.forCompany(card.companyId);
     final rarity = CardRarityStyle.of(card.rarity);
     final radius = compact ? 10.0 : 15.0;
     return RepaintBoundary(
@@ -73,14 +75,16 @@ class CompanyCardArtwork extends StatelessWidget {
             ),
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: CompanyArtworkPainter(
-                      theme: company,
-                      rarity: card.rarity,
+                if (artwork == null)
+                  Positioned.fill(
+                    child: CustomPaint(
+                      key: const Key('company-artwork-fallback'),
+                      painter: CompanyArtworkPainter(
+                        theme: company,
+                        rarity: card.rarity,
+                      ),
                     ),
                   ),
-                ),
                 if (card.rarity.index >= CardRarity.sr.index)
                   Positioned.fill(child: _CardSheen(rarity: card.rarity)),
                 Padding(
@@ -93,74 +97,25 @@ class CompanyCardArtwork extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            card.ticker,
-                            key: const Key('card-metadata'),
-                            style: TextStyle(
-                              color: rarity.accent,
-                              fontSize: compact ? 9 : 12,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.1,
-                            ),
-                          ),
-                          const Spacer(),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: compact ? 5 : 7,
-                              vertical: compact ? 2 : 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0x99050A08),
-                              border: Border.all(color: rarity.border),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              card.rarity.label,
-                              key: const Key('card-rarity'),
-                              style: TextStyle(
-                                color: rarity.accent,
-                                fontSize: compact ? 9 : 11,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                        ],
+                      _CardHeader(card: card, compact: compact, rarity: rarity),
+                      SizedBox(height: compact ? 5 : 8),
+                      Expanded(
+                        flex: 6,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(compact ? 5 : 8),
+                          child: artwork == null
+                              ? _FallbackSymbol(
+                                  company: company,
+                                  compact: compact,
+                                )
+                              : _CompanyArtworkImage(
+                                  companyId: card.companyId,
+                                  artwork: artwork,
+                                  accent: company.accentColor,
+                                ),
+                        ),
                       ),
                       SizedBox(height: compact ? 5 : 8),
-                      Text(
-                        card.companyName,
-                        key: const Key('card-company-name'),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: compact ? 12 : 19,
-                          fontWeight: FontWeight.w700,
-                          height: 1.12,
-                        ),
-                      ),
-                      const Spacer(),
-                      Center(
-                        child: Container(
-                          width: compact ? 48 : 82,
-                          height: compact ? 48 : 82,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0x44000000),
-                            border: Border.all(
-                              color: company.accentColor.withValues(alpha: .72),
-                            ),
-                          ),
-                          child: Icon(
-                            company.abstractSymbol,
-                            color: company.accentColor,
-                            size: compact ? 27 : 45,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
                       Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: compact ? 7 : 11,
@@ -198,18 +153,17 @@ class CompanyCardArtwork extends StatelessWidget {
                                 ),
                               ),
                             ],
+                            SizedBox(height: compact ? 2 : 4),
+                            Text(
+                              'K A B U C A',
+                              style: TextStyle(
+                                color: rarity.accent.withValues(alpha: .8),
+                                fontSize: compact ? 5.5 : 8,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: compact ? .8 : 2,
+                              ),
+                            ),
                           ],
-                        ),
-                      ),
-                      SizedBox(height: compact ? 4 : 7),
-                      Text(
-                        'K A B U C A',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: rarity.accent,
-                          fontSize: compact ? 6 : 8,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: compact ? 1 : 2,
                         ),
                       ),
                       const SizedBox.shrink(key: Key('card-description')),
@@ -236,6 +190,141 @@ class CompanyCardArtwork extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CardHeader extends StatelessWidget {
+  const _CardHeader({
+    required this.card,
+    required this.compact,
+    required this.rarity,
+  });
+
+  final CompanyCard card;
+  final bool compact;
+  final CardRarityStyle rarity;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Row(
+        children: [
+          Text(
+            card.ticker,
+            key: const Key('card-metadata'),
+            style: TextStyle(
+              color: rarity.accent,
+              fontSize: compact ? 8 : 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 5 : 7,
+              vertical: compact ? 2 : 3,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0x99050A08),
+              border: Border.all(color: rarity.border),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              card.rarity.label,
+              key: const Key('card-rarity'),
+              style: TextStyle(
+                color: rarity.accent,
+                fontSize: compact ? 8 : 10,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+      SizedBox(height: compact ? 3 : 5),
+      Text(
+        card.companyName,
+        key: const Key('card-company-name'),
+        maxLines: compact ? 1 : 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: compact ? 10 : 16,
+          fontWeight: FontWeight.w700,
+          height: 1.08,
+        ),
+      ),
+    ],
+  );
+}
+
+class _CompanyArtworkImage extends StatelessWidget {
+  const _CompanyArtworkImage({
+    required this.companyId,
+    required this.artwork,
+    required this.accent,
+  });
+
+  final String companyId;
+  final CompanyArtworkAsset artwork;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      Image.asset(
+        artwork.assetPath,
+        key: Key('company-artwork-image-$companyId'),
+        fit: BoxFit.cover,
+        alignment: artwork.alignment,
+        filterQuality: FilterQuality.high,
+      ),
+      DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: accent.withValues(alpha: .35)),
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xB0000000),
+              Color(0x00000000),
+              Color(0x00000000),
+              Color(0xC8000000),
+            ],
+            stops: [0, .2, .72, 1],
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+class _FallbackSymbol extends StatelessWidget {
+  const _FallbackSymbol({required this.company, required this.compact});
+
+  final CompanyTheme company;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Container(
+      key: const Key('company-artwork-fallback-symbol'),
+      width: compact ? 48 : 82,
+      height: compact ? 48 : 82,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0x44000000),
+        border: Border.all(color: company.accentColor.withValues(alpha: .72)),
+      ),
+      child: Icon(
+        company.abstractSymbol,
+        color: company.accentColor,
+        size: compact ? 27 : 45,
+      ),
+    ),
+  );
 }
 
 class _CardSheen extends StatelessWidget {

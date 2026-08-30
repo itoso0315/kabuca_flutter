@@ -5,6 +5,7 @@ import 'screens/splash/title_screen.dart';
 import 'services/backend_warmup_service.dart';
 import 'services/prediction_resolution_service.dart';
 import 'services/stock_price_service.dart';
+import 'state/point_wallet.dart';
 import 'state/game_state.dart';
 import 'state/notification_store.dart';
 import 'state/prediction_store.dart';
@@ -23,6 +24,7 @@ Future<void> main() async {
           predictionStore: dependencies.predictionStore,
           notificationStore: dependencies.notificationStore,
           predictionResolutionService: dependencies.predictionResolutionService,
+          pointWallet: dependencies.pointWallet,
         ),
       ),
     ),
@@ -34,11 +36,13 @@ Future<_AppDependencies> _loadDependencies() async {
     GameState.load(),
     PredictionStore.load(),
     NotificationStore.load(),
+    PointWallet.load(),
   ]);
   return _AppDependencies(
     gameState: values[0] as GameState,
     predictionStore: values[1] as PredictionStore,
     notificationStore: values[2] as NotificationStore,
+    pointWallet: values[3] as PointWallet,
     predictionResolutionService: PredictionResolutionService(
       predictionStore: values[1] as PredictionStore,
       stockPriceService: StockPriceService.production(),
@@ -53,10 +57,12 @@ class _AppDependencies {
     required this.predictionStore,
     required this.notificationStore,
     required this.predictionResolutionService,
+    required this.pointWallet,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
   final NotificationStore notificationStore;
   final PredictionResolutionService predictionResolutionService;
+  final PointWallet pointWallet;
 }

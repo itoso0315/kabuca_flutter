@@ -7,6 +7,9 @@ import '../state/game_state.dart';
 import '../state/notification_store.dart';
 import '../state/prediction_store.dart';
 import '../services/prediction_resolution_service.dart';
+import '../services/prediction_reward_service.dart';
+import '../services/pack_exchange_service.dart';
+import '../state/point_wallet.dart';
 import 'app_theme.dart';
 
 class KabucaApp extends StatelessWidget {
@@ -16,12 +19,14 @@ class KabucaApp extends StatelessWidget {
     required this.predictionStore,
     required this.notificationStore,
     this.predictionResolutionService,
+    this.pointWallet,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
   final NotificationStore notificationStore;
   final PredictionResolutionService? predictionResolutionService;
+  final PointWallet? pointWallet;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +39,7 @@ class KabucaApp extends StatelessWidget {
         predictionStore: predictionStore,
         notificationStore: notificationStore,
         predictionResolutionService: predictionResolutionService,
+        pointWallet: pointWallet,
       ),
     );
   }
@@ -46,12 +52,14 @@ class MainScreen extends StatefulWidget {
     required this.predictionStore,
     required this.notificationStore,
     this.predictionResolutionService,
+    this.pointWallet,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
   final NotificationStore notificationStore;
   final PredictionResolutionService? predictionResolutionService;
+  final PointWallet? pointWallet;
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -59,10 +67,22 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  late final PointWallet _pointWallet;
+  late final PredictionRewardService _rewardService;
+  late final PackExchangeService _exchangeService;
 
   @override
   void initState() {
     super.initState();
+    _pointWallet = widget.pointWallet ?? PointWallet.memory();
+    _rewardService = PredictionRewardService(
+      predictionStore: widget.predictionStore,
+      pointWallet: _pointWallet,
+    );
+    _exchangeService = PackExchangeService(
+      pointWallet: _pointWallet,
+      gameState: widget.gameState,
+    );
     widget.predictionResolutionService?.resolveEligiblePredictions();
   }
 
@@ -74,6 +94,9 @@ class _MainScreenState extends State<MainScreen> {
         predictionStore: widget.predictionStore,
         notificationStore: widget.notificationStore,
         predictionResolutionService: widget.predictionResolutionService,
+        pointWallet: _pointWallet,
+        rewardService: _rewardService,
+        exchangeService: _exchangeService,
       ),
       CollectionScreen(
         gameState: widget.gameState,
@@ -83,6 +106,7 @@ class _MainScreenState extends State<MainScreen> {
         gameState: widget.gameState,
         predictionStore: widget.predictionStore,
         notificationStore: widget.notificationStore,
+        pointWallet: _pointWallet,
       ),
     ];
     return Scaffold(

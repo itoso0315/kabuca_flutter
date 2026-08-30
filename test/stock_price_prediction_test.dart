@@ -46,6 +46,8 @@ void main() {
     expect(prediction.changePercent, isNull);
     expect(prediction.isCorrect, isNull);
     expect(prediction.awardedPoints, isNull);
+    expect(prediction.pointsClaimed, isNull);
+    expect(prediction.pointsClaimedAt, isNull);
   });
 }
 

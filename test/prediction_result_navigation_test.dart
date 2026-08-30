@@ -24,7 +24,7 @@ void main() {
 
     expect(find.text('予想的中！'), findsOneWidget);
     expect(find.text('判定価格'), findsOneWidget);
-    expect(find.text('獲得 100pt'), findsOneWidget);
+    expect(find.text('+100pt'), findsOneWidget);
   });
 
   testWidgets('結果通知を既読化して対応する結果へ遷移する', (tester) async {

@@ -6,6 +6,7 @@ import '../../models/app_notification.dart';
 import '../../state/game_state.dart';
 import '../../state/notification_store.dart';
 import '../../state/prediction_store.dart';
+import '../../state/point_wallet.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -13,11 +14,13 @@ class ProfileScreen extends StatefulWidget {
     required this.gameState,
     required this.predictionStore,
     required this.notificationStore,
+    this.pointWallet,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
   final NotificationStore notificationStore;
+  final PointWallet? pointWallet;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -33,6 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         widget.gameState,
         widget.predictionStore,
         widget.notificationStore,
+        if (widget.pointWallet != null) widget.pointWallet!,
       ]),
       builder: (context, _) => ListView(
         key: const Key('profile-screen'),
@@ -52,6 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text('所持カード  ${widget.gameState.totalOwnedCardCount}枚'),
                   Text('図鑑登録  ${widget.gameState.registeredCardCount} / 80'),
                   Text('保存済み予想  ${widget.predictionStore.predictions.length}件'),
+                  Text('ポイント  ${widget.pointWallet?.currentPoints ?? 0}pt'),
                   Text(
                     'お知らせ  ${widget.notificationStore.notifications.length}件',
                   ),
@@ -89,7 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  '実機テスト用に、パック・カード・図鑑・予想・お知らせを初期状態へ戻します。',
+                  '実機テスト用に、パック・カード・図鑑・予想・ポイント・お知らせを初期状態へ戻します。',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     height: 1.45,
@@ -159,6 +164,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       widget.gameState.resetDevelopmentData(),
       widget.predictionStore.resetDevelopmentData(),
       widget.notificationStore.deleteAll(),
+      if (widget.pointWallet != null)
+        widget.pointWallet!.resetDevelopmentData(),
     ]);
     if (!mounted) return;
     setState(() => _resetting = false);

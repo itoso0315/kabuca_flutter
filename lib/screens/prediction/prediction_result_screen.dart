@@ -4,27 +4,66 @@ import 'package:flutter/services.dart';
 import '../../app/app_theme.dart';
 import '../../models/stock_prediction.dart';
 import '../../services/prediction_formatters.dart';
+import '../../services/prediction_reward_service.dart';
+import '../../state/point_wallet.dart';
+import '../../state/prediction_store.dart';
 
 class PredictionResultScreen extends StatefulWidget {
-  const PredictionResultScreen({super.key, required this.prediction});
+  const PredictionResultScreen({
+    super.key,
+    required this.prediction,
+    this.predictionStore,
+    this.pointWallet,
+    this.rewardService,
+  });
   final StockPrediction prediction;
+  final PredictionStore? predictionStore;
+  final PointWallet? pointWallet;
+  final PredictionRewardService? rewardService;
 
   @override
   State<PredictionResultScreen> createState() => _PredictionResultScreenState();
 }
 
 class _PredictionResultScreenState extends State<PredictionResultScreen> {
+  bool _claiming = false;
+  bool _claimedPulse = false;
+
   @override
   void initState() {
     super.initState();
     if (widget.prediction.isCorrect ?? false) HapticFeedback.mediumImpact();
   }
 
+  Future<void> _claimPoints() async {
+    final service = widget.rewardService;
+    if (service == null || _claiming) return;
+    setState(() => _claiming = true);
+    final result = await service.claim(widget.prediction.id);
+    if (!mounted) return;
+    setState(() {
+      _claiming = false;
+      _claimedPulse = result == RewardClaimResult.claimed;
+    });
+    if (result == RewardClaimResult.claimed) {
+      HapticFeedback.mediumImpact();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _claimedPulse = false);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final prediction = widget.prediction;
+    final prediction =
+        widget.predictionStore?.findById(widget.prediction.id) ??
+        widget.prediction;
     final correct = prediction.isCorrect ?? false;
     final change = prediction.changePercent ?? 0;
+    final points = prediction.awardedPoints ?? 0;
+    final claimed =
+        prediction.pointsClaimed == true ||
+        (widget.pointWallet?.hasClaimedPrediction(prediction.id) ?? false);
     return Scaffold(
       backgroundColor: AppColors.cream,
       appBar: AppBar(title: const Text('予想結果')),
@@ -66,7 +105,9 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                       const SizedBox(height: 8),
                       Text(
                         correct
-                            ? '獲得 ${prediction.awardedPoints ?? 0}pt'
+                            ? claimed
+                                  ? '${points}pt獲得済み'
+                                  : '+${points}pt'
                             : '0pt',
                         key: const Key('prediction-result-points'),
                         style: const TextStyle(
@@ -78,6 +119,40 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                     ],
                   ),
                 ),
+                if (correct && points > 0) ...[
+                  const SizedBox(height: 16),
+                  if (claimed)
+                    AnimatedScale(
+                      key: const Key('prediction-points-claimed'),
+                      scale: _claimedPulse ? 1.06 : 1,
+                      duration: const Duration(milliseconds: 180),
+                      child: const Center(
+                        child: Text(
+                          'ポイントを受け取りました',
+                          style: TextStyle(
+                            color: AppColors.deepGreen,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (widget.rewardService != null)
+                    FilledButton.icon(
+                      key: const Key('claim-prediction-points-button'),
+                      onPressed: _claiming ? null : _claimPoints,
+                      icon: const Icon(Icons.stars_rounded),
+                      label: Text('$points ptを受け取る'),
+                    ),
+                ] else if (!correct || points == 0) ...[
+                  const SizedBox(height: 14),
+                  const Center(
+                    child: Text(
+                      '今回はポイントなし',
+                      key: Key('prediction-no-points'),
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 Card(
                   child: Padding(

@@ -7,6 +7,7 @@ import 'package:kabuca_flutter/screens/profile/profile_screen.dart';
 import 'package:kabuca_flutter/state/game_state.dart';
 import 'package:kabuca_flutter/state/prediction_store.dart';
 import 'package:kabuca_flutter/state/notification_store.dart';
+import 'package:kabuca_flutter/state/point_wallet.dart';
 
 void main() {
   testWidgets('確認ダイアログのキャンセルではデータを残す', (tester) async {
@@ -18,6 +19,7 @@ void main() {
             gameState: states.gameState,
             predictionStore: states.predictionStore,
             notificationStore: states.notificationStore,
+            pointWallet: states.pointWallet,
           ),
         ),
       ),
@@ -47,6 +49,7 @@ void main() {
             gameState: states.gameState,
             predictionStore: states.predictionStore,
             notificationStore: states.notificationStore,
+            pointWallet: states.pointWallet,
           ),
         ),
       ),
@@ -57,6 +60,7 @@ void main() {
     expect(find.text('図鑑登録  1 / 80'), findsOneWidget);
     expect(find.text('保存済み予想  1件'), findsOneWidget);
     expect(find.text('お知らせ  1件'), findsOneWidget);
+    expect(find.text('ポイント  120pt'), findsOneWidget);
     await tester.drag(
       find.byKey(const Key('profile-screen')),
       const Offset(0, -180),
@@ -73,6 +77,8 @@ void main() {
     expect(find.text('図鑑登録  0 / 80'), findsOneWidget);
     expect(find.text('保存済み予想  0件'), findsOneWidget);
     expect(find.text('お知らせ  0件'), findsOneWidget);
+    expect(find.text('ポイント  0pt'), findsOneWidget);
+    expect(states.pointWallet.currentPoints, 0);
     expect(states.notificationStore.notifications, isEmpty);
     expect(find.text('開発用データを初期化しました'), findsOneWidget);
   });
@@ -86,6 +92,7 @@ void main() {
             gameState: states.gameState,
             predictionStore: states.predictionStore,
             notificationStore: states.notificationStore,
+            pointWallet: states.pointWallet,
           ),
         ),
       ),
@@ -119,6 +126,7 @@ Future<_States> _populatedStates() async {
     targetDate: DateTime.utc(2026, 9, 7),
   );
   final notificationStore = NotificationStore.memory();
+  final pointWallet = PointWallet.memory(currentPoints: 120);
   await notificationStore.add(
     AppNotification(
       id: 'sample',
@@ -129,12 +137,18 @@ Future<_States> _populatedStates() async {
       isRead: false,
     ),
   );
-  return _States(gameState, predictionStore, notificationStore);
+  return _States(gameState, predictionStore, notificationStore, pointWallet);
 }
 
 class _States {
-  const _States(this.gameState, this.predictionStore, this.notificationStore);
+  const _States(
+    this.gameState,
+    this.predictionStore,
+    this.notificationStore,
+    this.pointWallet,
+  );
   final GameState gameState;
   final PredictionStore predictionStore;
   final NotificationStore notificationStore;
+  final PointWallet pointWallet;
 }

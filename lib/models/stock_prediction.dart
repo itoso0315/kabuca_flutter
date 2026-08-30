@@ -37,6 +37,8 @@ class StockPrediction {
     this.changePercent,
     this.isCorrect,
     this.awardedPoints,
+    this.pointsClaimed,
+    this.pointsClaimedAt,
   });
 
   final String id;
@@ -55,6 +57,8 @@ class StockPrediction {
   final double? changePercent;
   final bool? isCorrect;
   final int? awardedPoints;
+  final bool? pointsClaimed;
+  final DateTime? pointsClaimedAt;
 
   StockPrediction copyWith({
     PredictionStatus? status,
@@ -63,6 +67,8 @@ class StockPrediction {
     double? changePercent,
     bool? isCorrect,
     int? awardedPoints,
+    bool? pointsClaimed,
+    DateTime? pointsClaimedAt,
   }) => StockPrediction(
     id: id,
     companyId: companyId,
@@ -80,6 +86,8 @@ class StockPrediction {
     changePercent: changePercent ?? this.changePercent,
     isCorrect: isCorrect ?? this.isCorrect,
     awardedPoints: awardedPoints ?? this.awardedPoints,
+    pointsClaimed: pointsClaimed ?? this.pointsClaimed,
+    pointsClaimedAt: pointsClaimedAt ?? this.pointsClaimedAt,
   );
 
   Map<String, Object> toJson() {
@@ -101,6 +109,9 @@ class StockPrediction {
       'changePercent': ?changePercent,
       'isCorrect': ?isCorrect,
       'awardedPoints': ?awardedPoints,
+      'pointsClaimed': ?pointsClaimed,
+      if (pointsClaimedAt != null)
+        'pointsClaimedAt': pointsClaimedAt!.toIso8601String(),
     };
   }
 
@@ -130,6 +141,10 @@ class StockPrediction {
       changePercent: (json['changePercent'] as num?)?.toDouble(),
       isCorrect: json['isCorrect'] as bool?,
       awardedPoints: (json['awardedPoints'] as num?)?.toInt(),
+      pointsClaimed: json['pointsClaimed'] as bool?,
+      pointsClaimedAt: json['pointsClaimedAt'] == null
+          ? null
+          : DateTime.parse(json['pointsClaimedAt']! as String),
     );
   }
 }

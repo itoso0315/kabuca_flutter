@@ -5,6 +5,8 @@ import '../../models/app_notification.dart';
 import '../../models/stock_prediction.dart';
 import '../../state/notification_store.dart';
 import '../../state/prediction_store.dart';
+import '../../state/point_wallet.dart';
+import '../../services/prediction_reward_service.dart';
 import '../prediction/prediction_result_screen.dart';
 
 class NotificationScreen extends StatelessWidget {
@@ -12,10 +14,14 @@ class NotificationScreen extends StatelessWidget {
     super.key,
     required this.store,
     this.predictionStore,
+    this.pointWallet,
+    this.rewardService,
   });
 
   final NotificationStore store;
   final PredictionStore? predictionStore;
+  final PointWallet? pointWallet;
+  final PredictionRewardService? rewardService;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -89,7 +95,12 @@ class NotificationScreen extends StatelessWidget {
     }
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => PredictionResultScreen(prediction: prediction),
+        builder: (_) => PredictionResultScreen(
+          prediction: prediction,
+          predictionStore: predictionStore,
+          pointWallet: pointWallet,
+          rewardService: rewardService,
+        ),
       ),
     );
   }
