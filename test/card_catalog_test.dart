@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kabuca_flutter/data/card_catalog.dart';
 import 'package:kabuca_flutter/models/company_card.dart';
+import 'package:kabuca_flutter/theme/company_theme.dart';
 
 void main() {
   test('20社以上の各企業にN/R/SR/URがありIDが一意', () {
@@ -28,5 +29,12 @@ void main() {
     expect(toyota.map((card) => card.title).toSet(), hasLength(4));
     expect(toyota.map((card) => card.description).toSet(), hasLength(4));
     expect(toyota.map((card) => card.id).toSet(), hasLength(4));
+  });
+
+  test('企業テーマはカードデータと分離され企業ごとに異なる', () {
+    final toyota = CompanyTheme.forCompany('toyota');
+    final ntt = CompanyTheme.forCompany('ntt');
+    expect(toyota.baseColor, isNot(ntt.baseColor));
+    expect(toyota.abstractSymbol, isNot(ntt.abstractSymbol));
   });
 }

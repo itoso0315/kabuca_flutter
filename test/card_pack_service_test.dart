@@ -5,11 +5,12 @@ import 'package:kabuca_flutter/models/company_card.dart';
 import 'package:kabuca_flutter/services/card_pack_service.dart';
 
 void main() {
-  test('1パック3枚で同一カードIDは重複しない', () {
+  test('1パック3枚で同一企業は重複しない', () {
     for (var seed = 0; seed < 100; seed++) {
       final cards = CardPackService(random: Random(seed)).openPack();
       expect(cards, hasLength(3));
       expect(cards.map((card) => card.id).toSet(), hasLength(3));
+      expect(cards.map((card) => card.companyId).toSet(), hasLength(3));
     }
   });
 

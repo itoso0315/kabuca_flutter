@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../app/app_theme.dart';
 import '../../models/company_card.dart';
+import '../../theme/company_theme.dart';
 import '../../widgets/tearable_pack.dart';
 import '../../widgets/card_rarity_style.dart';
 
@@ -36,6 +38,7 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   bool _showCard = false;
+  bool _packFinished = false;
   bool _packConsumed = false;
   int _cardIndex = 0;
 
@@ -132,6 +135,13 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
                         ),
                       ),
                     )
+                  : _packFinished
+                  ? _RarityPrelude(
+                      key: ValueKey(
+                        'prelude-${widget.cards[_cardIndex].rarity.name}',
+                      ),
+                      rarity: widget.cards[_cardIndex].rarity,
+                    )
                   : Center(
                       key: const ValueKey('pack'),
                       child: Padding(
@@ -186,8 +196,8 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
     }
     await Future<void>.delayed(const Duration(milliseconds: 480));
     if (!mounted) return;
-    setState(() => _showCard = true);
-    _controller.forward(from: 0);
+    setState(() => _packFinished = true);
+    await _revealCurrentCard();
   }
 
   Future<void> _advanceCard() async {
@@ -197,9 +207,79 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
     }
     await _controller.reverse();
     if (!mounted) return;
-    setState(() => _cardIndex++);
-    _controller.forward();
+    setState(() {
+      _cardIndex++;
+      _showCard = false;
+    });
+    await _revealCurrentCard();
   }
+
+  Future<void> _revealCurrentCard() async {
+    final rarity = widget.cards[_cardIndex].rarity;
+    final delay = switch (rarity) {
+      CardRarity.sr => const Duration(milliseconds: 450),
+      CardRarity.ur => const Duration(milliseconds: 800),
+      _ => Duration.zero,
+    };
+    if (rarity == CardRarity.sr) HapticFeedback.lightImpact();
+    if (rarity == CardRarity.ur) HapticFeedback.heavyImpact();
+    if (delay != Duration.zero) await Future<void>.delayed(delay);
+    if (!mounted) return;
+    setState(() => _showCard = true);
+    _controller.forward(from: 0);
+  }
+}
+
+class _RarityPrelude extends StatelessWidget {
+  const _RarityPrelude({super.key, required this.rarity});
+  final CardRarity rarity;
+
+  @override
+  Widget build(BuildContext context) {
+    if (rarity == CardRarity.sr) {
+      return const ColoredBox(
+        key: Key('sr-reveal-prelude'),
+        color: Color(0x66010D0A),
+        child: Center(child: _PreludeLine(color: Color(0xFFE8D7A6))),
+      );
+    }
+    if (rarity == CardRarity.ur) {
+      return const DecoratedBox(
+        key: Key('ur-reveal-prelude'),
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            colors: [Color(0xFF9B7834), Color(0xFF173F34)],
+            radius: 0.9,
+          ),
+        ),
+        child: Center(
+          child: _PreludeLine(color: Color(0xFFFFE6A1), doubleLine: true),
+        ),
+      );
+    }
+    return const SizedBox(key: Key('standard-reveal-prelude'));
+  }
+}
+
+class _PreludeLine extends StatelessWidget {
+  const _PreludeLine({required this.color, this.doubleLine = false});
+  final Color color;
+  final bool doubleLine;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 230,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Divider(color: color, thickness: 2),
+        if (doubleLine) ...[
+          const SizedBox(height: 12),
+          Divider(color: color, thickness: 1),
+        ],
+      ],
+    ),
+  );
 }
 
 class _CompanyCardView extends StatelessWidget {
@@ -210,6 +290,7 @@ class _CompanyCardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = CardRarityStyle.of(card.rarity);
+    final company = CompanyTheme.forCompany(card.companyId);
     return Semantics(
       label: '${card.companyName} ${card.ticker} ${card.rarity.label}',
       child: Container(
@@ -231,7 +312,11 @@ class _CompanyCardView extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
           decoration: BoxDecoration(
-            color: style.background,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [company.secondaryColor, company.baseColor],
+            ),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: style.border),
           ),
@@ -249,7 +334,11 @@ class _CompanyCardView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Icon(style.symbol, color: style.accent, size: 54),
+              Icon(
+                company.abstractSymbol,
+                color: company.accentColor,
+                size: 54,
+              ),
               const SizedBox(height: 12),
               Text(
                 card.companyName,

@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import '../screens/collection/collection_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../state/game_state.dart';
 import 'app_theme.dart';
 
 class KabucaApp extends StatelessWidget {
-  const KabucaApp({super.key});
+  const KabucaApp({super.key, required this.gameState});
+
+  final GameState gameState;
 
   @override
   Widget build(BuildContext context) {
@@ -14,32 +17,33 @@ class KabucaApp extends StatelessWidget {
       title: 'KABUCA',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const MainScreen(),
+      home: MainScreen(gameState: gameState),
     );
   }
 }
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  const MainScreen({super.key, required this.gameState});
+
+  final GameState gameState;
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  static const _screens = <Widget>[
-    HomeScreen(),
-    CollectionScreen(),
-    ProfileScreen(),
-  ];
-
   int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
+    final screens = <Widget>[
+      HomeScreen(gameState: widget.gameState),
+      CollectionScreen(gameState: widget.gameState),
+      const ProfileScreen(),
+    ];
     return Scaffold(
       body: SafeArea(
-        child: IndexedStack(index: _selectedIndex, children: _screens),
+        child: IndexedStack(index: _selectedIndex, children: screens),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,

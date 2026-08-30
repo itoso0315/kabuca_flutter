@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kabuca_flutter/app/app.dart';
 import 'package:kabuca_flutter/screens/home/home_screen.dart';
+import 'package:kabuca_flutter/state/game_state.dart';
 import 'package:kabuca_flutter/widgets/tearable_pack.dart';
 
 void main() {
@@ -23,11 +24,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 900));
     await tester.pumpAndSettle();
   }
 
   testWidgets('3パックから1つ消費し、3枚を順番に獲得できる', (tester) async {
-    await tester.pumpWidget(const KabucaApp());
+    await tester.pumpWidget(KabucaApp(gameState: GameState.memory()));
 
     expect(find.text('KABUCA'), findsNWidgets(2));
     expect(find.text('集めよう、日本の企業。'), findsOneWidget);
@@ -61,12 +63,14 @@ void main() {
     expect(find.byKey(const Key('card-description')), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, '次へ'));
+    await tester.pump(const Duration(milliseconds: 1000));
     await tester.pumpAndSettle();
     expect(find.text('CARD 2 / 3'), findsOneWidget);
     expect(find.byKey(const Key('card-title')), findsOneWidget);
     expect(find.byKey(const Key('card-description')), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, '次へ'));
+    await tester.pump(const Duration(milliseconds: 1000));
     await tester.pumpAndSettle();
     expect(find.text('CARD 3 / 3'), findsOneWidget);
     expect(find.byKey(const Key('card-title')), findsOneWidget);
@@ -80,6 +84,15 @@ void main() {
     await tester.tap(find.text('図鑑'));
     await tester.pumpAndSettle();
     expect(find.text('図鑑'), findsNWidgets(2));
+    expect(find.text('3 / 80  ・  コンプリート率 3%'), findsOneWidget);
+    var grid = tester.widget<SliverGrid>(
+      find.byKey(const Key('collection-grid')),
+    );
+    expect(grid.delegate.estimatedChildCount, 80);
+    await tester.tap(find.byKey(const Key('filter-SR')));
+    await tester.pumpAndSettle();
+    grid = tester.widget<SliverGrid>(find.byKey(const Key('collection-grid')));
+    expect(grid.delegate.estimatedChildCount, 20);
     await tester.tap(find.text('マイページ'));
     await tester.pumpAndSettle();
     expect(find.text('マイページ'), findsNWidgets(2));
@@ -90,7 +103,11 @@ void main() {
 
   testWidgets('所持パック0では開封できない', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: HomeScreen(initialPackCount: 0))),
+      MaterialApp(
+        home: Scaffold(
+          body: HomeScreen(gameState: GameState.memory(packCount: 0)),
+        ),
+      ),
     );
 
     expect(find.text('所持パック  0'), findsOneWidget);

@@ -23,7 +23,9 @@ class CardPackService {
           .where(
             (card) =>
                 card.rarity == rarity &&
-                !selected.any((selectedCard) => selectedCard.id == card.id),
+                !selected.any(
+                  (selectedCard) => selectedCard.companyId == card.companyId,
+                ),
           )
           .toList();
       if (candidates.isEmpty) continue;
