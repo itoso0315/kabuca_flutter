@@ -1,32 +1,36 @@
 import '../models/company_card.dart';
+import 'company_master.dart';
 
 abstract final class CardCatalog {
   static final List<CompanyCard> cards = List.unmodifiable(
-    _companies.expand(
-      (company) => CardRarity.values.map(
+    _companies.expand((content) {
+      final company = CompanyMaster.byId(content.companyId);
+      if (company == null) {
+        throw StateError(
+          'Unknown companyId in CardCatalog: ${content.companyId}',
+        );
+      }
+      return CardRarity.values.map(
         (rarity) => CompanyCard(
-          id: '${company.id}_${rarity.name}',
-          companyId: company.id,
-          companyName: company.name,
+          id: '${content.companyId}_${rarity.name}',
+          companyId: content.companyId,
+          companyName: company.companyName,
           ticker: company.ticker,
           industry: company.industry,
           rarity: rarity,
-          title: company.titleFor(rarity),
-          description: company.descriptionFor(rarity),
+          title: content.titleFor(rarity),
+          description: content.descriptionFor(rarity),
         ),
-      ),
-    ),
+      );
+    }),
   );
 
   static int get companyCount => _companies.length;
 }
 
-class _CompanyProfile {
-  const _CompanyProfile({
-    required this.id,
-    required this.name,
-    required this.ticker,
-    required this.industry,
+class _CompanyCardContent {
+  const _CompanyCardContent({
+    required this.companyId,
     required this.overview,
     required this.businessTitle,
     required this.business,
@@ -36,10 +40,7 @@ class _CompanyProfile {
     required this.story,
   });
 
-  final String id;
-  final String name;
-  final String ticker;
-  final String industry;
+  final String companyId;
   final String overview;
   final String businessTitle;
   final String business;
@@ -63,12 +64,9 @@ class _CompanyProfile {
   };
 }
 
-const _companies = <_CompanyProfile>[
-  _CompanyProfile(
-    id: 'toyota',
-    name: 'トヨタ自動車',
-    ticker: '7203',
-    industry: '自動車・輸送',
+const _companies = <_CompanyCardContent>[
+  _CompanyCardContent(
+    companyId: 'toyota',
     overview: '世界各地で自動車を開発・生産・販売する総合モビリティ企業。',
     businessTitle: '移動を支える量産力',
     business: '乗用車を中心に、金融や部品など幅広い事業で収益を生み出す。',
@@ -77,11 +75,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '織機からモビリティへ',
     story: '織機の技術を源流に自動車へ進出し、世界企業へ成長した。',
   ),
-  _CompanyProfile(
-    id: 'nintendo',
-    name: '任天堂',
-    ticker: '7974',
-    industry: 'エンタメ',
+  _CompanyCardContent(
+    companyId: 'nintendo',
     overview: 'ゲーム機とソフトを通じて世界へ娯楽を届ける企業。',
     businessTitle: '遊びを生む両輪',
     business: 'ゲーム専用機と自社ソフトを組み合わせ、継続的な体験を提供する。',
@@ -90,11 +85,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '花札から世界の遊びへ',
     story: '京都の花札づくりから始まり、時代ごとに娯楽の形を変えてきた。',
   ),
-  _CompanyProfile(
-    id: 'sony',
-    name: 'ソニーグループ',
-    ticker: '6758',
-    industry: '電機・エンタメ',
+  _CompanyCardContent(
+    companyId: 'sony',
     overview: 'ゲーム、音楽、映画、半導体などを展開する企業グループ。',
     businessTitle: '感動をつなぐ事業群',
     business: 'エンタメとエレクトロニクスを横断し、多様な収益源を持つ。',
@@ -103,11 +95,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '小さな町工場の挑戦',
     story: '戦後の東京で創業し、独創的な製品とコンテンツで世界へ広がった。',
   ),
-  _CompanyProfile(
-    id: 'mufg',
-    name: '三菱UFJフィナンシャル・グループ',
-    ticker: '8306',
-    industry: '金融',
+  _CompanyCardContent(
+    companyId: 'mufg',
     overview: '銀行、信託、証券などを展開する総合金融グループ。',
     businessTitle: '金融の総合力',
     business: '預金・融資に加え、資産運用や決済など多様な金融サービスを提供する。',
@@ -116,11 +105,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '統合が築いた金融基盤',
     story: '複数の銀行の歴史を受け継ぎ、巨大な総合金融グループとなった。',
   ),
-  _CompanyProfile(
-    id: 'ntt',
-    name: 'NTT',
-    ticker: '9432',
-    industry: '情報・通信',
+  _CompanyCardContent(
+    companyId: 'ntt',
     overview: '通信ネットワークを基盤にデジタルサービスを展開する企業。',
     businessTitle: '社会を結ぶ通信網',
     business: '固定・携帯通信や法人向けITサービスが事業の柱。',
@@ -129,11 +115,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '電話から次世代通信へ',
     story: '通信インフラを支えながら、光技術を軸に次世代ネットワークへ挑む。',
   ),
-  _CompanyProfile(
-    id: 'keyence',
-    name: 'キーエンス',
-    ticker: '6861',
-    industry: '電気機器',
+  _CompanyCardContent(
+    companyId: 'keyence',
     overview: '工場の自動化に使うセンサーや測定機器を提供する企業。',
     businessTitle: '現場課題を解く直販',
     business: '顧客の製造現場を直接訪ね、高付加価値な機器を提案する。',
@@ -142,11 +125,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '持たない工場、深い現場',
     story: '生産を外部活用しながら顧客現場へ深く入り込む独自モデルを築いた。',
   ),
-  _CompanyProfile(
-    id: 'fast_retailing',
-    name: 'ファーストリテイリング',
-    ticker: '9983',
-    industry: '小売',
+  _CompanyCardContent(
+    companyId: 'fast_retailing',
     overview: 'ユニクロを中心に衣料品ブランドを世界展開する企業。',
     businessTitle: '服を一貫して届ける',
     business: '企画から生産、販売までをつなぎ、日常着を世界へ届ける。',
@@ -155,11 +135,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '地方の衣料店から世界へ',
     story: '山口の店舗を起点に、服の常識を問い直して世界市場へ進出した。',
   ),
-  _CompanyProfile(
-    id: 'itochu',
-    name: '伊藤忠商事',
-    ticker: '8001',
-    industry: '商社',
+  _CompanyCardContent(
+    companyId: 'itochu',
     overview: '繊維、食料、機械、エネルギーなどを扱う総合商社。',
     businessTitle: '暮らしに近い商い',
     business: '消費者に近い分野を含む多様な事業投資と取引で稼ぐ。',
@@ -168,11 +145,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '麻布の行商から総合商社へ',
     story: '近江商人の商いを源流に、世界を結ぶ事業体へ発展した。',
   ),
-  _CompanyProfile(
-    id: 'nyk',
-    name: '日本郵船',
-    ticker: '9101',
-    industry: '海運',
+  _CompanyCardContent(
+    companyId: 'nyk',
     overview: '船舶輸送を中心に世界の物流を支える企業。',
     businessTitle: '海を渡る物流網',
     business: 'コンテナ船、自動車船、資源輸送など多様な船隊を運営する。',
@@ -181,11 +155,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '日本の近代化を運んだ航路',
     story: '明治期から航路を広げ、産業と暮らしを世界へつないできた。',
   ),
-  _CompanyProfile(
-    id: 'tel',
-    name: '東京エレクトロン',
-    ticker: '8035',
-    industry: '半導体製造装置',
+  _CompanyCardContent(
+    companyId: 'tel',
     overview: '半導体をつくるための製造装置を世界へ提供する企業。',
     businessTitle: 'チップを生む装置群',
     business: '成膜、塗布、洗浄など半導体工程を支える装置が柱。',
@@ -194,11 +165,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '商社から技術企業へ',
     story: '海外機器の輸入から始まり、世界有数の装置メーカーへ転換した。',
   ),
-  _CompanyProfile(
-    id: 'advantest',
-    name: 'アドバンテスト',
-    ticker: '6857',
-    industry: '半導体製造装置',
+  _CompanyCardContent(
+    companyId: 'advantest',
     overview: '半導体が正しく動くかを検査する装置を開発する企業。',
     businessTitle: '品質を守るテスト',
     business: '高性能半導体向けの検査装置と関連サービスが中心。',
@@ -207,11 +175,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '計測から半導体の門番へ',
     story: '電子計測の知見を磨き、先端半導体の品質を守る存在となった。',
   ),
-  _CompanyProfile(
-    id: 'ajinomoto',
-    name: '味の素',
-    ticker: '2802',
-    industry: '食品',
+  _CompanyCardContent(
+    companyId: 'ajinomoto',
     overview: '調味料や食品、アミノ酸技術を世界展開する企業。',
     businessTitle: '食とアミノ酸の二本柱',
     business: '食品に加え、ヘルスケアや電子材料にもアミノ酸技術を生かす。',
@@ -220,11 +185,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: 'うま味発見から広がる科学',
     story: 'うま味を届ける事業から始まり、生命科学へ領域を広げた。',
   ),
-  _CompanyProfile(
-    id: 'kagome',
-    name: 'カゴメ',
-    ticker: '2811',
-    industry: '食品',
+  _CompanyCardContent(
+    companyId: 'kagome',
     overview: 'トマトを中心とする飲料・食品を提供する企業。',
     businessTitle: '野菜を届ける加工力',
     business: '飲料、調味料、業務用食品を通じて野菜の価値を届ける。',
@@ -233,11 +195,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '一本のトマト苗から',
     story: '創業者が育てたトマトを起点に、日本の食文化へ新しい味を根づかせた。',
   ),
-  _CompanyProfile(
-    id: 'nitori',
-    name: 'ニトリホールディングス',
-    ticker: '9843',
-    industry: '小売',
+  _CompanyCardContent(
+    companyId: 'nitori',
     overview: '家具・インテリア用品を企画販売する企業グループ。',
     businessTitle: '暮らしを一貫設計',
     business: '商品企画、製造物流、店舗販売をつなぎ低価格と品質を両立する。',
@@ -246,11 +205,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '北海道から暮らしの標準へ',
     story: '小さな家具店から、住まいの豊かさを広げる全国企業へ成長した。',
   ),
-  _CompanyProfile(
-    id: 'saizeriya',
-    name: 'サイゼリヤ',
-    ticker: '7581',
-    industry: '外食',
+  _CompanyCardContent(
+    companyId: 'saizeriya',
     overview: 'イタリア料理を手頃な価格で提供する外食企業。',
     businessTitle: '日常食を支える仕組み',
     business: '店舗運営と食材供給を磨き、低価格なメニューを提供する。',
@@ -259,11 +215,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '洋食店から世界の日常へ',
     story: '小さな店の試行錯誤から、イタリア料理を身近にする仕組みを築いた。',
   ),
-  _CompanyProfile(
-    id: 'oriental_land',
-    name: 'オリエンタルランド',
-    ticker: '4661',
-    industry: 'レジャー',
+  _CompanyCardContent(
+    companyId: 'oriental_land',
     overview: '東京ディズニーリゾートを運営する企業。',
     businessTitle: '体験を生むリゾート',
     business: 'テーマパーク、ホテル、関連施設を一体運営する。',
@@ -272,11 +225,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '日本に夢の国を',
     story: '海外のテーマパーク文化を日本に根づかせ、独自のリゾートへ育てた。',
   ),
-  _CompanyProfile(
-    id: 'shiseido',
-    name: '資生堂',
-    ticker: '4911',
-    industry: '化粧品',
+  _CompanyCardContent(
+    companyId: 'shiseido',
     overview: '化粧品を中心に美の価値を世界へ届ける企業。',
     businessTitle: 'ブランドで届ける美',
     business: 'スキンケアやメイクアップを複数ブランドで展開する。',
@@ -285,11 +235,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '薬局から美の文化へ',
     story: '銀座の洋風調剤薬局から始まり、化粧文化を切り拓いてきた。',
   ),
-  _CompanyProfile(
-    id: 'takeda',
-    name: '武田薬品工業',
-    ticker: '4502',
-    industry: '医薬品',
+  _CompanyCardContent(
+    companyId: 'takeda',
     overview: '医療用医薬品を研究・開発し世界へ届ける企業。',
     businessTitle: '新薬を生む研究開発',
     business: '消化器、希少疾患などを中心にグローバルで医薬品を展開する。',
@@ -298,11 +245,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '道修町から世界の医療へ',
     story: '大阪の薬種商を起点に、長い歴史を持つグローバル製薬企業へ進化した。',
   ),
-  _CompanyProfile(
-    id: 'mhi',
-    name: '三菱重工業',
-    ticker: '7011',
-    industry: '機械・防衛・宇宙',
+  _CompanyCardContent(
+    companyId: 'mhi',
     overview: 'エネルギー、航空、防衛、宇宙など大型システムを手がける企業。',
     businessTitle: '社会基盤をつくる技術',
     business: '発電設備、航空機、防衛機器など長期プロジェクトを担う。',
@@ -311,11 +255,8 @@ const _companies = <_CompanyProfile>[
     storyTitle: '造船所から宇宙へ',
     story: '造船で培った総合工学を発展させ、陸・海・空・宇宙へ領域を広げた。',
   ),
-  _CompanyProfile(
-    id: 'inpex',
-    name: 'INPEX',
-    ticker: '1605',
-    industry: 'エネルギー',
+  _CompanyCardContent(
+    companyId: 'inpex',
     overview: '石油・天然ガスの開発と供給を行うエネルギー企業。',
     businessTitle: '資源を届ける開発力',
     business: '世界各地で資源を探鉱・開発し、天然ガスなどを供給する。',
