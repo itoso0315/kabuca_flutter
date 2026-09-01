@@ -23,8 +23,14 @@ class CompanyCardArtwork extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder<CompanyArtworkAsset?>(
+      future: CompanyArtworkRegistry.forCompany(card.companyId),
+      builder: (context, snapshot) => _buildCard(context, snapshot.data),
+    );
+  }
+
+  Widget _buildCard(BuildContext context, CompanyArtworkAsset? artwork) {
     final company = CompanyTheme.forCompany(card.companyId);
-    final artwork = CompanyArtworkRegistry.forCompany(card.companyId);
     final rarity = CardRarityStyle.of(card.rarity);
     final radius = compact ? 10.0 : 15.0;
     return RepaintBoundary(
@@ -112,6 +118,10 @@ class CompanyCardArtwork extends StatelessWidget {
                                   companyId: card.companyId,
                                   artwork: artwork,
                                   accent: company.accentColor,
+                                  fallback: _FallbackSymbol(
+                                    company: company,
+                                    compact: compact,
+                                  ),
                                 ),
                         ),
                       ),
@@ -264,11 +274,13 @@ class _CompanyArtworkImage extends StatelessWidget {
     required this.companyId,
     required this.artwork,
     required this.accent,
+    required this.fallback,
   });
 
   final String companyId;
   final CompanyArtworkAsset artwork;
   final Color accent;
+  final Widget fallback;
 
   @override
   Widget build(BuildContext context) => Stack(
@@ -277,9 +289,10 @@ class _CompanyArtworkImage extends StatelessWidget {
       Image.asset(
         artwork.assetPath,
         key: Key('company-artwork-image-$companyId'),
-        fit: BoxFit.cover,
+        fit: artwork.fit,
         alignment: artwork.alignment,
         filterQuality: FilterQuality.high,
+        errorBuilder: (context, error, stackTrace) => fallback,
       ),
       DecoratedBox(
         decoration: BoxDecoration(

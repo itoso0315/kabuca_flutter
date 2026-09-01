@@ -6,6 +6,8 @@ import 'package:kabuca_flutter/theme/company_artwork_registry.dart';
 import 'package:kabuca_flutter/widgets/company_card_artwork.dart';
 
 void main() {
+  setUp(CompanyArtworkRegistry.resetCacheForTesting);
+
   const expectedAssets = <String, String>{
     'toyota': 'assets/company_art/toyota.png',
     'nintendo': 'assets/company_art/nintendo.png',
@@ -22,29 +24,50 @@ void main() {
     'recruit': 'assets/company_art/recruit.png',
   };
 
-  test('companyIdから実在する企業アートを引ける', () {
+  test('companyIdからCompanyMaster標準パスの実在アートを引ける', () async {
     for (final entry in expectedAssets.entries) {
       expect(
-        CompanyArtworkRegistry.forCompany(entry.key)?.assetPath,
+        (await CompanyArtworkRegistry.forCompany(entry.key))?.assetPath,
         entry.value,
       );
     }
   });
 
-  test('N/R/SR/URは同じ企業アートを共用する', () {
+  test('N/R/SR/URは同じ企業アートを共用する', () async {
     final toyotaCards = CardCatalog.cards.where(
       (card) => card.companyId == 'toyota',
     );
     expect(toyotaCards.map((card) => card.rarity).toSet(), CardRarity.values);
+    final paths = <String?>{};
+    for (final card in toyotaCards) {
+      paths.add(
+        (await CompanyArtworkRegistry.forCompany(card.companyId))?.assetPath,
+      );
+    }
+    expect(paths, {'assets/company_art/toyota.png'});
+  });
+
+  test('存在しない標準画像はnullになり例外overrideとalignmentが機能する', () {
     expect(
-      toyotaCards
-          .map(
-            (card) =>
-                CompanyArtworkRegistry.forCompany(card.companyId)?.assetPath,
-          )
-          .toSet(),
-      {'assets/company_art/toyota.png'},
+      CompanyArtworkRegistry.resolveFromAssetKeys('advantest', const {}),
+      isNull,
     );
+
+    const exceptionalPath = 'assets/company_art/special.png';
+    final artwork = CompanyArtworkRegistry.resolveFromAssetKeys(
+      'advantest',
+      const {exceptionalPath},
+      overrides: const {
+        'advantest': CompanyArtworkOverride(
+          assetPath: exceptionalPath,
+          alignment: Alignment.topCenter,
+          fit: BoxFit.contain,
+        ),
+      },
+    );
+    expect(artwork?.assetPath, exceptionalPath);
+    expect(artwork?.alignment, Alignment.topCenter);
+    expect(artwork?.fit, BoxFit.contain);
   });
 
   testWidgets('登録企業はImage.asset、未登録企業は抽象アートを表示する', (tester) async {
@@ -75,7 +98,7 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(
       find.byKey(const Key('company-artwork-image-toyota')),
