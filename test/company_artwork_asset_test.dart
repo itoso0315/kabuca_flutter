@@ -21,7 +21,7 @@ void main() {
     'nyk': 'assets/company_art/nyk.png',
     'tel': 'assets/company_art/tel.png',
     'softbank': 'assets/company_art/softbank.png',
-    'recruit': 'assets/company_art/recruit.png',
+    'recruit_holdings': 'assets/company_art/recruit_holdings.png',
   };
 
   test('companyIdからCompanyMaster標準パスの実在アートを引ける', () async {
@@ -74,8 +74,15 @@ void main() {
     final toyota = CardCatalog.cards.firstWhere(
       (card) => card.companyId == 'toyota',
     );
-    final advantest = CardCatalog.cards.firstWhere(
-      (card) => card.companyId == 'advantest',
+    final noArtwork = CompanyCard(
+      id: 'kyowa_kirin_preview',
+      companyId: 'kyowa_kirin',
+      companyName: '協和キリン',
+      ticker: '4151',
+      industry: '医薬品',
+      rarity: CardRarity.n,
+      title: '企業の基本',
+      description: '',
     );
 
     await tester.pumpWidget(
@@ -89,7 +96,7 @@ void main() {
               compact: true,
             ),
             CompanyCardArtwork(
-              card: advantest,
+              card: noArtwork,
               width: 125,
               height: 175,
               compact: true,

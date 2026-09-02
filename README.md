@@ -54,3 +54,7 @@ python3 -m pytest
 - Runtime: Python 3.11以降
 
 正式ProviderのAPIキーを使用する場合のみ、Render等の環境変数へ登録します。`.env`や秘密情報はGitへ追加しません。実際のデプロイ作業はこのリポジトリ変更には含まれていません。
+
+## Company Artwork
+
+企業アート制作ルールは[企業アート制作規約](docs/company_art_guidelines.md)を参照してください。

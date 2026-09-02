@@ -36,9 +36,6 @@ abstract final class CompanyArtworkRegistry {
         'softbank': CompanyArtworkOverride(
           assetPath: 'assets/company_art/softbank.png',
         ),
-        'recruit': CompanyArtworkOverride(
-          assetPath: 'assets/company_art/recruit.png',
-        ),
       };
 
   static Future<Set<String>>? _assetKeys;
@@ -50,6 +47,18 @@ abstract final class CompanyArtworkRegistry {
         final assetKeys = await (_assetKeys ??= _loadAssetKeys());
         return resolveFromAssetKeys(companyId, assetKeys);
       });
+
+  /// Returns CompanyMaster entries whose artwork resolves through the same
+  /// manifest-backed path used by CompanyCardArtwork.
+  static Future<List<CompanyMasterEntry>> availableCompanies() async {
+    final results = await Future.wait(
+      CompanyMaster.companies.map((company) async {
+        final artwork = await forCompany(company.companyId);
+        return artwork == null ? null : company;
+      }),
+    );
+    return List.unmodifiable(results.whereType<CompanyMasterEntry>());
+  }
 
   static CompanyArtworkAsset? resolveFromAssetKeys(
     String companyId,

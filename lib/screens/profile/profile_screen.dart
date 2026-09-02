@@ -7,6 +7,7 @@ import '../../state/game_state.dart';
 import '../../state/notification_store.dart';
 import '../../state/prediction_store.dart';
 import '../../state/point_wallet.dart';
+import '../debug/company_art_preview_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -120,6 +121,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 if (kDebugMode) ...[
                   const SizedBox(height: 10),
+                  TextButton.icon(
+                    key: const Key('company-art-preview-button'),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => const CompanyArtPreviewScreen(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.image_search_rounded),
+                    label: const Text('企業アート確認'),
+                  ),
                   TextButton.icon(
                     key: const Key('add-sample-notification-button'),
                     onPressed: _addSampleNotification,
