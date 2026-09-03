@@ -12,22 +12,39 @@ void main() {
     previousCorrectStreak: previousStreak,
   );
 
-  test('基本報酬と値動きボーナスを仕様どおり計算する', () {
-    expect(reward(0.5).totalReward, 20);
-    expect(reward(2).totalReward, 25);
-    expect(reward(-4).totalReward, 30);
-    expect(reward(7).totalReward, 40);
-    expect(reward(-12).totalReward, 50);
+  test('基本報酬と値動きボーナスの境界値を仕様どおり計算する', () {
+    const cases = <({double change, int expected})>[
+      (change: 0.5, expected: 20),
+      (change: 1.0, expected: 25),
+      (change: 2.9, expected: 25),
+      (change: 3.0, expected: 30),
+      (change: 4.9, expected: 30),
+      (change: 5.0, expected: 40),
+      (change: 9.9, expected: 40),
+      (change: 10.0, expected: 50),
+      (change: -2.0, expected: 25),
+      (change: -6.0, expected: 40),
+      (change: -12.0, expected: 50),
+    ];
+
+    for (final (:change, :expected) in cases) {
+      expect(
+        reward(change).totalReward,
+        expected,
+        reason: 'changePercent=$change',
+      );
+    }
     expect(reward(7, correct: false).totalReward, 0);
   });
 
-  test('連続正解ボーナスは2・3・4連続で増え4以上は15 KABU', () {
-    expect(reward(0.5).streakBonus, 0);
-    expect(reward(0.5, previousStreak: 1).streakBonus, 5);
-    expect(reward(0.5, previousStreak: 2).streakBonus, 10);
-    expect(reward(0.5, previousStreak: 3).streakBonus, 15);
-    expect(reward(0.5, previousStreak: 7).streakBonus, 15);
-    expect(reward(0.5, previousStreak: 7).correctStreak, 8);
+  test('1・2・3・4・10連続正解のstreakとボーナスが正しい', () {
+    const expectedBonuses = <int, int>{1: 0, 2: 5, 3: 10, 4: 15, 10: 15};
+
+    for (final MapEntry(key: streak, value: bonus) in expectedBonuses.entries) {
+      final result = reward(0.5, previousStreak: streak - 1);
+      expect(result.correctStreak, streak);
+      expect(result.streakBonus, bonus, reason: 'streak=$streak');
+    }
   });
 
   test('不正解は報酬0かつstreakを0へ戻す', () {
@@ -37,5 +54,9 @@ void main() {
     expect(result.streakBonus, 0);
     expect(result.totalReward, 0);
     expect(result.correctStreak, 0);
+
+    final next = reward(0.5, previousStreak: result.correctStreak);
+    expect(next.correctStreak, 1);
+    expect(next.streakBonus, 0);
   });
 }

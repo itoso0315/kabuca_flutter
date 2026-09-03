@@ -73,6 +73,90 @@ void main() {
     expect(wallet.currentPoints, 80);
   });
 
+  test('再起動と画面再生成相当のservice再生成後も同じ報酬を再受取できない', () async {
+    final predictionStorage = _PredictionStorage()
+      ..values = [_completedPrediction()];
+    final walletStorage = _WalletStorage();
+    final firstStore = await PredictionStore.load(storage: predictionStorage);
+    final firstWallet = await PointWallet.load(storage: walletStorage);
+
+    expect(
+      await PredictionRewardService(
+        predictionStore: firstStore,
+        pointWallet: firstWallet,
+      ).claim('prediction-1'),
+      RewardClaimResult.claimed,
+    );
+
+    final restartedStore = await PredictionStore.load(
+      storage: predictionStorage,
+    );
+    final restartedWallet = await PointWallet.load(storage: walletStorage);
+    final reopenedService = PredictionRewardService(
+      predictionStore: restartedStore,
+      pointWallet: restartedWallet,
+    );
+    expect(
+      await reopenedService.claim('prediction-1'),
+      RewardClaimResult.alreadyClaimed,
+    );
+    expect(restartedWallet.currentPoints, 80);
+    expect(restartedStore.findById('prediction-1')!.pointsClaimed, isTrue);
+  });
+
+  test('旧points.walletの250残高をそのまま読み込み、再読込でも二重変換しない', () async {
+    final storage = _WalletStorage(
+      const PointWalletSnapshot(balance: 250, claimedPredictionIds: {}),
+    );
+
+    expect((await PointWallet.load(storage: storage)).currentPoints, 250);
+    expect((await PointWallet.load(storage: storage)).currentPoints, 250);
+    expect(SharedPreferencesPointWalletStorage.key, 'points.wallet');
+  });
+
+  test('99 KABUでは交換不可、100 KABUでは1パック交換して残高0', () async {
+    final wallet = PointWallet.memory(currentPoints: 99);
+    final gameState = GameState.memory();
+    final service = PackExchangeService(
+      pointWallet: wallet,
+      gameState: gameState,
+    );
+
+    expect(
+      await service.exchangeStandardPack(),
+      PackExchangeResult.insufficientPoints,
+    );
+    expect(wallet.currentPoints, 99);
+    expect(gameState.packCount, 3);
+
+    await wallet.refund(1);
+    expect(await service.exchangeStandardPack(), PackExchangeResult.exchanged);
+    expect(wallet.currentPoints, 0);
+    expect(gameState.packCount, 4);
+  });
+
+  test('250 KABUでは2パック交換後に50 KABUが残り、3回目は交換不可', () async {
+    final wallet = PointWallet.memory(currentPoints: 250);
+    final gameState = GameState.memory();
+    final service = PackExchangeService(
+      pointWallet: wallet,
+      gameState: gameState,
+    );
+
+    expect(await service.exchangeStandardPack(), PackExchangeResult.exchanged);
+    expect(wallet.currentPoints, 150);
+    expect(gameState.packCount, 4);
+    expect(await service.exchangeStandardPack(), PackExchangeResult.exchanged);
+    expect(wallet.currentPoints, 50);
+    expect(gameState.packCount, 5);
+    expect(
+      await service.exchangeStandardPack(),
+      PackExchangeResult.insufficientPoints,
+    );
+    expect(wallet.currentPoints, 50);
+    expect(gameState.packCount, 5);
+  });
+
   test('100ptで1パック交換し、残高とパック数を復元できる', () async {
     final walletStorage = _WalletStorage(
       const PointWalletSnapshot(balance: 150, claimedPredictionIds: {}),

@@ -32,6 +32,7 @@ void main() {
     );
 
     expect(find.text('+50 KABU'), findsNWidgets(2));
+    expect(find.text('予想的中！'), findsOneWidget);
     expect(find.text('基本報酬'), findsOneWidget);
     expect(find.text('+20 KABU'), findsNWidgets(2));
     expect(find.text('値動きボーナス'), findsOneWidget);
@@ -56,6 +57,9 @@ void main() {
       MaterialApp(home: PredictionResultScreen(prediction: prediction)),
     );
     expect(find.byKey(const Key('prediction-no-points')), findsOneWidget);
+    expect(find.text('獲得KABU 0'), findsNWidgets(2));
+    expect(find.text('今回は予想が外れました'), findsOneWidget);
+    expect(find.byKey(const Key('prediction-correct-streak')), findsNothing);
     expect(
       find.byKey(const Key('claim-prediction-points-button')),
       findsNothing,

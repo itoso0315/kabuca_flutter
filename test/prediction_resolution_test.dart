@@ -46,12 +46,16 @@ void main() {
       expect(provider.historicalCalls, 1);
       expect(notifications.notifications, hasLength(1));
       final restored = await PredictionStore.load(storage: storage);
-      expect(restored.findById(prediction.id)!.resultPrice, 1100);
-      expect(restored.findById(prediction.id)!.correctStreak, 1);
+      final restoredPrediction = restored.findById(prediction.id)!;
+      expect(restoredPrediction.status, PredictionStatus.completed);
+      expect(restoredPrediction.resultPrice, 1100);
+      expect(restoredPrediction.changePercent, closeTo(10, 0.0001));
+      expect(restoredPrediction.awardedPoints, 50);
+      expect(restoredPrediction.correctStreak, 1);
       expect(restored.currentCorrectStreak, 1);
     });
 
-    test('DOWN的中、不的中、同値を仕様どおり判定する', () async {
+    test('UP/DOWNの正誤、絶対値ボーナス、同値0%を仕様どおり判定する', () async {
       Future<StockPrediction> resolve(
         PredictionDirection direction,
         double close,
@@ -70,14 +74,88 @@ void main() {
         return store.predictions.single;
       }
 
-      expect((await resolve(PredictionDirection.down, 900)).isCorrect, isTrue);
-      final incorrect = await resolve(PredictionDirection.up, 900);
-      expect(incorrect.isCorrect, isFalse);
-      expect(incorrect.correctStreak, 0);
-      final equal = await resolve(PredictionDirection.up, 1000);
-      expect(equal.isCorrect, isFalse);
-      expect(equal.awardedPoints, 0);
-      expect(equal.correctStreak, 0);
+      final upCorrect = await resolve(PredictionDirection.up, 1050);
+      expect(upCorrect.isCorrect, isTrue);
+      expect(upCorrect.movementBonus, 20);
+      expect(upCorrect.awardedPoints, 40);
+
+      final upIncorrect = await resolve(PredictionDirection.up, 950);
+      expect(upIncorrect.isCorrect, isFalse);
+      expect(upIncorrect.awardedPoints, 0);
+      expect(upIncorrect.correctStreak, 0);
+
+      final downCorrect = await resolve(PredictionDirection.down, 950);
+      expect(downCorrect.isCorrect, isTrue);
+      expect(downCorrect.changePercent, closeTo(-5, 0.0001));
+      expect(downCorrect.movementBonus, 20);
+      expect(downCorrect.awardedPoints, 40);
+
+      final downIncorrect = await resolve(PredictionDirection.down, 1050);
+      expect(downIncorrect.isCorrect, isFalse);
+      expect(downIncorrect.awardedPoints, 0);
+
+      for (final direction in PredictionDirection.values) {
+        final unchanged = await resolve(direction, 1000);
+        expect(unchanged.changePercent, 0);
+        expect(unchanged.isCorrect, isFalse);
+        expect(unchanged.awardedPoints, 0);
+        expect(unchanged.correctStreak, 0);
+      }
+    });
+
+    test('作成順でなく結果対象日順に異なる期間を確定しstreakを積む', () async {
+      final store = PredictionStore.memory(
+        predictions: [
+          _waitingPrediction(
+            id: 'created-first-month',
+            companyId: 'month',
+            ticker: '3',
+            horizon: PredictionHorizon.oneMonth,
+            createdAt: DateTime.utc(2026, 8, 1),
+            targetDate: DateTime.utc(2026, 9, 4),
+          ),
+          _waitingPrediction(
+            id: 'created-second-day',
+            companyId: 'day',
+            ticker: '1',
+            horizon: PredictionHorizon.nextTradingDay,
+            createdAt: DateTime.utc(2026, 8, 2),
+            targetDate: DateTime.utc(2026, 9, 2),
+          ),
+          _waitingPrediction(
+            id: 'created-third-week',
+            companyId: 'week',
+            ticker: '2',
+            horizon: PredictionHorizon.oneWeek,
+            createdAt: DateTime.utc(2026, 8, 3),
+            targetDate: DateTime.utc(2026, 9, 3),
+          ),
+        ],
+      );
+      final provider = _MappedHistoricalProvider({
+        '1': 1010,
+        '2': 1020,
+        '3': 1030,
+      });
+      final service = PredictionResolutionService(
+        predictionStore: store,
+        stockPriceService: StockPriceService(provider),
+        notificationStore: NotificationStore.memory(),
+        now: () => DateTime.utc(2026, 9, 5),
+      );
+
+      final results = await service.resolveEligiblePredictions();
+
+      expect(results.map((result) => result.predictionId), [
+        'created-second-day',
+        'created-third-week',
+        'created-first-month',
+      ]);
+      expect(provider.requestedTickers, ['1', '2', '3']);
+      expect(store.findById('created-second-day')!.correctStreak, 1);
+      expect(store.findById('created-third-week')!.correctStreak, 2);
+      expect(store.findById('created-first-month')!.correctStreak, 3);
+      expect(store.currentCorrectStreak, 3);
     });
 
     test('未来、旧データ、取得失敗、分割検出はwaitingを維持する', () async {
@@ -155,6 +233,27 @@ StockPrediction _legacyPrediction() => StockPrediction(
   status: PredictionStatus.waiting,
 );
 
+StockPrediction _waitingPrediction({
+  required String id,
+  required String companyId,
+  required String ticker,
+  required PredictionHorizon horizon,
+  required DateTime createdAt,
+  required DateTime targetDate,
+}) => StockPrediction(
+  id: id,
+  companyId: companyId,
+  companyName: companyId,
+  ticker: ticker,
+  direction: PredictionDirection.up,
+  horizon: horizon,
+  createdAt: createdAt,
+  status: PredictionStatus.waiting,
+  basePrice: 1000,
+  basePriceAt: createdAt,
+  targetDate: targetDate,
+);
+
 class _HistoricalProvider
     implements StockPriceProvider, HistoricalStockPriceProvider {
   _HistoricalProvider({
@@ -181,6 +280,36 @@ class _HistoricalProvider
       close: close,
       fetchedAt: DateTime.utc(2026, 9, 2),
       splitDetected: splitDetected,
+    );
+  }
+
+  @override
+  Future<StockQuote> fetchQuote({
+    required String ticker,
+    required String companyId,
+  }) => throw UnimplementedError();
+}
+
+class _MappedHistoricalProvider
+    implements StockPriceProvider, HistoricalStockPriceProvider {
+  _MappedHistoricalProvider(this.closes);
+
+  final Map<String, double> closes;
+  final List<String> requestedTickers = [];
+
+  @override
+  Future<HistoricalStockPrice> fetchClosingPrice({
+    required String ticker,
+    required DateTime tradingDate,
+    required DateTime sinceDate,
+  }) async {
+    requestedTickers.add(ticker);
+    return HistoricalStockPrice(
+      ticker: ticker,
+      tradingDate: tradingDate,
+      close: closes[ticker]!,
+      fetchedAt: DateTime.utc(2026, 9, 5),
+      splitDetected: false,
     );
   }
 
