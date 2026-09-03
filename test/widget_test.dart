@@ -52,7 +52,7 @@ void main() {
     expect(homeLogo.style?.fontWeight, FontWeight.w600);
     expect(find.byKey(const Key('notification-bell-button')), findsOneWidget);
     expect(find.byKey(const Key('home-point-balance')), findsOneWidget);
-    expect(find.text('0 pt'), findsOneWidget);
+    expect(find.text('0 KABU'), findsOneWidget);
     expect(find.text('所持パック  3'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'パックを開ける'), findsOneWidget);
     expect(find.text('0枚'), findsOneWidget);

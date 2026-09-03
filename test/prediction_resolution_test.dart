@@ -32,7 +32,11 @@ void main() {
       expect(completed.resultPrice, 1100);
       expect(completed.changePercent, closeTo(10, 0.0001));
       expect(completed.isCorrect, isTrue);
-      expect(completed.awardedPoints, 100);
+      expect(completed.awardedPoints, 50);
+      expect(completed.baseReward, 20);
+      expect(completed.movementBonus, 30);
+      expect(completed.streakBonus, 0);
+      expect(completed.correctStreak, 1);
       expect(
         notifications.notifications.single.id,
         'prediction-result-${prediction.id}',
@@ -43,6 +47,8 @@ void main() {
       expect(notifications.notifications, hasLength(1));
       final restored = await PredictionStore.load(storage: storage);
       expect(restored.findById(prediction.id)!.resultPrice, 1100);
+      expect(restored.findById(prediction.id)!.correctStreak, 1);
+      expect(restored.currentCorrectStreak, 1);
     });
 
     test('DOWN的中、不的中、同値を仕様どおり判定する', () async {
@@ -65,10 +71,13 @@ void main() {
       }
 
       expect((await resolve(PredictionDirection.down, 900)).isCorrect, isTrue);
-      expect((await resolve(PredictionDirection.up, 900)).isCorrect, isFalse);
+      final incorrect = await resolve(PredictionDirection.up, 900);
+      expect(incorrect.isCorrect, isFalse);
+      expect(incorrect.correctStreak, 0);
       final equal = await resolve(PredictionDirection.up, 1000);
       expect(equal.isCorrect, isFalse);
       expect(equal.awardedPoints, 0);
+      expect(equal.correctStreak, 0);
     });
 
     test('未来、旧データ、取得失敗、分割検出はwaitingを維持する', () async {

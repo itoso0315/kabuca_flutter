@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+import 'prediction_reward_service.dart';
 
 class PredictionPointCalculator {
   const PredictionPointCalculator._();
@@ -6,8 +6,12 @@ class PredictionPointCalculator {
   static int calculate({
     required double changePercent,
     required bool isCorrect,
+    int previousCorrectStreak = 0,
   }) {
-    if (!isCorrect || changePercent == 0 || !changePercent.isFinite) return 0;
-    return math.max(1, (changePercent.abs() * 10).ceil());
+    return PredictionRewardService.calculate(
+      changePercent: changePercent,
+      isCorrect: isCorrect,
+      previousCorrectStreak: previousCorrectStreak,
+    ).totalReward;
   }
 }

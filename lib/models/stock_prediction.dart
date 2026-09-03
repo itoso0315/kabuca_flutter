@@ -37,6 +37,10 @@ class StockPrediction {
     this.changePercent,
     this.isCorrect,
     this.awardedPoints,
+    this.baseReward,
+    this.movementBonus,
+    this.streakBonus,
+    this.correctStreak,
     this.pointsClaimed,
     this.pointsClaimedAt,
   });
@@ -57,6 +61,10 @@ class StockPrediction {
   final double? changePercent;
   final bool? isCorrect;
   final int? awardedPoints;
+  final int? baseReward;
+  final int? movementBonus;
+  final int? streakBonus;
+  final int? correctStreak;
   final bool? pointsClaimed;
   final DateTime? pointsClaimedAt;
 
@@ -67,6 +75,10 @@ class StockPrediction {
     double? changePercent,
     bool? isCorrect,
     int? awardedPoints,
+    int? baseReward,
+    int? movementBonus,
+    int? streakBonus,
+    int? correctStreak,
     bool? pointsClaimed,
     DateTime? pointsClaimedAt,
   }) => StockPrediction(
@@ -86,6 +98,10 @@ class StockPrediction {
     changePercent: changePercent ?? this.changePercent,
     isCorrect: isCorrect ?? this.isCorrect,
     awardedPoints: awardedPoints ?? this.awardedPoints,
+    baseReward: baseReward ?? this.baseReward,
+    movementBonus: movementBonus ?? this.movementBonus,
+    streakBonus: streakBonus ?? this.streakBonus,
+    correctStreak: correctStreak ?? this.correctStreak,
     pointsClaimed: pointsClaimed ?? this.pointsClaimed,
     pointsClaimedAt: pointsClaimedAt ?? this.pointsClaimedAt,
   );
@@ -109,6 +125,10 @@ class StockPrediction {
       'changePercent': ?changePercent,
       'isCorrect': ?isCorrect,
       'awardedPoints': ?awardedPoints,
+      'baseReward': ?baseReward,
+      'movementBonus': ?movementBonus,
+      'streakBonus': ?streakBonus,
+      'correctStreak': ?correctStreak,
       'pointsClaimed': ?pointsClaimed,
       if (pointsClaimedAt != null)
         'pointsClaimedAt': pointsClaimedAt!.toIso8601String(),
@@ -141,6 +161,10 @@ class StockPrediction {
       changePercent: (json['changePercent'] as num?)?.toDouble(),
       isCorrect: json['isCorrect'] as bool?,
       awardedPoints: (json['awardedPoints'] as num?)?.toInt(),
+      baseReward: (json['baseReward'] as num?)?.toInt(),
+      movementBonus: (json['movementBonus'] as num?)?.toInt(),
+      streakBonus: (json['streakBonus'] as num?)?.toInt(),
+      correctStreak: (json['correctStreak'] as num?)?.toInt(),
       pointsClaimed: json['pointsClaimed'] as bool?,
       pointsClaimedAt: json['pointsClaimedAt'] == null
           ? null

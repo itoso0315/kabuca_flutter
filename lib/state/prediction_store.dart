@@ -69,6 +69,28 @@ class PredictionStore extends ChangeNotifier {
     return index < 0 ? null : _predictions[index];
   }
 
+  /// Legacy completed predictions have no correctStreak and intentionally do
+  /// not seed the new KABU streak system.
+  int get currentCorrectStreak {
+    final resolved =
+        _predictions
+            .where(
+              (prediction) =>
+                  prediction.status == PredictionStatus.completed &&
+                  prediction.correctStreak != null,
+            )
+            .toList()
+          ..sort((a, b) {
+            final aDate = a.resultPriceAt ?? a.createdAt;
+            final bDate = b.resultPriceAt ?? b.createdAt;
+            final dateOrder = aDate.compareTo(bDate);
+            return dateOrder != 0
+                ? dateOrder
+                : a.createdAt.compareTo(b.createdAt);
+          });
+    return resolved.isEmpty ? 0 : resolved.last.correctStreak!;
+  }
+
   Future<StockPrediction?> complete({
     required String id,
     required double resultPrice,
@@ -76,6 +98,10 @@ class PredictionStore extends ChangeNotifier {
     required double changePercent,
     required bool isCorrect,
     required int awardedPoints,
+    required int baseReward,
+    required int movementBonus,
+    required int streakBonus,
+    required int correctStreak,
   }) async {
     final index = _predictions.indexWhere((item) => item.id == id);
     if (index < 0 || _predictions[index].status != PredictionStatus.waiting) {
@@ -88,6 +114,10 @@ class PredictionStore extends ChangeNotifier {
       changePercent: changePercent,
       isCorrect: isCorrect,
       awardedPoints: awardedPoints,
+      baseReward: baseReward,
+      movementBonus: movementBonus,
+      streakBonus: streakBonus,
+      correctStreak: correctStreak,
       pointsClaimed: false,
     );
     _predictions[index] = completed;

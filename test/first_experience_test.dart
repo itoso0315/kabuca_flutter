@@ -92,7 +92,7 @@ void main() {
     expect(find.text('持っている企業の未来を予想してみよう'), findsOneWidget);
   });
 
-  testWidgets('ポイント0でも貯め方と100pt交換ルールを表示する', (tester) async {
+  testWidgets('KABU 0でも貯め方と100 KABU交換ルールを表示する', (tester) async {
     final wallet = PointWallet.memory();
     final gameState = GameState.memory();
     await tester.pumpWidget(
@@ -108,11 +108,11 @@ void main() {
       ),
     );
     expect(find.byKey(const Key('pack-exchange-earning-hint')), findsOneWidget);
-    expect(find.text('株価予想を当てるとポイントが貯まります'), findsOneWidget);
-    expect(find.text('100ptで1パック'), findsOneWidget);
+    expect(find.text('株価予想を当てるとKABUが貯まります'), findsOneWidget);
+    expect(find.text('100 KABUで1パック'), findsOneWidget);
   });
 
-  testWidgets('結果画面から次の予想とポイント交換へ進める', (tester) async {
+  testWidgets('結果画面から次の予想とKABU交換へ進める', (tester) async {
     var predicted = false;
     var exchanged = false;
     final prediction = StockPrediction(

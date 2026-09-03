@@ -39,7 +39,7 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
     if (widget.prediction.isCorrect ?? false) HapticFeedback.mediumImpact();
   }
 
-  Future<void> _claimPoints() async {
+  Future<void> _claimKabu() async {
     final service = widget.rewardService;
     if (service == null || _claiming) return;
     setState(() => _claiming = true);
@@ -99,7 +99,7 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        correct ? '予想的中！' : '今回は不的中',
+                        correct ? '予想的中！' : '今回は予想が外れました',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 28,
@@ -110,9 +110,9 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                       Text(
                         correct
                             ? claimed
-                                  ? '${points}pt獲得済み'
-                                  : '+${points}pt'
-                            : '0pt',
+                                  ? '$points KABU獲得済み'
+                                  : '+$points KABU'
+                            : '獲得KABU 0',
                         key: const Key('prediction-result-points'),
                         style: const TextStyle(
                           color: AppColors.mutedGold,
@@ -123,6 +123,24 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                     ],
                   ),
                 ),
+                if (correct && (prediction.correctStreak ?? 0) >= 2) ...[
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Text(
+                      '${prediction.correctStreak}連続正解！',
+                      key: const Key('prediction-correct-streak'),
+                      style: const TextStyle(
+                        color: AppColors.deepGreen,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+                if (correct && prediction.baseReward != null) ...[
+                  const SizedBox(height: 16),
+                  _RewardBreakdownCard(prediction: prediction),
+                ],
                 if (correct && points > 0) ...[
                   const SizedBox(height: 16),
                   if (claimed)
@@ -132,7 +150,7 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                       duration: const Duration(milliseconds: 180),
                       child: const Center(
                         child: Text(
-                          'ポイントを受け取りました',
+                          'KABUを受け取りました',
                           style: TextStyle(
                             color: AppColors.deepGreen,
                             fontWeight: FontWeight.w700,
@@ -143,15 +161,15 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                   else if (widget.rewardService != null)
                     FilledButton.icon(
                       key: const Key('claim-prediction-points-button'),
-                      onPressed: _claiming ? null : _claimPoints,
+                      onPressed: _claiming ? null : _claimKabu,
                       icon: const Icon(Icons.stars_rounded),
-                      label: Text('$points ptを受け取る'),
+                      label: Text('$points KABUを受け取る'),
                     ),
                 ] else if (!correct || points == 0) ...[
                   const SizedBox(height: 14),
                   const Center(
                     child: Text(
-                      '今回はポイントなし',
+                      '獲得KABU 0',
                       key: Key('prediction-no-points'),
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
@@ -213,7 +231,7 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                     TextButton(
                       key: const Key('prediction-result-open-exchange'),
                       onPressed: widget.onOpenExchange,
-                      child: const Text('ポイント交換を見る'),
+                      child: const Text('KABU交換を見る'),
                     ),
                 ],
               ],
@@ -223,6 +241,38 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
       ),
     );
   }
+}
+
+class _RewardBreakdownCard extends StatelessWidget {
+  const _RewardBreakdownCard({required this.prediction});
+
+  final StockPrediction prediction;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    key: const Key('prediction-reward-breakdown'),
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        children: [
+          _ResultRow(label: '基本報酬', value: '+${prediction.baseReward} KABU'),
+          _ResultRow(
+            label: '値動きボーナス',
+            value: '+${prediction.movementBonus} KABU',
+          ),
+          _ResultRow(
+            label: '連続正解ボーナス',
+            value: '+${prediction.streakBonus} KABU',
+          ),
+          const Divider(),
+          _ResultRow(
+            label: '合計KABU',
+            value: '+${prediction.awardedPoints ?? 0} KABU',
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _ResultRow extends StatelessWidget {

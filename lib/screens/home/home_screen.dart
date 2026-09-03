@@ -295,7 +295,7 @@ class _PointBalanceButton extends StatelessWidget {
           const Icon(Icons.stars_rounded, size: 15, color: Color(0xFFA67D2D)),
           const SizedBox(width: 4),
           Text(
-            '$points pt',
+            '$points KABU',
             style: const TextStyle(
               color: Color(0xFF5A481E),
               fontSize: 12,

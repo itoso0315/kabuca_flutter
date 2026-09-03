@@ -12,8 +12,8 @@ import 'package:kabuca_flutter/state/point_wallet.dart';
 import 'package:kabuca_flutter/state/prediction_store.dart';
 
 void main() {
-  testWidgets('的中ポイントを受け取ると残高へ反映しボタンが消える', (tester) async {
-    final prediction = _prediction(points: 80, correct: true);
+  testWidgets('的中KABUの内訳を表示し受取後にボタンが消える', (tester) async {
+    final prediction = _prediction(points: 50, correct: true);
     final store = PredictionStore.memory(predictions: [prediction]);
     final wallet = PointWallet.memory();
     final service = PredictionRewardService(
@@ -31,12 +31,19 @@ void main() {
       ),
     );
 
-    expect(find.text('+80pt'), findsOneWidget);
+    expect(find.text('+50 KABU'), findsNWidgets(2));
+    expect(find.text('基本報酬'), findsOneWidget);
+    expect(find.text('+20 KABU'), findsNWidgets(2));
+    expect(find.text('値動きボーナス'), findsOneWidget);
+    expect(find.text('連続正解ボーナス'), findsOneWidget);
+    expect(find.text('合計KABU'), findsOneWidget);
+    expect(find.text('3連続正解！'), findsOneWidget);
+    expect(find.text('+10 KABU'), findsOneWidget);
     await tester.tap(find.byKey(const Key('claim-prediction-points-button')));
     await tester.pumpAndSettle();
 
-    expect(wallet.currentPoints, 80);
-    expect(find.text('80pt獲得済み'), findsOneWidget);
+    expect(wallet.currentPoints, 50);
+    expect(find.text('50 KABU獲得済み'), findsOneWidget);
     expect(
       find.byKey(const Key('claim-prediction-points-button')),
       findsNothing,
@@ -72,7 +79,7 @@ void main() {
       ),
     );
 
-    expect(find.text('あと35ptで交換できます'), findsOneWidget);
+    expect(find.text('あと35 KABUで交換できます'), findsOneWidget);
     expect(
       tester
           .widget<FilledButton>(
@@ -102,14 +109,14 @@ void main() {
       ),
     );
 
-    expect(find.text('150 pt'), findsOneWidget);
+    expect(find.text('150 KABU'), findsOneWidget);
     await tester.tap(find.byKey(const Key('home-point-balance')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('pack-exchange-screen')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('exchange-standard-pack-button')));
     await tester.pumpAndSettle();
-    expect(find.text('50 pt'), findsOneWidget);
+    expect(find.text('50 KABU'), findsOneWidget);
     expect(gameState.packCount, 4);
     expect(find.text('スタートパックを1個獲得しました'), findsOneWidget);
     expect(find.byKey(const Key('pack-exchange-open-button')), findsOneWidget);
@@ -134,5 +141,9 @@ StockPrediction _prediction({required int points, required bool correct}) =>
       changePercent: correct ? 8 : -8,
       isCorrect: correct,
       awardedPoints: points,
+      baseReward: correct ? 20 : 0,
+      movementBonus: correct ? 20 : 0,
+      streakBonus: correct ? 10 : 0,
+      correctStreak: correct ? 3 : 0,
       pointsClaimed: false,
     );

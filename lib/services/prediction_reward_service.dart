@@ -4,6 +4,22 @@ import '../state/prediction_store.dart';
 
 enum RewardClaimResult { claimed, alreadyClaimed, unavailable }
 
+class PredictionRewardBreakdown {
+  const PredictionRewardBreakdown({
+    required this.baseReward,
+    required this.movementBonus,
+    required this.streakBonus,
+    required this.totalReward,
+    required this.correctStreak,
+  });
+
+  final int baseReward;
+  final int movementBonus;
+  final int streakBonus;
+  final int totalReward;
+  final int correctStreak;
+}
+
 class PredictionRewardService {
   PredictionRewardService({
     required this.predictionStore,
@@ -15,6 +31,45 @@ class PredictionRewardService {
   final PointWallet pointWallet;
   final DateTime Function() _now;
   final Set<String> _claiming = {};
+
+  static PredictionRewardBreakdown calculate({
+    required double changePercent,
+    required bool isCorrect,
+    required int previousCorrectStreak,
+  }) {
+    if (!isCorrect || !changePercent.isFinite) {
+      return const PredictionRewardBreakdown(
+        baseReward: 0,
+        movementBonus: 0,
+        streakBonus: 0,
+        totalReward: 0,
+        correctStreak: 0,
+      );
+    }
+
+    final movement = changePercent.abs();
+    final movementBonus = switch (movement) {
+      >= 10 => 30,
+      >= 5 => 20,
+      >= 3 => 10,
+      >= 1 => 5,
+      _ => 0,
+    };
+    final streak = previousCorrectStreak + 1;
+    final streakBonus = switch (streak) {
+      >= 4 => 15,
+      3 => 10,
+      2 => 5,
+      _ => 0,
+    };
+    return PredictionRewardBreakdown(
+      baseReward: 20,
+      movementBonus: movementBonus,
+      streakBonus: streakBonus,
+      totalReward: 20 + movementBonus + streakBonus,
+      correctStreak: streak,
+    );
+  }
 
   bool isClaimed(StockPrediction prediction) =>
       prediction.pointsClaimed == true ||

@@ -2,7 +2,7 @@ import '../models/app_notification.dart';
 import '../models/stock_prediction.dart';
 import '../state/notification_store.dart';
 import '../state/prediction_store.dart';
-import 'prediction_point_calculator.dart';
+import 'prediction_reward_service.dart';
 import 'stock_price_service.dart';
 import 'trading_calendar_service.dart';
 
@@ -38,7 +38,19 @@ class PredictionResolutionService {
     final candidates = List<StockPrediction>.of(
       predictionStore.waitingPredictions,
     );
-    return Future.wait(candidates.map(_resolve));
+    candidates.sort((a, b) {
+      final targetOrder = (a.targetDate ?? a.createdAt).compareTo(
+        b.targetDate ?? b.createdAt,
+      );
+      return targetOrder != 0
+          ? targetOrder
+          : a.createdAt.compareTo(b.createdAt);
+    });
+    final results = <PredictionResolutionResult>[];
+    for (final prediction in candidates) {
+      results.add(await _resolve(prediction));
+    }
+    return results;
   }
 
   Future<PredictionResolutionResult> _resolve(
@@ -83,9 +95,10 @@ class PredictionResolutionService {
         PredictionDirection.up => historical.close > basePrice,
         PredictionDirection.down => historical.close < basePrice,
       };
-      final points = PredictionPointCalculator.calculate(
+      final reward = PredictionRewardService.calculate(
         changePercent: change,
         isCorrect: correct,
+        previousCorrectStreak: predictionStore.currentCorrectStreak,
       );
       final completed = await predictionStore.complete(
         id: prediction.id,
@@ -93,7 +106,11 @@ class PredictionResolutionService {
         resultPriceAt: historical.tradingDate,
         changePercent: change,
         isCorrect: correct,
-        awardedPoints: points,
+        awardedPoints: reward.totalReward,
+        baseReward: reward.baseReward,
+        movementBonus: reward.movementBonus,
+        streakBonus: reward.streakBonus,
+        correctStreak: reward.correctStreak,
       );
       if (completed == null) {
         return PredictionResolutionResult(

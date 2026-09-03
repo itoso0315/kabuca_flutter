@@ -60,7 +60,7 @@ void main() {
     expect(find.text('図鑑登録  1 / 80'), findsOneWidget);
     expect(find.text('保存済み予想  1件'), findsOneWidget);
     expect(find.text('お知らせ  1件'), findsOneWidget);
-    expect(find.text('ポイント  120pt'), findsOneWidget);
+    expect(find.text('KABU  120 KABU'), findsOneWidget);
     await tester.drag(
       find.byKey(const Key('profile-screen')),
       const Offset(0, -180),
@@ -77,7 +77,7 @@ void main() {
     expect(find.text('図鑑登録  0 / 80'), findsOneWidget);
     expect(find.text('保存済み予想  0件'), findsOneWidget);
     expect(find.text('お知らせ  0件'), findsOneWidget);
-    expect(find.text('ポイント  0pt'), findsOneWidget);
+    expect(find.text('KABU  0 KABU'), findsOneWidget);
     expect(states.pointWallet.currentPoints, 0);
     expect(states.notificationStore.notifications, isEmpty);
     expect(find.text('開発用データを初期化しました'), findsOneWidget);

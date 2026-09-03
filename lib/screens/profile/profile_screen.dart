@@ -57,7 +57,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text('所持カード  ${widget.gameState.totalOwnedCardCount}枚'),
                   Text('図鑑登録  ${widget.gameState.registeredCardCount} / 80'),
                   Text('保存済み予想  ${widget.predictionStore.predictions.length}件'),
-                  Text('ポイント  ${widget.pointWallet?.currentPoints ?? 0}pt'),
+                  Text('KABU  ${widget.pointWallet?.currentPoints ?? 0} KABU'),
                   Text(
                     'お知らせ  ${widget.notificationStore.notifications.length}件',
                   ),
@@ -95,7 +95,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  '実機テスト用に、パック・カード・図鑑・予想・ポイント・お知らせを初期状態へ戻します。',
+                  '実機テスト用に、パック・カード・図鑑・予想・KABU・お知らせを初期状態へ戻します。',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     height: 1.45,

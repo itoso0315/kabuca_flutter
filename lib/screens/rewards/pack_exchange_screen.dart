@@ -38,7 +38,7 @@ class _PackExchangeScreenState extends State<PackExchangeScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppColors.cream,
-    appBar: AppBar(title: const Text('ポイント交換')),
+    appBar: AppBar(title: const Text('KABU交換')),
     body: ListenableBuilder(
       listenable: Listenable.merge([widget.pointWallet, widget.gameState]),
       builder: (context, _) {
@@ -58,10 +58,10 @@ class _PackExchangeScreenState extends State<PackExchangeScreen> {
               ),
               child: Column(
                 children: [
-                  const Text('所持ポイント', style: TextStyle(color: Colors.white70)),
+                  const Text('所持KABU', style: TextStyle(color: Colors.white70)),
                   const SizedBox(height: 6),
                   Text(
-                    '$points pt',
+                    '$points KABU',
                     key: const Key('exchange-point-balance'),
                     style: const TextStyle(
                       color: AppColors.mutedGold,
@@ -84,7 +84,7 @@ class _PackExchangeScreenState extends State<PackExchangeScreen> {
                     color: AppColors.deepGreen,
                   ),
                   SizedBox(width: 8),
-                  Flexible(child: Text('株価予想を当てるとポイントが貯まります')),
+                  Flexible(child: Text('株価予想を当てるとKABUが貯まります')),
                 ],
               ),
               const SizedBox(height: 16),
@@ -108,7 +108,7 @@ class _PackExchangeScreenState extends State<PackExchangeScreen> {
                     ),
                     const SizedBox(height: 5),
                     const Text(
-                      '${PackExchangeRules.standardPackCost}ptで1パック',
+                      '${PackExchangeRules.standardPackCost} KABUで1パック',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
@@ -120,7 +120,7 @@ class _PackExchangeScreenState extends State<PackExchangeScreen> {
                     if (shortage > 0) ...[
                       const SizedBox(height: 14),
                       Text(
-                        'あと${shortage}ptで交換できます',
+                        'あと$shortage KABUで交換できます',
                         key: const Key('pack-exchange-shortage'),
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: AppColors.textSecondary),
