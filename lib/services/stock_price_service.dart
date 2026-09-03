@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../config/backend_config.dart';
 import '../models/stock_quote.dart';
 import '../models/historical_stock_price.dart';
 
@@ -87,8 +88,7 @@ class BackendStockPriceProvider
     String? baseUrl,
     this.timeout = const Duration(seconds: 12),
   }) : _client = client ?? http.Client(),
-       baseUrl =
-           baseUrl ?? const String.fromEnvironment('KABUCA_BACKEND_BASE_URL');
+       baseUrl = baseUrl ?? kabucaBackendBaseUrl;
 
   final http.Client _client;
   final String baseUrl;

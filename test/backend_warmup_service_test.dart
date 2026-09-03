@@ -1,9 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:kabuca_flutter/config/backend_config.dart';
 import 'package:kabuca_flutter/services/backend_warmup_service.dart';
 
 void main() {
+  test('未指定時は株価Providerと同じ本番Backend URLを使用する', () {
+    final service = HttpBackendWarmupService();
+
+    expect(service.baseUrl, kabucaProductionBackendBaseUrl);
+  });
+
   test('未設定時は通信せずskipする', () async {
     final service = HttpBackendWarmupService(
       baseUrl: '',

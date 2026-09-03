@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
+import '../config/backend_config.dart';
+
 enum BackendWarmupStatus { ready, failed, timedOut, skipped }
 
 abstract interface class BackendWarmupService {
@@ -14,8 +16,7 @@ class HttpBackendWarmupService implements BackendWarmupService {
     String? baseUrl,
     this.timeout = const Duration(milliseconds: 2800),
   }) : _client = client ?? http.Client(),
-       baseUrl =
-           baseUrl ?? const String.fromEnvironment('KABUCA_BACKEND_BASE_URL');
+       baseUrl = baseUrl ?? kabucaBackendBaseUrl;
 
   final http.Client _client;
   final String baseUrl;

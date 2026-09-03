@@ -1,9 +1,31 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:kabuca_flutter/config/backend_config.dart';
 import 'package:kabuca_flutter/services/stock_price_service.dart';
 
 void main() {
+  test('未指定時は本番Backend URLを使用する', () {
+    final provider = BackendStockPriceProvider();
+
+    expect(kabucaBackendBaseUrl, kabucaProductionBackendBaseUrl);
+    expect(provider.baseUrl, 'https://kabuca-api.onrender.com');
+  });
+
+  test('dart-defineのcompile-time URLをProviderへ反映する', () {
+    final provider = BackendStockPriceProvider();
+
+    expect(provider.baseUrl, kabucaBackendBaseUrl);
+  });
+
+  test('明示したBackend URLはdefaultより優先される', () {
+    final provider = BackendStockPriceProvider(
+      baseUrl: 'https://staging.kabuca.example.com',
+    );
+
+    expect(provider.baseUrl, 'https://staging.kabuca.example.com');
+  });
+
   test('Backend quoteレスポンスをStockQuoteへ変換する', () async {
     Uri? requested;
     final provider = BackendStockPriceProvider(
