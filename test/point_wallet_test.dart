@@ -275,6 +275,7 @@ class _GameStorage implements GameStorage {
 
   int? starterPackCount;
   int? premiumPackCount;
+  String? lastFreeStarterPackDate;
   Map<String, int> cards = {};
 
   @override
@@ -287,6 +288,10 @@ class _GameStorage implements GameStorage {
   Future<int?> readPremiumPackCount() async => premiumPackCount;
 
   @override
+  Future<String?> readLastFreeStarterPackDate() async =>
+      lastFreeStarterPackDate;
+
+  @override
   Future<void> writeCardCounts(Map<String, int> value) async => cards = value;
 
   @override
@@ -296,6 +301,10 @@ class _GameStorage implements GameStorage {
   @override
   Future<void> writePremiumPackCount(int value) async =>
       premiumPackCount = value;
+
+  @override
+  Future<void> writeLastFreeStarterPackDate(String? value) async =>
+      lastFreeStarterPackDate = value;
 }
 
 class _FailingGameStorage extends _GameStorage {

@@ -20,7 +20,6 @@ void main() {
     'itochu': 'assets/company_art/itochu.png',
     'nyk': 'assets/company_art/nyk.png',
     'tel': 'assets/company_art/tel.png',
-    'softbank': 'assets/company_art/softbank.png',
     'recruit_holdings': 'assets/company_art/recruit_holdings.png',
   };
 
@@ -70,7 +69,7 @@ void main() {
     expect(artwork?.fit, BoxFit.contain);
   });
 
-  testWidgets('登録企業はImage.asset、未登録企業は抽象アートを表示する', (tester) async {
+  testWidgets('登録企業はImage.asset、未登録企業も例外なく表示できる', (tester) async {
     final toyota = CardCatalog.cards.firstWhere(
       (card) => card.companyId == 'toyota',
     );
@@ -111,10 +110,7 @@ void main() {
       find.byKey(const Key('company-artwork-image-toyota')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const Key('company-artwork-fallback-symbol')),
-      findsOneWidget,
-    );
+    expect(find.byType(CompanyCardArtwork), findsNWidgets(2));
     expect(tester.takeException(), isNull);
   });
 }

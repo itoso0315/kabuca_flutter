@@ -13,7 +13,7 @@ void main() {
     );
   }
 
-  testWidgets('progressは0〜1に収まり、70%未満で0に戻る', (tester) async {
+  testWidgets('progressは0〜1に収まり、途中で指を離しても進捗を保持する', (tester) async {
     final key = GlobalKey<TearablePackState>();
     await tester.pumpWidget(subject(key, () {}));
     final topLeft = tester.getTopLeft(find.byKey(const Key('tearable-pack')));
@@ -22,21 +22,21 @@ void main() {
     await gesture.moveBy(const Offset(120, 0));
     await tester.pump();
     expect(key.currentState!.progress, inInclusiveRange(0, 1));
-    expect(key.currentState!.progress, lessThan(0.7));
+    expect(key.currentState!.progress, lessThan(0.96));
     await gesture.up();
     await tester.pumpAndSettle();
 
-    expect(key.currentState!.progress, 0);
+    expect(key.currentState!.progress, greaterThan(0));
     expect(key.currentState!.isOpened, isFalse);
   });
 
-  testWidgets('70%以上で1になり、完了後は再ドラッグできない', (tester) async {
+  testWidgets('96%以上で1になり、完了後は再ドラッグできない', (tester) async {
     final key = GlobalKey<TearablePackState>();
     var openCount = 0;
     await tester.pumpWidget(subject(key, () => openCount++));
     final topLeft = tester.getTopLeft(find.byKey(const Key('tearable-pack')));
 
-    await tester.dragFrom(topLeft + const Offset(20, 40), const Offset(230, 0));
+    await tester.dragFrom(topLeft + const Offset(20, 40), const Offset(260, 0));
     await tester.pumpAndSettle();
 
     expect(key.currentState!.progress, 1);
@@ -63,7 +63,7 @@ void main() {
     expect(key.currentState!.progress, greaterThan(0));
     await gesture.up();
     await tester.pumpAndSettle();
-    expect(key.currentState!.progress, 0);
+    expect(key.currentState!.progress, greaterThan(0));
   });
 
   testWidgets('OPEN付近の光が左から右へ流れ、操作開始後に消える', (tester) async {
@@ -92,9 +92,9 @@ void main() {
     final topLeft = tester.getTopLeft(find.byKey(const Key('tearable-pack')));
 
     final gesture = await tester.startGesture(topLeft + const Offset(80, 70));
-    await gesture.moveBy(const Offset(175, 34));
+    await gesture.moveBy(const Offset(205, 34));
     await tester.pump();
-    expect(key.currentState!.progress, greaterThanOrEqualTo(0.7));
+    expect(key.currentState!.progress, greaterThanOrEqualTo(0.96));
     await gesture.up();
     await tester.pumpAndSettle();
     expect(key.currentState!.progress, 1);

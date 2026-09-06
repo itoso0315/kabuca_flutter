@@ -41,11 +41,47 @@ void main() {
     expect(resetRestored.totalOwnedCardCount, 0);
     expect(resetRestored.registeredCardCount, 0);
   });
+
+  test('同じ日は無料スタートパックを2回受け取れない', () async {
+    final storage = _FakeStorage();
+    final state = await GameState.load(storage: storage);
+    final now = DateTime(2026, 9, 6, 10, 0);
+
+    expect(state.starterPackCount, 3);
+
+    final firstClaim = await state.consumeDailyFreeStarterPack(now: now);
+    final secondClaim = await state.consumeDailyFreeStarterPack(
+      now: DateTime(2026, 9, 6, 23, 59),
+    );
+
+    expect(firstClaim, isTrue);
+    expect(secondClaim, isFalse);
+    expect(state.starterPackCount, 3);
+    expect(storage.lastFreeStarterPackDate, '2026-09-06');
+  });
+
+  test('翌日になれば無料スタートパックを再び受け取れる', () async {
+    final storage = _FakeStorage();
+    final state = await GameState.load(storage: storage);
+
+    final firstClaim = await state.consumeDailyFreeStarterPack(
+      now: DateTime(2026, 9, 6, 23, 59),
+    );
+    final nextDayClaim = await state.consumeDailyFreeStarterPack(
+      now: DateTime(2026, 9, 7, 0, 1),
+    );
+
+    expect(firstClaim, isTrue);
+    expect(nextDayClaim, isTrue);
+    expect(state.starterPackCount, 3);
+    expect(storage.lastFreeStarterPackDate, '2026-09-07');
+  });
 }
 
 class _FakeStorage implements GameStorage {
   int? starterPackCount;
   int? premiumPackCount;
+  String? lastFreeStarterPackDate;
   Map<String, int> cardCounts = {};
 
   @override
@@ -58,12 +94,20 @@ class _FakeStorage implements GameStorage {
   Future<Map<String, int>> readCardCounts() async => Map.of(cardCounts);
 
   @override
+  Future<String?> readLastFreeStarterPackDate() async =>
+      lastFreeStarterPackDate;
+
+  @override
   Future<void> writeStarterPackCount(int value) async =>
       starterPackCount = value;
 
   @override
   Future<void> writePremiumPackCount(int value) async =>
       premiumPackCount = value;
+
+  @override
+  Future<void> writeLastFreeStarterPackDate(String? value) async =>
+      lastFreeStarterPackDate = value;
 
   @override
   Future<void> writeCardCounts(Map<String, int> value) async {

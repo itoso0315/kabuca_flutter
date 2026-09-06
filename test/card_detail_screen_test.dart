@@ -10,16 +10,11 @@ import 'package:kabuca_flutter/widgets/card_rarity_style.dart';
 
 void main() {
   testWidgets('取得済みカードだけ詳細を開き、情報と取得状況を表示する', (tester) async {
-    final toyotaN = CardCatalog.cards.firstWhere(
-      (card) => card.companyId == 'toyota' && card.rarity == CardRarity.n,
-    );
-    final toyotaR = CardCatalog.cards.firstWhere(
-      (card) => card.companyId == 'toyota' && card.rarity == CardRarity.r,
-    );
+    final ownedCard = CardCatalog.cards.first;
     final toyotaSr = CardCatalog.cards.firstWhere(
       (card) => card.companyId == 'toyota' && card.rarity == CardRarity.sr,
     );
-    final state = GameState.memory(cardCounts: {toyotaN.id: 2});
+    final state = GameState.memory(cardCounts: {ownedCard.id: 2});
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -31,24 +26,34 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byKey(Key('catalog-card-${toyotaR.id}')));
     await tester.pumpAndSettle();
+
+    final collectionScroll = find.byKey(const Key('collection-scroll'));
+    final toyotaNFinder = find.text(ownedCard.companyName);
+
+    for (var i = 0; i < 80 && toyotaNFinder.evaluate().isEmpty; i++) {
+      await tester.drag(collectionScroll, const Offset(0, -400));
+      await tester.pumpAndSettle();
+    }
+
+    expect(toyotaNFinder, findsOneWidget);
+
     expect(find.byKey(const Key('card-detail-screen')), findsNothing);
 
-    await tester.tap(find.byKey(Key('catalog-card-${toyotaN.id}')));
+    await tester.tap(toyotaNFinder.first);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('card-detail-screen')), findsOneWidget);
-    expect(find.text(toyotaN.companyName), findsWidgets);
-    expect(find.textContaining(toyotaN.ticker), findsWidgets);
-    expect(find.textContaining(toyotaN.industry), findsWidgets);
-    expect(find.text(toyotaN.title), findsWidgets);
-    expect(find.text(toyotaN.description), findsOneWidget);
+    expect(find.text(ownedCard.companyName), findsWidgets);
+    expect(find.textContaining(ownedCard.ticker), findsWidgets);
+    expect(find.textContaining(ownedCard.industry), findsWidgets);
+    expect(find.text(ownedCard.title), findsWidgets);
+    expect(find.text(ownedCard.description), findsOneWidget);
 
     final artwork = tester.widget<Container>(
       find.byKey(const Key('card-artwork-surface')),
     );
     final decoration = artwork.decoration! as BoxDecoration;
-    final rarityStyle = CardRarityStyle.of(toyotaN.rarity);
+    final rarityStyle = CardRarityStyle.of(ownedCard.rarity);
     expect(decoration.border!.top.color, rarityStyle.border);
     final innerContainers = find.descendant(
       of: find.byKey(const Key('card-artwork-surface')),
@@ -57,7 +62,10 @@ void main() {
     final inner = tester.widgetList<Container>(innerContainers).last;
     final innerDecoration = inner.decoration! as BoxDecoration;
     final gradient = innerDecoration.gradient! as LinearGradient;
-    expect(gradient.colors.last, CompanyTheme.forCompany('toyota').baseColor);
+    expect(
+      gradient.colors.last,
+      CompanyTheme.forCompany(ownedCard.companyId).baseColor,
+    );
 
     await tester.drag(
       find.byKey(const Key('card-detail-screen')),
@@ -89,7 +97,7 @@ void main() {
     await tester.tap(find.byKey(const Key('predict-this-company-button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('prediction-screen')), findsOneWidget);
-    expect(find.text(toyotaN.companyName), findsWidgets);
+    expect(find.text(ownedCard.companyName), findsWidgets);
     expect(find.byKey(const Key('owned-insight-n')), findsOneWidget);
 
     await tester.pageBack();

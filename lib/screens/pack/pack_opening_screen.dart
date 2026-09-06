@@ -110,6 +110,12 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
                   child: _SrRevealAtmosphere(animation: _rarityController),
                 ),
               ),
+            if ((_packFinished || _showCard) && currentRarity == CardRarity.ur)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: _UrRevealAtmosphere(animation: _rarityController),
+                ),
+              ),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               child: _showCompletion
@@ -285,6 +291,7 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
     _rarityController.value = 0;
 
     if (rarity == CardRarity.sr) {
+      _rarityController.duration = const Duration(milliseconds: 720);
       _controller.duration = const Duration(milliseconds: 720);
       HapticFeedback.lightImpact();
       await _rarityController.forward(from: 0);
@@ -295,13 +302,37 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
       setState(() => _showCard = true);
       await _controller.forward(from: 0);
     } else if (rarity == CardRarity.ur) {
-      _controller.duration = const Duration(milliseconds: 900);
-      HapticFeedback.heavyImpact();
-      await Future<void>.delayed(const Duration(milliseconds: 800));
+      _controller.duration = const Duration(milliseconds: 1500);
+      _rarityController.duration = const Duration(milliseconds: 1900);
+
+      HapticFeedback.mediumImpact();
+      _rarityController.forward(from: 0);
+
+      await Future<void>.delayed(const Duration(milliseconds: 520));
       if (!mounted) return;
+
       setState(() => _showCard = true);
-      await _controller.forward(from: 0);
+
+      await _controller.animateTo(
+        0.5,
+        duration: const Duration(milliseconds: 720),
+        curve: Curves.easeInOutCubic,
+      );
+
+      if (!mounted) return;
+
+      HapticFeedback.heavyImpact();
+      await Future<void>.delayed(const Duration(milliseconds: 260));
+
+      if (!mounted) return;
+
+      await _controller.animateTo(
+        1,
+        duration: const Duration(milliseconds: 680),
+        curve: Curves.easeOutCubic,
+      );
     } else {
+      _rarityController.duration = const Duration(milliseconds: 720);
       _controller.duration = const Duration(milliseconds: 650);
       setState(() => _showCard = true);
       await _controller.forward(from: 0);
@@ -457,9 +488,9 @@ class _SrRevealAtmosphere extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFFD878).withValues(
-                        alpha: 0.28 * pulse,
-                      ),
+                      color: const Color(
+                        0xFFFFD878,
+                      ).withValues(alpha: 0.28 * pulse),
                       blurRadius: 70,
                       spreadRadius: 18,
                     ),
@@ -472,6 +503,132 @@ class _SrRevealAtmosphere extends StatelessWidget {
       );
     },
   );
+}
+
+class _UrRevealAtmosphere extends StatelessWidget {
+  const _UrRevealAtmosphere({required this.animation});
+
+  final Animation<double> animation;
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: animation,
+    builder: (context, _) {
+      final t = Curves.easeInOut.transform(animation.value);
+      final flash = math.exp(-math.pow((t - 0.72) / 0.065, 2)).clamp(0.0, 1.0);
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(
+            color: Color.lerp(
+              Colors.transparent,
+              const Color(0xDD010403),
+              (0.35 + t * 0.55).clamp(0.0, 0.9),
+            )!,
+          ),
+          Center(
+            child: Opacity(
+              opacity: t,
+              child: Container(
+                width: 390,
+                height: 540,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(54),
+                  gradient: RadialGradient(
+                    center: const Alignment(0, 0.02),
+                    radius: 0.92,
+                    colors: [
+                      const Color(0xFFFFF3C4).withValues(alpha: 0.52 * t),
+                      const Color(0xFFFFC94F).withValues(alpha: 0.28 * t),
+                      const Color(0xFF9B6817).withValues(alpha: 0.12 * t),
+                      Colors.transparent,
+                    ],
+                    stops: const [0.0, 0.34, 0.64, 1.0],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(
+                        0xFFFFD86A,
+                      ).withValues(alpha: 0.34 * t),
+                      blurRadius: 120,
+                      spreadRadius: 36,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: Opacity(
+              opacity: (t * 0.9).clamp(0.0, 1.0),
+              child: CustomPaint(
+                size: const Size(330, 470),
+                painter: _UrParticlePainter(progress: t),
+              ),
+            ),
+          ),
+          if (flash > 0.02)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ColoredBox(
+                  color: const Color(
+                    0xFFFFF7E2,
+                  ).withValues(alpha: 0.34 * flash),
+                ),
+              ),
+            ),
+        ],
+      );
+    },
+  );
+}
+
+class _UrParticlePainter extends CustomPainter {
+  const _UrParticlePainter({required this.progress});
+
+  final double progress;
+
+  static const _particles = <Offset>[
+    Offset(-0.42, -0.38),
+    Offset(0.34, -0.43),
+    Offset(-0.28, -0.12),
+    Offset(0.46, -0.05),
+    Offset(-0.48, 0.18),
+    Offset(0.25, 0.22),
+    Offset(-0.18, 0.42),
+    Offset(0.43, 0.38),
+    Offset(0.06, -0.30),
+    Offset(-0.06, 0.08),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final paint = Paint();
+
+    for (var i = 0; i < _particles.length; i++) {
+      final p = _particles[i];
+      final phase = (progress * 1.25 + i * 0.083) % 1.0;
+      final drift = 16 + phase * 24;
+
+      final position = Offset(
+        center.dx + p.dx * size.width + p.dx * drift,
+        center.dy + p.dy * size.height - phase * 20,
+      );
+
+      final alpha = math.sin(phase * math.pi).clamp(0.0, 1.0);
+
+      paint
+        ..color = const Color(0xFFFFE598).withValues(alpha: 0.68 * alpha)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+
+      canvas.drawCircle(position, 2.2 + phase * 1.7, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _UrParticlePainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
 
 class _CardFlipReveal extends StatelessWidget {
@@ -490,7 +647,9 @@ class _CardFlipReveal extends StatelessWidget {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: Listenable.merge([animation, rarityAnimation]),
     builder: (context, _) {
-      final eased = Curves.easeOutCubic.transform(animation.value);
+      final eased = card.rarity == CardRarity.ur
+          ? Curves.easeInOutCubic.transform(animation.value)
+          : Curves.easeOutCubic.transform(animation.value);
       final angle = math.pi * (1 - eased);
       final showFront = angle <= math.pi / 2;
       final srGlow = card.rarity == CardRarity.sr
@@ -507,9 +666,9 @@ class _CardFlipReveal extends StatelessWidget {
               ? const []
               : [
                   BoxShadow(
-                    color: const Color(0xFFFFE7A3).withValues(
-                      alpha: 0.58 * srGlow,
-                    ),
+                    color: const Color(
+                      0xFFFFE7A3,
+                    ).withValues(alpha: 0.58 * srGlow),
                     blurRadius: 38 * srGlow,
                     spreadRadius: 8 * srGlow,
                   ),

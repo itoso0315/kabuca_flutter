@@ -15,13 +15,13 @@ void main() {
     );
     await tester.dragFrom(
       packTopLeft + const Offset(24, 42),
-      const Offset(230, 0),
+      const Offset(280, 0),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 220));
     expect(
       tester.state<TearablePackState>(find.byType(TearablePack)).progress,
-      1,
+      greaterThanOrEqualTo(0.96),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
@@ -44,7 +44,7 @@ void main() {
       ),
     );
 
-    expect(find.text('KABUCA'), findsNWidgets(2));
+    expect(find.byKey(const Key('home-brand-logo')), findsOneWidget);
     expect(find.text('企業を集めて、未来を予想しよう。'), findsOneWidget);
     expect(find.text('KABUCA PACK'), findsNothing);
     expect(find.text('スタートパック'), findsOneWidget);

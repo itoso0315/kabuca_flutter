@@ -118,6 +118,12 @@ class HomeScreen extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 28),
+                if (gameState.hasFreeStarterPackToday) ...[
+                  _DailyFreePackBanner(
+                    onOpen: () => _openDailyFreeStarterPack(context),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 _PackCarousel(
                   starterPackCount: gameState.starterPackCount,
                   premiumPackCount: gameState.premiumPackCount,
@@ -188,6 +194,16 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _openDailyFreeStarterPack(BuildContext context) async {
+    await _openPack(
+      context,
+      PackType.starter,
+      onPackOpened: () {
+        gameState.consumeDailyFreeStarterPack();
+      },
     );
   }
 
@@ -314,11 +330,15 @@ class HomeScreen extends StatelessWidget {
         ),
       );
 
-  Future<void> _openPack(BuildContext context, PackType type) async {
+  Future<void> _openPack(
+    BuildContext context,
+    PackType type, {
+    VoidCallback? onPackOpened,
+  }) async {
     final result = await Navigator.of(context).push<PackOpeningResult>(
       PackOpeningRoute(
         cards: (cardPackService ?? CardPackService()).openPack(type: type),
-        onPackOpened: () => _consumePack(type),
+        onPackOpened: onPackOpened ?? () => _consumePack(type),
         gameState: gameState,
         packType: type,
       ),
@@ -333,6 +353,63 @@ class HomeScreen extends StatelessWidget {
   void _consumePack(PackType type) {
     gameState.consumePack(type);
   }
+}
+
+class _DailyFreePackBanner extends StatelessWidget {
+  const _DailyFreePackBanner({required this.onOpen});
+
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const Key('daily-free-starter-pack-banner'),
+    padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF4E9C8),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFFD6B870)),
+    ),
+    child: Row(
+      children: [
+        const Icon(
+          Icons.redeem_rounded,
+          color: Color(0xFFA67D2D),
+          size: 24,
+        ),
+        const SizedBox(width: 10),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '本日の無料パック',
+                style: TextStyle(
+                  color: Color(0xFF3F351C),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                'スタートパックを1回無料で開封できます',
+                style: TextStyle(
+                  color: Color(0xFF786A43),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(
+          key: Key('open-daily-free-starter-pack-button'),
+          onPressed: onOpen,
+          child: Text('無料で開く'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _PackCarousel extends StatefulWidget {

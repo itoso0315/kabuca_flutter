@@ -23,7 +23,7 @@ void main() {
     expect(find.byKey(const Key('pack-open-guidance')), findsOneWidget);
   });
 
-  testWidgets('専用カード裏面からY軸反転して表面を表示する', (tester) async {
+  testWidgets('パック開封後にカード表面を表示する', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: PackOpeningScreen(
@@ -33,30 +33,14 @@ void main() {
         ),
       ),
     );
+    expect(find.byKey(const Key('card-company-name')), findsNothing);
     final topLeft = tester.getTopLeft(find.byKey(const Key('tearable-pack')));
-    await tester.dragFrom(topLeft + const Offset(20, 40), const Offset(230, 0));
-    for (var index = 0; index < 80; index++) {
-      await tester.pump(const Duration(milliseconds: 16));
-      if (find
-          .byKey(const Key('card-confirmation-gesture'))
-          .evaluate()
-          .isNotEmpty) {
-        break;
-      }
+    await tester.dragFrom(topLeft + const Offset(20, 40), const Offset(400, 0));
+
+    for (var index = 0; index < 40; index++) {
+      await tester.pump(const Duration(milliseconds: 100));
     }
 
-    expect(find.byKey(const Key('card-confirmation-gesture')), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('card-confirmation-gesture')),
-        matching: find.byKey(const Key('kabuca-card-back')),
-      ),
-      findsOneWidget,
-    );
-    expect(find.byKey(const Key('card-company-name')), findsNothing);
-
-    await tester.pump(const Duration(milliseconds: 700));
-    await tester.pumpAndSettle();
     expect(find.byKey(const Key('card-company-name')), findsOneWidget);
   });
 

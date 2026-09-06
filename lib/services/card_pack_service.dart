@@ -22,7 +22,10 @@ class CardPackService {
 
     final selected = <CompanyCard>[];
     while (selected.length < cardCount) {
-      final rarity = rarityForRoll(_random.nextDouble(), type: type);
+      final slotIndex = selected.length;
+      final rarity = slotIndex == cardCount - 1
+          ? finalSlotRarityForRoll(_random.nextDouble(), type: type)
+          : normalSlotRarityForRoll(_random.nextDouble());
       final candidates = _catalog
           .where(
             (card) =>
@@ -38,7 +41,16 @@ class CardPackService {
     return List.unmodifiable(selected);
   }
 
-  static CardRarity rarityForRoll(
+  static CardRarity normalSlotRarityForRoll(double roll) {
+    if (roll < 0 || roll >= 1) {
+      throw RangeError.range(roll, 0, 1, 'roll', '0以上1未満');
+    }
+
+    if (roll < 0.76) return CardRarity.n;
+    return CardRarity.r;
+  }
+
+  static CardRarity finalSlotRarityForRoll(
     double roll, {
     PackType type = PackType.starter,
   }) {
@@ -48,19 +60,22 @@ class CardPackService {
 
     switch (type) {
       case PackType.starter:
-        if (roll < 0.70) return CardRarity.n;
-        if (roll < 0.92) return CardRarity.r;
-        if (roll < 0.99) return CardRarity.sr;
+        if (roll < 0.59) return CardRarity.n;
+        if (roll < 0.78) return CardRarity.r;
+        if (roll < 0.97) return CardRarity.sr;
         return CardRarity.ur;
 
       case PackType.premium:
-        // スタートパックのSR/URウェイトだけを3倍にする。
-        // N:R:SR:UR = 70:22:21:3（合計116）を正規化して抽選する。
-        final weightedRoll = roll * 116;
-        if (weightedRoll < 70) return CardRarity.n;
-        if (weightedRoll < 92) return CardRarity.r;
-        if (weightedRoll < 113) return CardRarity.sr;
+        if (roll < 0.38) return CardRarity.n;
+        if (roll < 0.50) return CardRarity.r;
+        if (roll < 0.92) return CardRarity.sr;
         return CardRarity.ur;
     }
   }
+
+  @Deprecated('Use finalSlotRarityForRoll for the third card slot.')
+  static CardRarity rarityForRoll(
+    double roll, {
+    PackType type = PackType.starter,
+  }) => finalSlotRarityForRoll(roll, type: type);
 }
