@@ -79,19 +79,13 @@ class DailyPackCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                label: Text(
-                  hasFreePack ? 'パックを開ける' : '$kabuCost KABUで開ける',
-                ),
+                label: Text(hasFreePack ? 'パックを開ける' : '$kabuCost KABUで開ける'),
               ),
             ),
             if (!hasFreePack) ...[
               const SizedBox(height: 12),
               Text(
-                kabuShortage > 0
-                    ? 'あと$kabuShortage KABUで開けられます'
-                    : isPremium
-                    ? 'SR・URの出現率アップ ・ 3枚入り'
-                    : '$kabuCost KABUを使って3枚のカードを獲得',
+                kabuShortage > 0 ? 'あと$kabuShortage KABUで開けられます' : '3枚入り',
                 key: const Key('pack-kabu-guidance'),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,
@@ -115,9 +109,7 @@ class _CardStackVisual extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       image: true,
-      label: isPremium
-          ? 'KABUCAプレミアムパックのカード3枚'
-          : 'KABUCAスタートパックのカード3枚',
+      label: isPremium ? 'KABUCAプレミアムパックのカード3枚' : 'KABUCAスタートパックのカード3枚',
       child: SizedBox(
         width: 230,
         height: 210,
@@ -280,9 +272,7 @@ class _MiniCardBack extends StatelessWidget {
                   Text(
                     'KABUCA',
                     style: TextStyle(
-                      color: isPremium
-                          ? Color(0xFFFFEBC2)
-                          : Color(0xFFFFE2A0),
+                      color: isPremium ? Color(0xFFFFEBC2) : Color(0xFFFFE2A0),
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 2.8,

@@ -25,14 +25,21 @@ class CollectionScreen extends StatefulWidget {
 
 class _CollectionScreenState extends State<CollectionScreen> {
   CardRarity? _filter;
+  String _query = '';
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.gameState,
     builder: (context, _) {
-      final cards = CardCatalog.cards
-          .where((card) => _filter == null || card.rarity == _filter)
-          .toList();
+      final normalizedQuery = _query.trim().toLowerCase();
+      final cards = CardCatalog.cards.where((card) {
+        final matchesRarity = _filter == null || card.rarity == _filter;
+        final matchesQuery =
+            normalizedQuery.isEmpty ||
+            card.companyName.toLowerCase().contains(normalizedQuery) ||
+            card.ticker.toLowerCase().contains(normalizedQuery);
+        return matchesRarity && matchesQuery;
+      }).toList();
       final registered = widget.gameState.registeredCardCount;
       final completion = registered * 100 ~/ CardCatalog.cards.length;
       return CustomScrollView(
@@ -50,6 +57,26 @@ class _CollectionScreenState extends State<CollectionScreen> {
                     '$registered / ${CardCatalog.cards.length}  ・  コンプリート率 $completion%',
                     key: const Key('collection-progress'),
                     style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    key: const Key('collection-search-field'),
+                    onChanged: (value) => setState(() => _query = value),
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: '企業名・銘柄コードで検索',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      filled: true,
+                      fillColor: const Color(0xFFF7F1E2),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
                   ),
                   if (registered == 0) ...[
                     const SizedBox(height: 18),

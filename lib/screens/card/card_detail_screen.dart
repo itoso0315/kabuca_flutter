@@ -129,6 +129,10 @@ class CardDetailScreen extends StatelessWidget {
                     child: _RarityStatus(
                       card: related,
                       owned: _ownedCount(related.id) > 0,
+                      onTap:
+                          _ownedCount(related.id) > 0 && related.id != card.id
+                          ? () => _openRarity(context, related)
+                          : null,
                     ),
                   ),
               ],
@@ -148,6 +152,19 @@ class CardDetailScreen extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  void _openRarity(BuildContext context, CompanyCard related) {
+    Navigator.of(context).pushReplacement<void, void>(
+      MaterialPageRoute(
+        builder: (_) => CardDetailScreen(
+          card: related,
+          gameState: gameState,
+          predictionStore: predictionStore,
+          pendingCards: pendingCards,
         ),
       ),
     );
@@ -223,48 +240,52 @@ class _InformationPanel extends StatelessWidget {
 }
 
 class _RarityStatus extends StatelessWidget {
-  const _RarityStatus({required this.card, required this.owned});
+  const _RarityStatus({required this.card, required this.owned, this.onTap});
   final CompanyCard card;
   final bool owned;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final style = CardRarityStyle.of(card.rarity);
-    return Container(
-      key: Key('company-rarity-status-${card.rarity.name}'),
-      margin: const EdgeInsets.only(right: 7),
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 12),
-      decoration: BoxDecoration(
-        color: owned ? style.background : const Color(0xFFE5E6E3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: owned ? style.border : AppColors.outline),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            owned
-                ? Icons.check_circle_outline_rounded
-                : Icons.lock_outline_rounded,
-            color: owned ? style.accent : Colors.grey,
-            size: 18,
-          ),
-          const SizedBox(height: 5),
-          Text(
-            card.rarity.label,
-            style: TextStyle(
-              color: owned ? Colors.white : AppColors.textSecondary,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            owned ? '取得済み' : '？？？',
-            style: TextStyle(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        key: Key('company-rarity-status-${card.rarity.name}'),
+        margin: const EdgeInsets.only(right: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 12),
+        decoration: BoxDecoration(
+          color: owned ? style.background : const Color(0xFFE5E6E3),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: owned ? style.border : AppColors.outline),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              owned
+                  ? Icons.check_circle_outline_rounded
+                  : Icons.lock_outline_rounded,
               color: owned ? style.accent : Colors.grey,
-              fontSize: 9,
+              size: 18,
             ),
-          ),
-        ],
+            const SizedBox(height: 5),
+            Text(
+              card.rarity.label,
+              style: TextStyle(
+                color: owned ? Colors.white : AppColors.textSecondary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              owned ? '取得済み' : '？？？',
+              style: TextStyle(
+                color: owned ? style.accent : Colors.grey,
+                fontSize: 9,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

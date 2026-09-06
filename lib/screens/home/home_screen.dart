@@ -50,146 +50,149 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        gameState,
-        predictionStore,
-        notificationStore,
-        ?pointWallet,
-      ]),
-      builder: (context, _) => SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Semantics(
-                        header: true,
-                        child: const Text(
-                          'KABUCA',
-                          key: Key('home-brand-logo'),
-                          style: TextStyle(
-                            color: Color(0xFF123D33),
-                            fontSize: 31,
-                            height: 1,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 6.2,
+    return _LifecycleRefresh(
+      builder: (context) => ListenableBuilder(
+        listenable: Listenable.merge([
+          gameState,
+          predictionStore,
+          notificationStore,
+          ?pointWallet,
+        ]),
+        builder: (context, _) => SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Semantics(
+                          header: true,
+                          child: const Text(
+                            'KABUCA',
+                            key: Key('home-brand-logo'),
+                            style: TextStyle(
+                              color: Color(0xFF123D33),
+                              fontSize: 31,
+                              height: 1,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 6.2,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    _PointBalanceButton(
-                      points: pointWallet?.currentPoints ?? 0,
-                      onPressed: pointWallet == null || exchangeService == null
-                          ? null
-                          : () => _openExchange(context),
-                    ),
-                    _NotificationBell(
-                      unreadCount: notificationStore.unreadCount,
-                      onPressed: () => Navigator.of(context).push<void>(
-                        MaterialPageRoute(
-                          builder: (_) => NotificationScreen(
-                            store: notificationStore,
-                            predictionStore: predictionStore,
-                            pointWallet: pointWallet,
-                            rewardService: rewardService,
-                            onPredictAgain: () => _openPrediction(context),
-                            onOpenExchange:
-                                pointWallet == null || exchangeService == null
-                                ? null
-                                : () => _openExchange(context),
+                      _PointBalanceButton(
+                        points: pointWallet?.currentPoints ?? 0,
+                        onPressed:
+                            pointWallet == null || exchangeService == null
+                            ? null
+                            : () => _openExchange(context),
+                      ),
+                      _NotificationBell(
+                        unreadCount: notificationStore.unreadCount,
+                        onPressed: () => Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) => NotificationScreen(
+                              store: notificationStore,
+                              predictionStore: predictionStore,
+                              pointWallet: pointWallet,
+                              rewardService: rewardService,
+                              onPredictAgain: () => _openPrediction(context),
+                              onOpenExchange:
+                                  pointWallet == null || exchangeService == null
+                                  ? null
+                                  : () => _openExchange(context),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  gameState.totalOwnedCardCount == 0
-                      ? '企業を集めて、未来を予想しよう。'
-                      : '集めよう、日本の企業。',
-                  key: const Key('home-guidance-copy'),
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 28),
-                if (gameState.hasFreeStarterPackToday) ...[
-                  _DailyFreePackBanner(
-                    onOpen: () => _openDailyFreeStarterPack(context),
+                    ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 4),
+                  Text(
+                    gameState.totalOwnedCardCount == 0
+                        ? '企業を集めて、未来を予想しよう。'
+                        : '集めよう、日本の企業。',
+                    key: const Key('home-guidance-copy'),
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 28),
+                  if (gameState.hasFreeStarterPackToday) ...[
+                    _DailyFreePackBanner(
+                      onOpen: () => _openDailyFreeStarterPack(context),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  _PackCarousel(
+                    starterPackCount: gameState.starterPackCount,
+                    premiumPackCount: gameState.premiumPackCount,
+                    kabuBalance: pointWallet?.currentPoints ?? 0,
+                    canExchange: pointWallet != null && exchangeService != null,
+                    onOpenStarter: () => _openPack(context, PackType.starter),
+                    onOpenPremium: () => _openPack(context, PackType.premium),
+                    onBuyStarter: () =>
+                        _openPackWithKabu(context, PackType.starter),
+                    onBuyPremium: () =>
+                        _openPackWithKabu(context, PackType.premium),
+                  ),
+                  const SizedBox(height: 18),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            '株価予想',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 5),
+                          const Text(
+                            '持っている企業から未来を予想しよう',
+                            style: TextStyle(color: Color(0xFF66736C)),
+                          ),
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            key: const Key('start-prediction-button'),
+                            onPressed: () => _openPrediction(context),
+                            icon: const Icon(Icons.insights_rounded),
+                            label: const Text('予想する'),
+                          ),
+                          TextButton(
+                            key: const Key('waiting-predictions-button'),
+                            onPressed: () => _openPredictionList(context),
+                            child: Text(
+                              '予想中を見る（${predictionStore.waitingPredictions.length}）',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: HomeStatCard(
+                          label: '所持カード',
+                          value: '${gameState.totalOwnedCardCount}枚',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: HomeStatCard(
+                          label: '図鑑コンプリート率',
+                          value:
+                              '${gameState.registeredCardCount * 100 ~/ CardCatalog.cards.length}%',
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
-                _PackCarousel(
-                  starterPackCount: gameState.starterPackCount,
-                  premiumPackCount: gameState.premiumPackCount,
-                  kabuBalance: pointWallet?.currentPoints ?? 0,
-                  canExchange: pointWallet != null && exchangeService != null,
-                  onOpenStarter: () => _openPack(context, PackType.starter),
-                  onOpenPremium: () => _openPack(context, PackType.premium),
-                  onBuyStarter: () =>
-                      _openPackWithKabu(context, PackType.starter),
-                  onBuyPremium: () =>
-                      _openPackWithKabu(context, PackType.premium),
-                ),
-                const SizedBox(height: 18),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          '株価予想',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 5),
-                        const Text(
-                          '持っている企業から未来を予想しよう',
-                          style: TextStyle(color: Color(0xFF66736C)),
-                        ),
-                        const SizedBox(height: 16),
-                        FilledButton.icon(
-                          key: const Key('start-prediction-button'),
-                          onPressed: () => _openPrediction(context),
-                          icon: const Icon(Icons.insights_rounded),
-                          label: const Text('予想する'),
-                        ),
-                        TextButton(
-                          key: const Key('waiting-predictions-button'),
-                          onPressed: () => _openPredictionList(context),
-                          child: Text(
-                            '予想中を見る（${predictionStore.waitingPredictions.length}）',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: HomeStatCard(
-                        label: '所持カード',
-                        value: '${gameState.totalOwnedCardCount}枚',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: HomeStatCard(
-                        label: '図鑑コンプリート率',
-                        value:
-                            '${gameState.registeredCardCount * 100 ~/ CardCatalog.cards.length}%',
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -207,10 +210,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _openPackWithKabu(
-    BuildContext context,
-    PackType type,
-  ) async {
+  Future<void> _openPackWithKabu(BuildContext context, PackType type) async {
     final wallet = pointWallet;
     final service = exchangeService;
     if (wallet == null || service == null) return;
@@ -355,6 +355,40 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+class _LifecycleRefresh extends StatefulWidget {
+  const _LifecycleRefresh({required this.builder});
+
+  final WidgetBuilder builder;
+
+  @override
+  State<_LifecycleRefresh> createState() => _LifecycleRefreshState();
+}
+
+class _LifecycleRefreshState extends State<_LifecycleRefresh>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context);
+}
+
 class _DailyFreePackBanner extends StatelessWidget {
   const _DailyFreePackBanner({required this.onOpen});
 
@@ -371,11 +405,7 @@ class _DailyFreePackBanner extends StatelessWidget {
     ),
     child: Row(
       children: [
-        const Icon(
-          Icons.redeem_rounded,
-          color: Color(0xFFA67D2D),
-          size: 24,
-        ),
+        const Icon(Icons.redeem_rounded, color: Color(0xFFA67D2D), size: 24),
         const SizedBox(width: 10),
         const Expanded(
           child: Column(

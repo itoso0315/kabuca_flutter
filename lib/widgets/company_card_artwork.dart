@@ -91,8 +91,12 @@ class CompanyCardArtwork extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (card.rarity.index >= CardRarity.sr.index)
-                  Positioned.fill(child: _CardSheen(rarity: card.rarity)),
+                if (card.rarity == CardRarity.r)
+                  const Positioned.fill(child: _RareGlitter()),
+                if (card.rarity == CardRarity.sr)
+                  const Positioned.fill(child: _SuperRareSparkle()),
+                if (card.rarity == CardRarity.ur)
+                  const Positioned.fill(child: _UltraGloss()),
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     compact ? 9 : 15,
@@ -340,23 +344,116 @@ class _FallbackSymbol extends StatelessWidget {
   );
 }
 
-class _CardSheen extends StatelessWidget {
-  const _CardSheen({required this.rarity});
-  final CardRarity rarity;
+class _RareGlitter extends StatelessWidget {
+  const _RareGlitter();
+
+  @override
+  Widget build(BuildContext context) =>
+      IgnorePointer(child: CustomPaint(painter: _RareGlitterPainter()));
+}
+
+class _RareGlitterPainter extends CustomPainter {
+  const _RareGlitterPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(17);
+    for (var i = 0; i < 95; i++) {
+      final point = Offset(
+        random.nextDouble() * size.width,
+        random.nextDouble() * size.height,
+      );
+      final radius = .45 + random.nextDouble() * 1.15;
+      final alpha = .12 + random.nextDouble() * .24;
+      canvas.drawCircle(
+        point,
+        radius,
+        Paint()..color = Colors.white.withValues(alpha: alpha),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _SuperRareSparkle extends StatelessWidget {
+  const _SuperRareSparkle();
+
+  @override
+  Widget build(BuildContext context) =>
+      IgnorePointer(child: CustomPaint(painter: _SuperRareSparklePainter()));
+}
+
+class _SuperRareSparklePainter extends CustomPainter {
+  const _SuperRareSparklePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: .48)
+      ..strokeWidth = 1.1
+      ..strokeCap = StrokeCap.round;
+    const positions = [
+      Offset(.18, .18),
+      Offset(.74, .16),
+      Offset(.56, .34),
+      Offset(.84, .52),
+      Offset(.28, .62),
+      Offset(.68, .78),
+      Offset(.16, .86),
+    ];
+    for (var i = 0; i < positions.length; i++) {
+      final center = Offset(
+        positions[i].dx * size.width,
+        positions[i].dy * size.height,
+      );
+      final length = i.isEven ? 8.0 : 5.5;
+      canvas.drawLine(
+        center.translate(-length, 0),
+        center.translate(length, 0),
+        paint,
+      );
+      canvas.drawLine(
+        center.translate(0, -length),
+        center.translate(0, length),
+        paint,
+      );
+      canvas.drawCircle(center, 1.6, Paint()..color = Colors.white);
+    }
+
+    final sheen = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment(-1.2, -1),
+        end: Alignment(1.1, 1),
+        colors: [Colors.transparent, Color(0x24FFFFFF), Colors.transparent],
+        stops: [.28, .5, .72],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, sheen);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _UltraGloss extends StatelessWidget {
+  const _UltraGloss();
 
   @override
   Widget build(BuildContext context) => IgnorePointer(
     child: DecoratedBox(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: const Alignment(-1.2, -1),
-          end: const Alignment(1.1, 1),
+          begin: Alignment(-1.1, -1),
+          end: Alignment(1.05, 1),
           colors: [
-            Colors.transparent,
-            Colors.white.withValues(alpha: rarity == CardRarity.ur ? .13 : .07),
-            Colors.transparent,
+            Color(0x00FFFFFF),
+            Color(0x20FFF4C2),
+            Color(0x14BDEBFF),
+            Color(0x2BFFFFFF),
+            Color(0x00FFFFFF),
           ],
-          stops: const [.32, .5, .68],
+          stops: [0, .28, .46, .58, 1],
         ),
       ),
     ),

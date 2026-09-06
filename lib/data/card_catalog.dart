@@ -176,13 +176,16 @@ const _enabledCompanyIds = <String>[
 const _companies = <_CompanyCardContent>[
   _CompanyCardContent(
     companyId: 'toyota',
-    overview: '世界各地で自動車を開発・生産・販売する総合モビリティ企業。',
-    businessTitle: '移動を支える量産力',
-    business: '乗用車を中心に、金融や部品など幅広い事業で収益を生み出す。',
-    strengthTitle: '世界を走る生産力',
-    strength: '改善を積み重ねる生産方式と、世界規模の販売網が強み。',
-    storyTitle: '織機からモビリティへ',
-    story: '織機の技術を源流に自動車へ進出し、世界企業へ成長した。',
+    overview: 'トヨタ自動車は、世界各地で乗用車や商用車を開発・生産・販売する、日本を代表する自動車メーカー。',
+    businessTitle: 'クルマだけではない収益源',
+    business:
+        '主力は自動車販売だが、販売金融や部品・サービスも大きな収益源。世界中で車を売るだけでなく、購入から保有までを支える仕組みでも稼ぐ。',
+    strengthTitle: '「改善」を積み重ねる強さ',
+    strength:
+        '必要なものを必要な時に生産する考え方や、現場で小さな改善を積み重ねる文化が競争力の核。巨大企業でありながら、ムダを減らし続ける仕組みを磨いてきた。',
+    storyTitle: '織機メーカーから世界最大級の自動車企業へ',
+    story:
+        'トヨタの源流は自動車ではなく織機。豊田佐吉の自動織機事業から生まれた資金と技術をもとに、自動車産業へ挑戦した。そこから独自の生産方式を築き、世界規模のメーカーへ成長。異業種の技術から始まった挑戦が、現在のトヨタにつながっている。',
   ),
   _CompanyCardContent(
     companyId: 'nintendo',
