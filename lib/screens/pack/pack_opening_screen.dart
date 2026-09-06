@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../app/app_theme.dart';
 import '../../models/company_card.dart';
+import '../../models/pack_type.dart';
 import '../../screens/card/card_detail_screen.dart';
 import '../../state/game_state.dart';
 import '../../widgets/tearable_pack.dart';
@@ -25,11 +26,13 @@ class PackOpeningRoute extends MaterialPageRoute<PackOpeningResult> {
     required List<CompanyCard> cards,
     required VoidCallback onPackOpened,
     required GameState gameState,
+    PackType packType = PackType.starter,
   }) : super(
          builder: (_) => PackOpeningScreen(
            cards: cards,
            onPackOpened: onPackOpened,
            gameState: gameState,
+           packType: packType,
          ),
        );
 
@@ -43,19 +46,22 @@ class PackOpeningScreen extends StatefulWidget {
     required this.cards,
     required this.onPackOpened,
     required this.gameState,
+    this.packType = PackType.starter,
   });
 
   final List<CompanyCard> cards;
   final VoidCallback onPackOpened;
   final GameState gameState;
+  final PackType packType;
 
   @override
   State<PackOpeningScreen> createState() => _PackOpeningScreenState();
 }
 
 class _PackOpeningScreenState extends State<PackOpeningScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _controller;
+  late final AnimationController _rarityController;
   bool _showCard = false;
   bool _packFinished = false;
   bool _packConsumed = false;
@@ -71,10 +77,15 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
       vsync: this,
       duration: const Duration(milliseconds: 650),
     );
+    _rarityController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 720),
+    );
   }
 
   @override
   void dispose() {
+    _rarityController.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -85,6 +96,7 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
       parent: _controller,
       curve: Curves.easeOutBack,
     );
+    final currentRarity = widget.cards[_cardIndex].rarity;
 
     return Scaffold(
       backgroundColor: AppColors.deepGreen,
@@ -92,6 +104,12 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
         child: Stack(
           children: [
             const Positioned.fill(child: _GlowBackground()),
+            if ((_packFinished || _showCard) && currentRarity == CardRarity.sr)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: _SrRevealAtmosphere(animation: _rarityController),
+                ),
+              ),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               child: _showCompletion
@@ -149,6 +167,7 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
                               child: _CardFlipReveal(
                                 key: ValueKey(widget.cards[_cardIndex].id),
                                 animation: _controller,
+                                rarityAnimation: _rarityController,
                                 card: widget.cards[_cardIndex],
                               ),
                             ),
@@ -183,7 +202,12 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
                         padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: [TearablePack(onOpened: _handleOpened)],
+                          children: [
+                            TearablePack(
+                              onOpened: _handleOpened,
+                              packType: widget.packType,
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -256,17 +280,33 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
   Future<void> _revealCurrentCard() async {
     _inputEnabled = false;
     final rarity = widget.cards[_cardIndex].rarity;
-    final delay = switch (rarity) {
-      CardRarity.sr => const Duration(milliseconds: 450),
-      CardRarity.ur => const Duration(milliseconds: 800),
-      _ => Duration.zero,
-    };
-    if (rarity == CardRarity.sr) HapticFeedback.lightImpact();
-    if (rarity == CardRarity.ur) HapticFeedback.heavyImpact();
-    if (delay != Duration.zero) await Future<void>.delayed(delay);
-    if (!mounted) return;
-    setState(() => _showCard = true);
-    await _controller.forward(from: 0);
+
+    _rarityController.stop();
+    _rarityController.value = 0;
+
+    if (rarity == CardRarity.sr) {
+      _controller.duration = const Duration(milliseconds: 720);
+      HapticFeedback.lightImpact();
+      await _rarityController.forward(from: 0);
+      if (!mounted) return;
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      setState(() => _showCard = true);
+      await _controller.forward(from: 0);
+    } else if (rarity == CardRarity.ur) {
+      _controller.duration = const Duration(milliseconds: 900);
+      HapticFeedback.heavyImpact();
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+      setState(() => _showCard = true);
+      await _controller.forward(from: 0);
+    } else {
+      _controller.duration = const Duration(milliseconds: 650);
+      setState(() => _showCard = true);
+      await _controller.forward(from: 0);
+    }
+
     if (!mounted) return;
     _inputEnabled = true;
     _transitioning = false;
@@ -378,35 +418,112 @@ class _PreludeLine extends StatelessWidget {
   );
 }
 
-class _CardFlipReveal extends StatelessWidget {
-  const _CardFlipReveal({
-    super.key,
-    required this.animation,
-    required this.card,
-  });
+class _SrRevealAtmosphere extends StatelessWidget {
+  const _SrRevealAtmosphere({required this.animation});
 
   final Animation<double> animation;
-  final CompanyCard card;
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: animation,
     builder: (context, _) {
+      final t = Curves.easeInOut.transform(animation.value);
+      final pulse = math.sin(t * math.pi).clamp(0.0, 1.0);
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(
+            color: Color.lerp(
+              Colors.transparent,
+              const Color(0x99000604),
+              (t * 0.88).clamp(0.0, 1.0),
+            )!,
+          ),
+          Center(
+            child: Opacity(
+              opacity: pulse,
+              child: Container(
+                width: 360,
+                height: 500,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(42),
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFFFFF1BF).withValues(alpha: 0.28 * pulse),
+                      const Color(0xFFDDBA62).withValues(alpha: 0.12 * pulse),
+                      Colors.transparent,
+                    ],
+                    stops: const [0, 0.42, 1],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFFD878).withValues(
+                        alpha: 0.28 * pulse,
+                      ),
+                      blurRadius: 70,
+                      spreadRadius: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+class _CardFlipReveal extends StatelessWidget {
+  const _CardFlipReveal({
+    super.key,
+    required this.animation,
+    required this.rarityAnimation,
+    required this.card,
+  });
+
+  final Animation<double> animation;
+  final Animation<double> rarityAnimation;
+  final CompanyCard card;
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: Listenable.merge([animation, rarityAnimation]),
+    builder: (context, _) {
       final eased = Curves.easeOutCubic.transform(animation.value);
       final angle = math.pi * (1 - eased);
       final showFront = angle <= math.pi / 2;
+      final srGlow = card.rarity == CardRarity.sr
+          ? math.sin(rarityAnimation.value * math.pi).clamp(0.0, 1.0)
+          : 0.0;
       final transform = Matrix4.identity()
         ..setEntry(3, 2, .0014)
         ..translateByDouble(0, 28 * (1 - eased), 0, 1)
         ..rotateY(showFront ? angle : angle + math.pi);
-      return Opacity(
-        opacity: (.2 + eased * .8).clamp(0, 1),
-        child: Transform(
-          alignment: Alignment.center,
-          transform: transform,
-          child: showFront
-              ? CompanyCardArtwork(card: card, width: 250, height: 350)
-              : const KabucaCardBack(),
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: srGlow <= 0
+              ? const []
+              : [
+                  BoxShadow(
+                    color: const Color(0xFFFFE7A3).withValues(
+                      alpha: 0.58 * srGlow,
+                    ),
+                    blurRadius: 38 * srGlow,
+                    spreadRadius: 8 * srGlow,
+                  ),
+                ],
+        ),
+        child: Opacity(
+          opacity: (.2 + eased * .8).clamp(0, 1),
+          child: Transform(
+            alignment: Alignment.center,
+            transform: transform,
+            child: showFront
+                ? CompanyCardArtwork(card: card, width: 250, height: 350)
+                : const KabucaCardBack(),
+          ),
         ),
       );
     },

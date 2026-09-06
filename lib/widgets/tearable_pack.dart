@@ -5,10 +5,17 @@ import 'package:flutter/services.dart';
 
 import 'kabuca_card_back.dart';
 
+import '../models/pack_type.dart';
+
 class TearablePack extends StatefulWidget {
-  const TearablePack({super.key, required this.onOpened});
+  const TearablePack({
+    super.key,
+    required this.onOpened,
+    this.packType = PackType.starter,
+  });
 
   final VoidCallback onOpened;
+  final PackType packType;
 
   @override
   TearablePackState createState() => TearablePackState();
@@ -16,7 +23,7 @@ class TearablePack extends StatefulWidget {
 
 class TearablePackState extends State<TearablePack>
     with TickerProviderStateMixin {
-  static const _completionThreshold = 0.7;
+  static const _completionThreshold = 0.96;
 
   late final AnimationController _progress;
   late final AnimationController _completionLift;
@@ -24,6 +31,7 @@ class TearablePackState extends State<TearablePack>
   Offset _dragStartPosition = Offset.zero;
   double _activeTearDistance = 248;
   double _progressAtDragStart = 0;
+  double _maxProgress = 0;
   bool _trackingGesture = false;
   bool _gestureActivated = false;
   bool _eligibleStart = false;
@@ -41,7 +49,7 @@ class TearablePackState extends State<TearablePack>
     _progress = AnimationController(vsync: this, value: 0);
     _completionLift = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 180),
+      duration: const Duration(milliseconds: 520),
     );
     _guidance = AnimationController(
       vsync: this,
@@ -74,6 +82,7 @@ class TearablePackState extends State<TearablePack>
     _progress.stop();
     _activeTearDistance = math.max(140, 280 - _dragStartPosition.dx);
     _progressAtDragStart = _progress.value;
+    _maxProgress = _progress.value;
     _gestureActivated = false;
   }
 
@@ -89,7 +98,8 @@ class TearablePackState extends State<TearablePack>
       0.0,
       1.0,
     );
-    _progress.value = next;
+    _maxProgress = math.max(_maxProgress, next);
+    _progress.value = _maxProgress;
   }
 
   Future<void> _onPanEnd(DragEndDetails details) async {
@@ -98,11 +108,6 @@ class TearablePackState extends State<TearablePack>
     _eligibleStart = false;
     if (!_gestureActivated) return;
     if (_progress.value < _completionThreshold) {
-      await _progress.animateBack(
-        0,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      );
       return;
     }
 
@@ -123,11 +128,6 @@ class TearablePackState extends State<TearablePack>
     if (!_trackingGesture || _opened) return;
     _trackingGesture = false;
     _eligibleStart = false;
-    _progress.animateBack(
-      0,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-    );
   }
 
   @override
@@ -152,6 +152,7 @@ class TearablePackState extends State<TearablePack>
             ),
             guidanceProgress: _guidance.value,
             showGuidance: _guidanceVisible,
+            packType: widget.packType,
           ),
         ),
       ),
@@ -165,12 +166,14 @@ class _PackLayers extends StatelessWidget {
     required this.completionLift,
     required this.guidanceProgress,
     required this.showGuidance,
+    required this.packType,
   });
 
   final double progress;
   final double completionLift;
   final double guidanceProgress;
   final bool showGuidance;
+  final PackType packType;
 
   @override
   Widget build(BuildContext context) {
@@ -179,7 +182,10 @@ class _PackLayers extends StatelessWidget {
     const tearY = 72.0;
     final tearX = width * progress;
     final gap = progress == 0 ? 0.0 : 1.2 + progress * 1.8;
-    final glow = ((progress - 0.18) / 0.82).clamp(0.0, 1.0);
+    final glow = progress == 0 ? 0.0 : 0.45 + progress * 0.55;
+    final openingFlash = math.sin(completionLift * math.pi).clamp(0.0, 1.0);
+    final openingGlow = math.max(openingFlash, completionLift * 0.62);
+    final isPremium = packType == PackType.premium;
 
     if (progress == 0) {
       return SizedBox(
@@ -187,7 +193,7 @@ class _PackLayers extends StatelessWidget {
         height: height,
         child: Stack(
           children: [
-            const _PackBody(),
+            _PackBody(packType: packType),
             if (showGuidance)
               Positioned(
                 key: const Key('pack-open-guidance'),
@@ -208,12 +214,81 @@ class _PackLayers extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          if (completionLift > 0)
+  Positioned(
+    left: 2,
+    right: 2,
+    top: tearY - 62,
+    height: 150,
+    child: IgnorePointer(
+      child: Opacity(
+        opacity: openingGlow,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: const Alignment(0, -0.08),
+              radius: 0.72,
+              colors: [
+                const Color(0xFFFFFBE8).withValues(
+                  alpha: 0.94 * openingGlow,
+                ),
+                (isPremium
+                        ? const Color(0xFFFFD66B)
+                        : const Color(0xFFFFE4A0))
+                    .withValues(alpha: 0.62 * openingGlow),
+                const Color(0xFFFFD66B).withValues(
+                  alpha: 0.20 * openingGlow,
+                ),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.24, 0.52, 1.0],
+            ),
+          ),
+        ),
+      ),
+    ),
+  ),
+
+if (completionLift > 0)
+  Positioned(
+    left: 18,
+    right: 18,
+    top: tearY - 5,
+    height: 12,
+    child: IgnorePointer(
+      child: Opacity(
+        opacity: openingFlash,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFFF2B8)
+                    .withValues(alpha: 0.95),
+                blurRadius: 22,
+                spreadRadius: 6,
+              ),
+              BoxShadow(
+                color: const Color(0xFFFFD66B)
+                    .withValues(alpha: 0.65),
+                blurRadius: 42,
+                spreadRadius: 13,
+              ),
+            ],
+            color: const Color(0xFFFFF9DC),
+          ),
+        ),
+      ),
+    ),
+  ),
           if (progress > .7)
             Positioned(
               left: 35,
-              top: 56 - completionLift * 12,
+              top: 56 - completionLift * 22,
               child: Opacity(
-                opacity: ((progress - .7) / .3).clamp(0, 1) * .9,
+                opacity: (((progress - .7) / .3).clamp(0, 1) * .9 +
+                        completionLift * .1)
+                     .clamp(0.0, 1.0),
                 child: const KabucaCardBack(width: 210, height: 294),
               ),
             ),
@@ -232,34 +307,34 @@ class _PackLayers extends StatelessWidget {
                   maxHeight: height,
                   child: Transform.translate(
                     offset: Offset(-tearX, 0),
-                    child: const SizedBox(
+                    child: SizedBox(
                       width: width,
                       height: height,
-                      child: _PackBody(),
+                      child: _PackBody(packType: packType),
                     ),
                   ),
                 ),
               ),
             ),
           Transform.translate(
-            offset: Offset(0, -gap - completionLift * 16),
+            offset: Offset(0, -gap - completionLift * 26),
             child: ClipPath(
               clipper: _TornUpperClipper(tearX: tearX, tearY: tearY),
-              child: const _PackBody(),
+              child: _PackBody(packType: packType),
             ),
           ),
           Transform.translate(
             offset: Offset(0, gap),
             child: ClipPath(
               clipper: _TornLowerClipper(tearX: tearX, tearY: tearY),
-              child: const _PackBody(),
+              child: _PackBody(packType: packType),
             ),
           ),
           Positioned(
             left: 0,
-            top: tearY - 11,
+            top: tearY - 12,
             width: math.max(1, tearX),
-            height: 25,
+            height: 27,
             child: Opacity(
               opacity: glow,
               child: CustomPaint(
@@ -333,53 +408,103 @@ class _OpenGuidance extends StatelessWidget {
 }
 
 class _PackBody extends StatelessWidget {
-  const _PackBody();
+  const _PackBody({required this.packType});
+
+  final PackType packType;
 
   @override
   Widget build(BuildContext context) {
+    final isPremium = packType == PackType.premium;
+
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF123C31), Color(0xFF071B16), Color(0xFF030A08)],
-          stops: [0, .58, 1],
+          colors: isPremium
+              ? const [
+                  Color(0xFF1A1D1C),
+                  Color(0xFF0C0F0E),
+                  Color(0xFF020303),
+                ]
+              : const [
+                  Color(0xFF123C31),
+                  Color(0xFF071B16),
+                  Color(0xFF030A08),
+                ],
+          stops: const [0, .58, 1],
         ),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF8D6C2E), width: 1.2),
-        boxShadow: const [
+        border: Border.all(
+          color: isPremium
+              ? const Color(0xFFD9B75E)
+              : const Color(0xFF8D6C2E),
+          width: isPremium ? 1.5 : 1.2,
+        ),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x66102C24),
-            blurRadius: 28,
-            offset: Offset(0, 16),
+            color: isPremium
+                ? const Color(0x7A000000)
+                : const Color(0x66102C24),
+            blurRadius: isPremium ? 34 : 28,
+            offset: const Offset(0, 16),
           ),
         ],
       ),
       child: Stack(
         children: [
-          const Positioned.fill(
-            child: CustomPaint(painter: _PackBodyPainter()),
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _PackBodyPainter(isPremium: isPremium),
+            ),
           ),
+          if (isPremium)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      stops: const [0.0, 0.24, 0.42, 0.62, 1.0],
+                      colors: [
+                        Colors.white.withValues(alpha: 0.20),
+                        Colors.white.withValues(alpha: 0.035),
+                        Colors.transparent,
+                        Colors.white.withValues(alpha: 0.02),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           for (final top in [7.0, 11.0, 15.0, 19.0, 23.0])
             Positioned(
               left: 0,
               right: 0,
               top: top,
-              child: const DecoratedBox(
+              child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Color(0xFF70501D),
-                      Color(0xFFFFE8A3),
-                      Color(0xFF8C6827),
-                    ],
+                    colors: isPremium
+                        ? const [
+                            Color(0xFF8E6A27),
+                            Color(0xFFFFE8A3),
+                            Color(0xFFB48730),
+                          ]
+                        : const [
+                            Color(0xFF70501D),
+                            Color(0xFFFFE8A3),
+                            Color(0xFF8C6827),
+                          ],
                   ),
                 ),
-                child: SizedBox(height: 1.4),
+                child: const SizedBox(height: 1.4),
               ),
             ),
-          const Positioned(
+          Positioned(
             left: 20,
             right: 20,
             top: 42,
@@ -387,14 +512,16 @@ class _PackBody extends StatelessWidget {
               '‹  ‹  ─────  OPEN  ─────  ›  ›',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Color(0xFFFFE09A),
+                color: isPremium
+                    ? const Color(0xFFFFE7A8)
+                    : const Color(0xFFFFE09A),
                 fontSize: 9,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.5,
               ),
             ),
           ),
-          const Center(
+          Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -402,32 +529,42 @@ class _PackBody extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.fromBorderSide(
-                      BorderSide(color: Color(0xFFFFD879)),
+                      BorderSide(
+                        color: isPremium
+                            ? const Color(0xFFFFE6A3)
+                            : const Color(0xFFFFD879),
+                      ),
                     ),
                   ),
                   child: Padding(
-                    padding: EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                     child: Icon(
                       Icons.trending_up_rounded,
-                      color: Color(0xFFFFD879),
+                      color: isPremium
+                          ? const Color(0xFFFFE6A3)
+                          : const Color(0xFFFFD879),
                       size: 42,
                     ),
                   ),
                 ),
-                SizedBox(height: 15),
+                const SizedBox(height: 15),
                 Text(
                   'KABUCA',
                   style: TextStyle(
-                    color: Color(0xFFFFE2A0),
+                    color: isPremium
+                        ? const Color(0xFFFFEBC2)
+                        : const Color(0xFFFFE2A0),
                     fontSize: 32,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 6,
                   ),
                 ),
                 Text(
-                  'START PACK',
+                  isPremium ? 'PREMIUM PACK' : 'START PACK',
                   style: TextStyle(
-                    color: Color(0xFFFFE2A0),
+                    color: isPremium
+                        ? const Color(0xFFFFE6A3)
+                        : const Color(0xFFFFE2A0),
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 2.5,
@@ -436,7 +573,7 @@ class _PackBody extends StatelessWidget {
               ],
             ),
           ),
-          const Positioned(
+          Positioned(
             left: 0,
             right: 0,
             bottom: 37,
@@ -444,7 +581,9 @@ class _PackBody extends StatelessWidget {
               '3 CARDS',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Color(0xFFFFE2A0),
+                color: isPremium
+                    ? const Color(0xFFFFE6A3)
+                    : const Color(0xFFFFE2A0),
                 fontSize: 8,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 2,
@@ -456,17 +595,23 @@ class _PackBody extends StatelessWidget {
               left: 0,
               right: 0,
               bottom: bottom,
-              child: const DecoratedBox(
+              child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Color(0xFF70501D),
-                      Color(0xFFFFE8A3),
-                      Color(0xFF8C6827),
-                    ],
+                    colors: isPremium
+                        ? const [
+                            Color(0xFF8E6A27),
+                            Color(0xFFFFE8A3),
+                            Color(0xFFB48730),
+                          ]
+                        : const [
+                            Color(0xFF70501D),
+                            Color(0xFFFFE8A3),
+                            Color(0xFF8C6827),
+                          ],
                   ),
                 ),
-                child: SizedBox(height: 1.4),
+                child: const SizedBox(height: 1.4),
               ),
             ),
         ],
@@ -532,46 +677,50 @@ class _TearEdgePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (progress <= 0) return;
-    final shadow = Paint()
-      ..color = const Color(0xCC021A15)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
-    final glow = Paint()
-      ..color = Color.lerp(
-        const Color(0xAAFFE6A5),
-        const Color(0xFFFFF3CC),
-        progress,
-      )!
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.5
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-    final fiber = Paint()
-      ..color = const Color(0xFFFFE6A5)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.3;
+    if (progress <= 0 || size.width <= 0) return;
+
     final path = Path();
-    for (double x = 0; x <= size.width; x += 5) {
-      final y = 11 + _tearOffset(x);
+    for (double x = 0; x <= size.width; x += 4) {
+      final y = 12 + _tearOffset(x);
       if (x == 0) {
         path.moveTo(x, y);
       } else {
         path.lineTo(x, y);
       }
     }
-    canvas.drawPath(path, glow);
-    canvas.drawPath(path, shadow);
+
+    final outerGlow = Paint()
+      ..color = const Color(0x99FFF1B8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    final innerGlow = Paint()
+      ..color = const Color(0xFFFFF3CC)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.6
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5);
+    final fiber = Paint()
+      ..color = const Color(0xFFFFE6A5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawPath(path, outerGlow);
+    canvas.drawPath(path, innerGlow);
     canvas.drawPath(path, fiber);
-    if (tension > 0) {
-      final tip = Offset(size.width - 1, 11 + _tearOffset(size.width));
-      canvas.drawCircle(
-        tip,
-        3 + tension * 3,
-        Paint()
-          ..color = const Color(0xFFFFE6A5).withValues(alpha: tension)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
-      );
-    }
+
+    final tip = Offset(size.width - 1, 12 + _tearOffset(size.width));
+    final tipGlow = Paint()
+      ..color = const Color(0xFFFFF7D8)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    canvas.drawCircle(tip, 5 + tension * 3, tipGlow);
+    canvas.drawCircle(
+      tip,
+      2.2,
+      Paint()..color = const Color(0xFFFFFDF1),
+    );
   }
 
   @override
@@ -580,12 +729,16 @@ class _TearEdgePainter extends CustomPainter {
 }
 
 class _PackBodyPainter extends CustomPainter {
-  const _PackBodyPainter();
+  const _PackBodyPainter({required this.isPremium});
+
+  final bool isPremium;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0x20D8B45E)
+      ..color = isPremium
+          ? const Color(0x26F1D28A)
+          : const Color(0x20D8B45E)
       ..style = PaintingStyle.stroke;
     for (double y = 76; y < size.height - 40; y += 28) {
       for (double x = -14; x < size.width; x += 28) {
@@ -611,11 +764,14 @@ class _PackBodyPainter extends CustomPainter {
     canvas.drawPath(
       chart,
       paint
-        ..color = const Color(0x99D8B45E)
+        ..color = isPremium
+            ? const Color(0xB8F1D28A)
+            : const Color(0x99D8B45E)
         ..strokeWidth = 1.6,
     );
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _PackBodyPainter oldDelegate) =>
+      oldDelegate.isPremium != isPremium;
 }

@@ -10,6 +10,8 @@ class DailyPackCard extends StatelessWidget {
     this.onOpenWithKabu,
     this.kabuBalance = 0,
     this.kabuCost = 100,
+    this.packName = 'スタートパック',
+    this.isPremium = false,
   });
 
   final VoidCallback? onOpen;
@@ -17,6 +19,9 @@ class DailyPackCard extends StatelessWidget {
   final VoidCallback? onOpenWithKabu;
   final int kabuBalance;
   final int kabuCost;
+
+  final String packName;
+  final bool isPremium;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +38,7 @@ class DailyPackCard extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              'スタートパック',
+              packName,
               style: theme.textTheme.titleLarge?.copyWith(
                 color: AppColors.deepGreen,
                 fontWeight: FontWeight.w600,
@@ -50,7 +55,7 @@ class DailyPackCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 22),
-            const _PackVisual(),
+            _CardStackVisual(isPremium: isPremium),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -84,6 +89,8 @@ class DailyPackCard extends StatelessWidget {
               Text(
                 kabuShortage > 0
                     ? 'あと$kabuShortage KABUで開けられます'
+                    : isPremium
+                    ? 'SR・URの出現率アップ ・ 3枚入り'
                     : '$kabuCost KABUを使って3枚のカードを獲得',
                 key: const Key('pack-kabu-guidance'),
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -99,122 +106,53 @@ class DailyPackCard extends StatelessWidget {
   }
 }
 
-class _PackVisual extends StatelessWidget {
-  const _PackVisual();
+class _CardStackVisual extends StatelessWidget {
+  const _CardStackVisual({required this.isPremium});
+
+  final bool isPremium;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       image: true,
-      label: 'KABUCAスタートパック',
-      child: Container(
-        width: 176,
-        height: 264,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF123C31), Color(0xFF071A15), Color(0xFF030A08)],
-          ),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFD8B45E), width: 1.2),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x25103E31),
-              blurRadius: 22,
-              offset: Offset(0, 12),
-            ),
-          ],
-        ),
+      label: isPremium
+          ? 'KABUCAプレミアムパックのカード3枚'
+          : 'KABUCAスタートパックのカード3枚',
+      child: SizedBox(
+        width: 230,
+        height: 210,
         child: Stack(
+          alignment: Alignment.center,
           children: [
-            const Positioned.fill(child: CustomPaint(painter: _PackPainter())),
-            const Positioned(left: 0, right: 0, top: 7, child: _SealLine()),
-            const Positioned(left: 0, right: 0, top: 12, child: _SealLine()),
-            const Positioned(left: 0, right: 0, top: 17, child: _SealLine()),
-            const Positioned(left: 0, right: 0, bottom: 7, child: _SealLine()),
-            const Positioned(left: 0, right: 0, bottom: 12, child: _SealLine()),
-            const Positioned(left: 0, right: 0, bottom: 17, child: _SealLine()),
-            const Positioned(
-              top: 28,
-              left: 18,
-              child: Text(
-                '‹ ─── OPEN ─── ›',
-                style: TextStyle(
-                  color: Color(0xFFFFE4A0),
-                  fontSize: 7,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.1,
+            Transform.translate(
+              offset: const Offset(-54, 8),
+              child: Transform.rotate(
+                angle: -0.11,
+                child: _MiniCardBack(
+                  width: 116,
+                  height: 166,
+                  opacity: 0.88,
+                  isPremium: isPremium,
                 ),
               ),
             ),
-            const Positioned(
-              top: 70,
-              left: 0,
-              right: 0,
-              child: Column(
-                children: [
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.fromBorderSide(
-                        BorderSide(color: Color(0xFFFFD879)),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Icon(
-                        Icons.trending_up_rounded,
-                        color: Color(0xFFFFD879),
-                        size: 30,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 3),
-                  Text(
-                    'KABUCA',
-                    style: TextStyle(
-                      color: Color(0xFFFFE2A0),
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 4,
-                    ),
-                  ),
-                  Text(
-                    'START PACK',
-                    style: TextStyle(
-                      color: Color(0xFFFFE2A0),
-                      fontSize: 6.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.7,
-                    ),
-                  ),
-                ],
+            Transform.translate(
+              offset: const Offset(54, 8),
+              child: Transform.rotate(
+                angle: 0.11,
+                child: _MiniCardBack(
+                  width: 116,
+                  height: 166,
+                  opacity: 0.88,
+                  isPremium: isPremium,
+                ),
               ),
             ),
-            Positioned(
-              bottom: 36,
-              left: 38,
-              right: 38,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF073E34),
-                  border: Border.all(color: const Color(0xFFD8B45E)),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: const Text(
-                  '3 CARDS',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFFFFE2A0),
-                    fontSize: 7,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-              ),
+            _MiniCardBack(
+              width: 128,
+              height: 182,
+              opacity: 1,
+              isPremium: isPremium,
             ),
           ],
         ),
@@ -223,57 +161,155 @@ class _PackVisual extends StatelessWidget {
   }
 }
 
-class _PackPainter extends CustomPainter {
-  const _PackPainter();
+class _MiniCardBack extends StatelessWidget {
+  const _MiniCardBack({
+    required this.width,
+    required this.height,
+    required this.opacity,
+    required this.isPremium,
+  });
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gold = Paint()
-      ..color = const Color(0xFFD8B45E)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    final faintGold = Paint()
-      ..color = const Color(0x45D8B45E)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.7;
+  final double width;
+  final double height;
+  final double opacity;
 
-    for (var i = 0; i < 6; i++) {
-      final x = 18.0 + i * 24;
-      canvas.drawLine(Offset(x, 55), Offset(x, 188), faintGold);
-    }
-
-    final chart = Path()
-      ..moveTo(4, 181)
-      ..cubicTo(38, 172, 50, 143, 81, 139)
-      ..cubicTo(111, 135, 133, 104, 174, 90);
-    canvas.drawPath(chart, gold);
-
-    for (double y = 52; y < 226; y += 22) {
-      for (double x = -11; x < size.width; x += 22) {
-        final diamond = Path()
-          ..moveTo(x, y + 11)
-          ..lineTo(x + 11, y)
-          ..lineTo(x + 22, y + 11)
-          ..lineTo(x + 11, y + 22)
-          ..close();
-        canvas.drawPath(diamond, faintGold);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _SealLine extends StatelessWidget {
-  const _SealLine();
+  final bool isPremium;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 1,
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      color: AppColors.mutedGold.withValues(alpha: 0.7),
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isPremium
+                ? const [
+                    Color(0xFF171A19),
+                    Color(0xFF0B0F0E),
+                    Color(0xFF030504),
+                  ]
+                : const [Color(0xFF174B3E), Color(0xFF0D332B)],
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: AppColors.mutedGold.withValues(alpha: isPremium ? 1 : 0.8),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isPremium
+                  ? const Color(0x3D000000)
+                  : const Color(0x26103E31),
+              blurRadius: isPremium ? 22 : 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            if (isPremium)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          stops: const [0.0, 0.28, 0.5, 0.72, 1.0],
+                          colors: [
+                            Colors.white.withValues(alpha: 0.18),
+                            Colors.white.withValues(alpha: 0.03),
+                            Colors.transparent,
+                            Colors.white.withValues(alpha: 0.025),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(
+                      color: AppColors.mutedGold.withValues(
+                        alpha: isPremium ? 0.7 : 0.35,
+                      ),
+                      width: 0.8,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isPremium
+                            ? const Color(0xFFFFE6A3)
+                            : const Color(0xFFFFD879),
+                        width: 1,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        Icons.trending_up_rounded,
+                        color: isPremium
+                            ? Color(0xFFFFE6A3)
+                            : Color(0xFFFFD879),
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'KABUCA',
+                    style: TextStyle(
+                      color: isPremium
+                          ? Color(0xFFFFEBC2)
+                          : Color(0xFFFFE2A0),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2.8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isPremium)
+              const Positioned(
+                left: 0,
+                right: 0,
+                bottom: 18,
+                child: Text(
+                  'PREMIUM',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFFFFD879),
+                    fontSize: 8,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

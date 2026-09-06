@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/card_catalog.dart';
+import '../../models/pack_type.dart';
 import '../../widgets/daily_pack_card.dart';
 import '../../widgets/home_stat_card.dart';
 import '../../services/card_pack_service.dart';
@@ -117,19 +118,17 @@ class HomeScreen extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 28),
-                DailyPackCard(
-                  packCount: gameState.packCount,
+                _PackCarousel(
+                  starterPackCount: gameState.starterPackCount,
+                  premiumPackCount: gameState.premiumPackCount,
                   kabuBalance: pointWallet?.currentPoints ?? 0,
-                  kabuCost: PackExchangeRules.standardPackCost,
-                  onOpen: gameState.packCount > 0
-                      ? () => _openPack(context)
-                      : null,
-                  onOpenWithKabu:
-                      gameState.packCount == 0 &&
-                          pointWallet != null &&
-                          exchangeService != null
-                      ? () => _openPackWithKabu(context)
-                      : null,
+                  canExchange: pointWallet != null && exchangeService != null,
+                  onOpenStarter: () => _openPack(context, PackType.starter),
+                  onOpenPremium: () => _openPack(context, PackType.premium),
+                  onBuyStarter: () =>
+                      _openPackWithKabu(context, PackType.starter),
+                  onBuyPremium: () =>
+                      _openPackWithKabu(context, PackType.premium),
                 ),
                 const SizedBox(height: 18),
                 Card(
@@ -192,20 +191,30 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _openPackWithKabu(BuildContext context) async {
+  Future<void> _openPackWithKabu(
+    BuildContext context,
+    PackType type,
+  ) async {
     final wallet = pointWallet;
     final service = exchangeService;
     if (wallet == null || service == null) return;
 
-    final cost = PackExchangeRules.standardPackCost;
+    final isPremium = type == PackType.premium;
+    final cost = isPremium
+        ? PackExchangeRules.premiumPackCost
+        : PackExchangeRules.starterPackCost;
     if (wallet.currentPoints < cost) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        key: const Key('open-pack-with-kabu-confirm-dialog'),
+        key: Key(
+          isPremium
+              ? 'open-premium-pack-with-kabu-confirm-dialog'
+              : 'open-pack-with-kabu-confirm-dialog',
+        ),
         icon: const Icon(Icons.stars_rounded, color: Color(0xFFB39450)),
-        title: const Text('パックを開けますか？'),
+        title: Text(isPremium ? 'プレミアムパックを開けますか？' : 'パックを開けますか？'),
         content: Text(
           '$cost KABUを使います\n\n'
           '所持KABU ${wallet.currentPoints} → ${wallet.currentPoints - cost} KABU',
@@ -227,10 +236,12 @@ class HomeScreen extends StatelessWidget {
 
     if (confirmed != true || !context.mounted) return;
 
-    final result = await service.exchangeStandardPack();
+    final result = isPremium
+        ? await service.exchangePremiumPack()
+        : await service.exchangeStarterPack();
     if (!context.mounted || result != PackExchangeResult.exchanged) return;
 
-    await _openPack(context);
+    await _openPack(context, type);
   }
 
   Future<void> _openExchange(BuildContext context) async {
@@ -266,7 +277,7 @@ class HomeScreen extends StatelessWidget {
       );
       if (openNow == true && context.mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
-        await _openPack(context);
+        await _openPack(context, PackType.starter);
       }
     }
   }
@@ -303,12 +314,13 @@ class HomeScreen extends StatelessWidget {
         ),
       );
 
-  Future<void> _openPack(BuildContext context) async {
+  Future<void> _openPack(BuildContext context, PackType type) async {
     final result = await Navigator.of(context).push<PackOpeningResult>(
       PackOpeningRoute(
-        cards: (cardPackService ?? CardPackService()).openPack(),
-        onPackOpened: _consumePack,
+        cards: (cardPackService ?? CardPackService()).openPack(type: type),
+        onPackOpened: () => _consumePack(type),
         gameState: gameState,
+        packType: type,
       ),
     );
     if (result == null) return;
@@ -318,8 +330,108 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
-  void _consumePack() {
-    gameState.consumePack();
+  void _consumePack(PackType type) {
+    gameState.consumePack(type);
+  }
+}
+
+class _PackCarousel extends StatefulWidget {
+  const _PackCarousel({
+    required this.starterPackCount,
+    required this.premiumPackCount,
+    required this.kabuBalance,
+    required this.canExchange,
+    required this.onOpenStarter,
+    required this.onOpenPremium,
+    required this.onBuyStarter,
+    required this.onBuyPremium,
+  });
+
+  final int starterPackCount;
+  final int premiumPackCount;
+  final int kabuBalance;
+  final bool canExchange;
+  final VoidCallback onOpenStarter;
+  final VoidCallback onOpenPremium;
+  final VoidCallback onBuyStarter;
+  final VoidCallback onBuyPremium;
+
+  @override
+  State<_PackCarousel> createState() => _PackCarouselState();
+}
+
+class _PackCarouselState extends State<_PackCarousel> {
+  final PageController _controller = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 455,
+          child: PageView(
+            key: const Key('home-pack-carousel'),
+            controller: _controller,
+            onPageChanged: (page) => setState(() => _page = page),
+            children: [
+              DailyPackCard(
+                packName: 'スタートパック',
+                packCount: widget.starterPackCount,
+                kabuBalance: widget.kabuBalance,
+                kabuCost: PackExchangeRules.starterPackCost,
+                onOpen: widget.starterPackCount > 0
+                    ? widget.onOpenStarter
+                    : null,
+                onOpenWithKabu:
+                    widget.starterPackCount == 0 && widget.canExchange
+                    ? widget.onBuyStarter
+                    : null,
+              ),
+              DailyPackCard(
+                packName: 'プレミアムパック',
+                isPremium: true,
+                packCount: widget.premiumPackCount,
+                kabuBalance: widget.kabuBalance,
+                kabuCost: PackExchangeRules.premiumPackCost,
+                onOpen: widget.premiumPackCount > 0
+                    ? widget.onOpenPremium
+                    : null,
+                onOpenWithKabu:
+                    widget.premiumPackCount == 0 && widget.canExchange
+                    ? widget.onBuyPremium
+                    : null,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(2, (index) {
+            final selected = index == _page;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: selected ? 18 : 7,
+              height: 7,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                color: selected
+                    ? const Color(0xFF123D33)
+                    : const Color(0xFFC9CEC9),
+                borderRadius: BorderRadius.circular(99),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
   }
 }
 

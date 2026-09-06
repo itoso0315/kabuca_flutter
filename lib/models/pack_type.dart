@@ -1,0 +1,4 @@
+enum PackType {
+  starter,
+  premium,
+}

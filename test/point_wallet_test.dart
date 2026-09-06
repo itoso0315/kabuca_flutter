@@ -271,21 +271,37 @@ class _PredictionStorage implements PredictionStorage {
 }
 
 class _GameStorage implements GameStorage {
-  _GameStorage({this.packCount});
-  int? packCount;
+  _GameStorage({int? packCount}) : starterPackCount = packCount;
+
+  int? starterPackCount;
+  int? premiumPackCount;
   Map<String, int> cards = {};
+
   @override
   Future<Map<String, int>> readCardCounts() async => Map.of(cards);
+
   @override
-  Future<int?> readPackCount() async => packCount;
+  Future<int?> readStarterPackCount() async => starterPackCount;
+
+  @override
+  Future<int?> readPremiumPackCount() async => premiumPackCount;
+
   @override
   Future<void> writeCardCounts(Map<String, int> value) async => cards = value;
+
   @override
-  Future<void> writePackCount(int value) async => packCount = value;
+  Future<void> writeStarterPackCount(int value) async =>
+      starterPackCount = value;
+
+  @override
+  Future<void> writePremiumPackCount(int value) async =>
+      premiumPackCount = value;
 }
 
 class _FailingGameStorage extends _GameStorage {
   _FailingGameStorage() : super(packCount: 3);
+
   @override
-  Future<void> writePackCount(int value) async => throw StateError('failed');
+  Future<void> writeStarterPackCount(int value) async =>
+      throw StateError('failed');
 }
