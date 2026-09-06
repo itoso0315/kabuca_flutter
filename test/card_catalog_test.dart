@@ -4,9 +4,12 @@ import 'package:kabuca_flutter/models/company_card.dart';
 import 'package:kabuca_flutter/theme/company_theme.dart';
 
 void main() {
-  test('20社以上の各企業にN/R/SR/URがありIDが一意', () {
-    expect(CardCatalog.companyCount, greaterThanOrEqualTo(20));
-    expect(CardCatalog.cards, hasLength(CardCatalog.companyCount * 4));
+  test('有効な各企業にN/R/SR/URがありIDが一意', () {
+    expect(CardCatalog.companyCount, greaterThan(0));
+    expect(
+      CardCatalog.cards,
+      hasLength(CardCatalog.companyCount * CardRarity.values.length),
+    );
 
     final ids = CardCatalog.cards.map((card) => card.id).toSet();
     expect(ids, hasLength(CardCatalog.cards.length));

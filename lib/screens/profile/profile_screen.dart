@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../app/app_theme.dart';
+import '../../data/card_catalog.dart';
 import '../../models/app_notification.dart';
+import '../../models/stock_prediction.dart';
 import '../../state/game_state.dart';
 import '../../state/notification_store.dart';
 import '../../state/prediction_store.dart';
 import '../../state/point_wallet.dart';
 import '../debug/company_art_preview_screen.dart';
+import '../prediction/prediction_result_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -55,7 +58,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 12),
                   Text('所持パック  ${widget.gameState.packCount}個'),
                   Text('所持カード  ${widget.gameState.totalOwnedCardCount}枚'),
-                  Text('図鑑登録  ${widget.gameState.registeredCardCount} / 80'),
+                  Text(
+                    '図鑑登録  ${widget.gameState.registeredCardCount} / ${CardCatalog.cards.length}',
+                  ),
                   Text('保存済み予想  ${widget.predictionStore.predictions.length}件'),
                   Text('KABU  ${widget.pointWallet?.currentPoints ?? 0} KABU'),
                   Text(
@@ -132,6 +137,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     label: const Text('企業アート確認'),
                   ),
                   TextButton.icon(
+                    key: const Key('prediction-result-preview-button'),
+                    onPressed: _openPredictionResultPreview,
+                    icon: const Icon(Icons.emoji_events_rounded),
+                    label: const Text('予想結果を確認'),
+                  ),
+                  TextButton.icon(
+                    key: const Key('add-100-kabu-button'),
+                    onPressed: widget.pointWallet == null
+                        ? null
+                        : () async {
+                            await widget.pointWallet!.refund(100);
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('開発用に100 KABU追加しました'),
+                              ),
+                            );
+                          },
+                    icon: const Icon(Icons.stars_rounded),
+                    label: const Text('+100 KABU'),
+                  ),
+                  TextButton.icon(
                     key: const Key('add-sample-notification-button'),
                     onPressed: _addSampleNotification,
                     icon: const Icon(Icons.add_alert_rounded),
@@ -183,6 +210,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('開発用データを初期化しました')));
+  }
+
+  void _openPredictionResultPreview() {
+    final now = DateTime.now();
+
+    final prediction = StockPrediction(
+      id: 'debug_prediction_result',
+      companyId: 'toyota',
+      companyName: 'トヨタ自動車',
+      ticker: '7203',
+      direction: PredictionDirection.up,
+      horizon: PredictionHorizon.nextTradingDay,
+      createdAt: now.subtract(const Duration(days: 1)),
+      status: PredictionStatus.completed,
+      basePrice: 3000,
+      basePriceAt: now.subtract(const Duration(days: 1)),
+      targetDate: now,
+      resultPrice: 3105,
+      resultPriceAt: now,
+      changePercent: 3.5,
+      isCorrect: true,
+      awardedPoints: 45,
+      baseReward: 20,
+      movementBonus: 10,
+      streakBonus: 15,
+      correctStreak: 4,
+      pointsClaimed: false,
+    );
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => PredictionResultScreen(prediction: prediction),
+      ),
+    );
   }
 
   Future<void> _addSampleNotification() async {

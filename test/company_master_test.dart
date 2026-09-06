@@ -88,9 +88,12 @@ void main() {
     expect(CompanyMaster.byId('saizeriya')!.isNikkei225, isFalse);
   });
 
-  test('既存CardCatalogの企業基本情報はCompanyMaster由来', () {
-    expect(CardCatalog.companyCount, 20);
-    expect(CardCatalog.cards, hasLength(80));
+  test('CardCatalogの企業基本情報はCompanyMaster由来', () {
+    expect(
+      CardCatalog.companyCount,
+      greaterThanOrEqualTo(legacyCompanyIds.length),
+    );
+    expect(CardCatalog.cards, hasLength(CardCatalog.companyCount * 4));
     for (final card in CardCatalog.cards) {
       final company = CompanyMaster.byId(card.companyId);
       expect(company, isNotNull);

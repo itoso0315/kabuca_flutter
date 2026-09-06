@@ -49,7 +49,13 @@ void main() {
       find.byKey(const Key('company-art-preview-kyowa_kirin')),
       findsOneWidget,
     );
-    expect(find.byKey(const Key('company-artwork-fallback')), findsWidgets);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('company-art-preview-kyowa_kirin')),
+        matching: find.byType(CompanyCardArtwork),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const Key('company-art-preview-toyota')));
     await tester.pumpAndSettle();
@@ -82,9 +88,9 @@ void main() {
     expect(find.byKey(const Key('company-art-grid')), findsOneWidget);
   });
 
-  test('CardCatalogと既定パック抽選母集団は20社80枚のまま', () {
-    expect(CardCatalog.companyCount, 20);
-    expect(CardCatalog.cards, hasLength(80));
+  test('CardCatalogと既定パック抽選母集団が現在の有効企業数に追従する', () {
+    expect(CardCatalog.companyCount, greaterThan(0));
+    expect(CardCatalog.cards, hasLength(CardCatalog.companyCount * 4));
     final service = CardPackService();
     expect(service.openPack(), everyElement(isIn(CardCatalog.cards)));
   });

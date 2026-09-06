@@ -57,7 +57,7 @@ void main() {
 
     expect(find.text('所持パック  2個'), findsOneWidget);
     expect(find.text('所持カード  2枚'), findsOneWidget);
-    expect(find.text('図鑑登録  1 / 80'), findsOneWidget);
+    expect(find.text('図鑑登録  1 / ${CardCatalog.cards.length}'), findsOneWidget);
     expect(find.text('保存済み予想  1件'), findsOneWidget);
     expect(find.text('お知らせ  1件'), findsOneWidget);
     expect(find.text('KABU  120 KABU'), findsOneWidget);
@@ -74,7 +74,7 @@ void main() {
 
     expect(find.text('所持パック  3個'), findsOneWidget);
     expect(find.text('所持カード  0枚'), findsOneWidget);
-    expect(find.text('図鑑登録  0 / 80'), findsOneWidget);
+    expect(find.text('図鑑登録  0 / ${CardCatalog.cards.length}'), findsOneWidget);
     expect(find.text('保存済み予想  0件'), findsOneWidget);
     expect(find.text('お知らせ  0件'), findsOneWidget);
     expect(find.text('KABU  0 KABU'), findsOneWidget);

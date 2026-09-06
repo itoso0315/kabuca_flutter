@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/card_catalog.dart';
 import '../../widgets/daily_pack_card.dart';
 import '../../widgets/home_stat_card.dart';
 import '../../services/card_pack_service.dart';
@@ -118,8 +119,16 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 28),
                 DailyPackCard(
                   packCount: gameState.packCount,
+                  kabuBalance: pointWallet?.currentPoints ?? 0,
+                  kabuCost: PackExchangeRules.standardPackCost,
                   onOpen: gameState.packCount > 0
                       ? () => _openPack(context)
+                      : null,
+                  onOpenWithKabu:
+                      gameState.packCount == 0 &&
+                          pointWallet != null &&
+                          exchangeService != null
+                      ? () => _openPackWithKabu(context)
                       : null,
                 ),
                 const SizedBox(height: 18),
@@ -169,7 +178,8 @@ class HomeScreen extends StatelessWidget {
                     Expanded(
                       child: HomeStatCard(
                         label: '図鑑コンプリート率',
-                        value: '${gameState.registeredCardCount * 100 ~/ 80}%',
+                        value:
+                            '${gameState.registeredCardCount * 100 ~/ CardCatalog.cards.length}%',
                       ),
                     ),
                   ],
@@ -180,6 +190,47 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _openPackWithKabu(BuildContext context) async {
+    final wallet = pointWallet;
+    final service = exchangeService;
+    if (wallet == null || service == null) return;
+
+    final cost = PackExchangeRules.standardPackCost;
+    if (wallet.currentPoints < cost) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const Key('open-pack-with-kabu-confirm-dialog'),
+        icon: const Icon(Icons.stars_rounded, color: Color(0xFFB39450)),
+        title: const Text('パックを開けますか？'),
+        content: Text(
+          '$cost KABUを使います\n\n'
+          '所持KABU ${wallet.currentPoints} → ${wallet.currentPoints - cost} KABU',
+        ),
+        actions: [
+          TextButton(
+            key: const Key('cancel-open-pack-with-kabu-button'),
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            key: const Key('confirm-open-pack-with-kabu-button'),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('開ける'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    final result = await service.exchangeStandardPack();
+    if (!context.mounted || result != PackExchangeResult.exchanged) return;
+
+    await _openPack(context);
   }
 
   Future<void> _openExchange(BuildContext context) async {

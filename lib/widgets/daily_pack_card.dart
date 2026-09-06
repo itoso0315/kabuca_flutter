@@ -7,14 +7,25 @@ class DailyPackCard extends StatelessWidget {
     super.key,
     required this.onOpen,
     required this.packCount,
+    this.onOpenWithKabu,
+    this.kabuBalance = 0,
+    this.kabuCost = 100,
   });
 
   final VoidCallback? onOpen;
   final int packCount;
+  final VoidCallback? onOpenWithKabu;
+  final int kabuBalance;
+  final int kabuCost;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    final hasFreePack = packCount > 0;
+    final canOpenWithKabu =
+        !hasFreePack && kabuBalance >= kabuCost && onOpenWithKabu != null;
+    final kabuShortage = kabuCost - kabuBalance;
 
     return Card(
       child: Padding(
@@ -43,24 +54,42 @@ class DailyPackCard extends StatelessWidget {
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
-                onPressed: onOpen,
+              child: FilledButton.icon(
+                key: Key(
+                  hasFreePack
+                      ? 'open-free-pack-button'
+                      : 'open-pack-with-kabu-button',
+                ),
+                onPressed: hasFreePack
+                    ? onOpen
+                    : canOpenWithKabu
+                    ? onOpenWithKabu
+                    : null,
+                icon: Icon(
+                  hasFreePack ? Icons.inventory_2_rounded : Icons.stars_rounded,
+                ),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text('パックを開ける'),
+                label: Text(
+                  hasFreePack ? 'パックを開ける' : '$kabuCost KABUで開ける',
+                ),
               ),
             ),
-            if (packCount == 0) ...[
+            if (!hasFreePack) ...[
               const SizedBox(height: 12),
               Text(
-                'パックを獲得しよう',
+                kabuShortage > 0
+                    ? 'あと$kabuShortage KABUで開けられます'
+                    : '$kabuCost KABUを使って3枚のカードを獲得',
+                key: const Key('pack-kabu-guidance'),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,
                 ),
+                textAlign: TextAlign.center,
               ),
             ],
           ],

@@ -2,18 +2,26 @@ import '../models/company_card.dart';
 import 'company_master.dart';
 
 abstract final class CardCatalog {
+  static final Map<String, _CompanyCardContent> _detailedContentById =
+      <String, _CompanyCardContent>{
+        for (final content in _companies) content.companyId: content,
+      };
+
   static final List<CompanyCard> cards = List.unmodifiable(
-    _companies.expand((content) {
-      final company = CompanyMaster.byId(content.companyId);
+    _enabledCompanyIds.expand((companyId) {
+      final company = CompanyMaster.byId(companyId);
       if (company == null) {
-        throw StateError(
-          'Unknown companyId in CardCatalog: ${content.companyId}',
-        );
+        throw StateError('Unknown companyId in CardCatalog: $companyId');
       }
+
+      final content =
+          _detailedContentById[companyId] ??
+          _CompanyCardContent.generic(company);
+
       return CardRarity.values.map(
         (rarity) => CompanyCard(
-          id: '${content.companyId}_${rarity.name}',
-          companyId: content.companyId,
+          id: '${companyId}_${rarity.name}',
+          companyId: companyId,
           companyName: company.companyName,
           ticker: company.ticker,
           industry: company.industry,
@@ -25,7 +33,7 @@ abstract final class CardCatalog {
     }),
   );
 
-  static int get companyCount => _companies.length;
+  static int get companyCount => _enabledCompanyIds.length;
 }
 
 class _CompanyCardContent {
@@ -39,6 +47,19 @@ class _CompanyCardContent {
     required this.storyTitle,
     required this.story,
   });
+
+  factory _CompanyCardContent.generic(CompanyMasterEntry company) {
+    return _CompanyCardContent(
+      companyId: company.companyId,
+      overview: '${company.companyName}は、${company.industry}分野で事業を展開する企業。',
+      businessTitle: '${company.industry}の事業',
+      business: '${company.companyName}が展開する${company.industry}分野の事業やサービスに注目。',
+      strengthTitle: '企業を読み解く',
+      strength: '${company.companyName}の競争力や市場での立ち位置を、事業内容から読み解いてみよう。',
+      storyTitle: '企業ストーリー',
+      story: '${company.companyName}が歩んできた歴史や、現在の事業につながる背景を知ってみよう。',
+    );
+  }
 
   final String companyId;
   final String overview;
@@ -63,6 +84,94 @@ class _CompanyCardContent {
     CardRarity.ur => story,
   };
 }
+
+const _enabledCompanyIds = <String>[
+  'advantest',
+  'agc',
+  'ajinomoto',
+  'ana_holdings',
+  'asahi_group_holdings',
+  'asahi_kasei',
+  'astellas_pharma',
+  'bridgestone',
+  'canon',
+  'chugai_pharmaceutical',
+  'daiichi_sankyo',
+  'daikin',
+  'daiwa_house',
+  'denso',
+  'eisai',
+  'eneos_holdings',
+  'fanuc',
+  'fast_retailing',
+  'fujitsu',
+  'hitachi',
+  'honda',
+  'hoya',
+  'inpex',
+  'itochu',
+  'japan_airlines',
+  'jr_east',
+  'kagome',
+  'kao',
+  'kddi',
+  'keyence',
+  'kikkoman',
+  'kirin_holdings',
+  'komatsu',
+  'kyocera',
+  'kyowa_kirin',
+  'meiji_holdings',
+  'mhi',
+  'mitsubishi_chemical_group',
+  'mitsubishi_electric',
+  'mitsubishi_estate',
+  'mitsui_and_co',
+  'mitsui_chemicals',
+  'mufg',
+  'murata_manufacturing',
+  'nichirei',
+  'nintendo',
+  'nippon_ham',
+  'nippon_steel',
+  'nisshin_seifun_group',
+  'nitori',
+  'ntt',
+  'nyk',
+  'olympus',
+  'omron',
+  'oriental_land',
+  'otsuka_holdings',
+  'panasonic_holdings',
+  'recruit_holdings',
+  'saizeriya',
+  'secom',
+  'seven_and_i',
+  'shin_etsu_chemical',
+  'shionogi',
+  'shiseido',
+  'softbank_group',
+  'sony',
+  'sumitomo_chemical',
+  'sumitomo_electric',
+  'sumitomo_pharma',
+  'suzuki',
+  'takeda',
+  'tdk',
+  'teijin',
+  'tel',
+  'tepco_holdings',
+  'terumo',
+  'tokio_marine_holdings',
+  'tokyo_gas',
+  'toray_industries',
+  'toto',
+  'toyota',
+  'yamaha_motor',
+  'yamato_holdings',
+  'yaskawa_electric',
+  'yokogawa_electric',
+];
 
 const _companies = <_CompanyCardContent>[
   _CompanyCardContent(

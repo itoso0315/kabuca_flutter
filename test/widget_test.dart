@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kabuca_flutter/app/app.dart';
+import 'package:kabuca_flutter/data/card_catalog.dart';
 import 'package:kabuca_flutter/screens/home/home_screen.dart';
 import 'package:kabuca_flutter/state/game_state.dart';
 import 'package:kabuca_flutter/state/notification_store.dart';
@@ -32,6 +33,9 @@ void main() {
 
   testWidgets('3パックから1つ消費し、3枚を順番に獲得できる', (tester) async {
     final gameState = GameState.memory();
+    final totalCards = CardCatalog.cards.length;
+    final companyCount = CardCatalog.companyCount;
+    final completionRate = 3 * 100 ~/ totalCards;
     await tester.pumpWidget(
       KabucaApp(
         gameState: gameState,
@@ -133,7 +137,10 @@ void main() {
     await tester.tap(find.byKey(const Key('collect-cards-button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('collection-scroll')), findsOneWidget);
-    expect(find.text('3 / 80  ・  コンプリート率 3%'), findsOneWidget);
+    expect(
+      find.text('3 / $totalCards  ・  コンプリート率 $completionRate%'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('ホーム'));
     await tester.pumpAndSettle();
@@ -143,15 +150,18 @@ void main() {
     await tester.tap(find.text('図鑑'));
     await tester.pumpAndSettle();
     expect(find.text('図鑑'), findsNWidgets(2));
-    expect(find.text('3 / 80  ・  コンプリート率 3%'), findsOneWidget);
+    expect(
+      find.text('3 / $totalCards  ・  コンプリート率 $completionRate%'),
+      findsOneWidget,
+    );
     var grid = tester.widget<SliverGrid>(
       find.byKey(const Key('collection-grid')),
     );
-    expect(grid.delegate.estimatedChildCount, 80);
+    expect(grid.delegate.estimatedChildCount, totalCards);
     await tester.tap(find.byKey(const Key('filter-SR')));
     await tester.pumpAndSettle();
     grid = tester.widget<SliverGrid>(find.byKey(const Key('collection-grid')));
-    expect(grid.delegate.estimatedChildCount, 20);
+    expect(grid.delegate.estimatedChildCount, companyCount);
     await tester.tap(find.text('マイページ'));
     await tester.pumpAndSettle();
     expect(find.text('マイページ'), findsNWidgets(2));
@@ -160,7 +170,7 @@ void main() {
     expect(find.text('所持パック  2'), findsOneWidget);
   });
 
-  testWidgets('所持パック0では開封できない', (tester) async {
+  testWidgets('所持パック0かつKABU不足ではKABU開封できない', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -174,9 +184,10 @@ void main() {
     );
 
     expect(find.text('所持パック  0'), findsOneWidget);
-    expect(find.text('パックを獲得しよう'), findsOneWidget);
+    expect(find.text('100 KABUで開ける'), findsOneWidget);
+    expect(find.text('あと100 KABUで開けられます'), findsOneWidget);
     final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'パックを開ける'),
+      find.widgetWithText(FilledButton, '100 KABUで開ける'),
     );
     expect(button.onPressed, isNull);
   });
