@@ -37,6 +37,17 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
   void initState() {
     super.initState();
     if (widget.prediction.isCorrect ?? false) HapticFeedback.mediumImpact();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
+      try {
+        await widget.predictionStore?.markResultsSeen([widget.prediction]);
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('確認状態を保存できませんでした')));
+      }
+    });
   }
 
   Future<void> _claimKabu() async {
@@ -198,9 +209,11 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                           value: prediction.direction.label,
                         ),
                         _ResultRow(
-                          label: '基準価格',
+                          label: '予想開始価格',
                           value: formatYen(prediction.basePrice ?? 0),
                         ),
+                        if (prediction.basePriceDate case final date?)
+                          _ResultRow(label: '開始価格の取引日', value: formatDate(date)),
                         _ResultRow(
                           label: '判定価格',
                           value: formatYen(prediction.resultPrice ?? 0),

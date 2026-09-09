@@ -24,6 +24,21 @@ void main() {
     for (var i = 0; i < 40; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
+    expect(find.text('NEW COMPANY'), findsOneWidget);
+    final viewCard = find.byKey(const Key('new-company-view-card'));
+    await tester.ensureVisible(viewCard);
+    await tester.tap(viewCard);
+    await tester.pump();
+    if (card.rarity == CardRarity.sr || card.rarity == CardRarity.ur) {
+      expect(
+        find.byKey(Key('${card.rarity.name}-reveal-prelude')),
+        findsOneWidget,
+      );
+    }
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byKey(const Key('card-confirmation-gesture')), findsOneWidget);
   }
 
   CompanyCard cardOf(CardRarity rarity) =>

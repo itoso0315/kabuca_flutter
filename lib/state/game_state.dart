@@ -182,7 +182,10 @@ class GameState extends ChangeNotifier {
     }
   }
 
-  Future<void> addPacks([int count = 1, PackType type = PackType.starter]) async {
+  Future<void> addPacks([
+    int count = 1,
+    PackType type = PackType.starter,
+  ]) async {
     if (count <= 0) return;
     switch (type) {
       case PackType.starter:
@@ -236,7 +239,8 @@ class _MemoryGameStorage implements GameStorage {
   Future<Map<String, int>> readCardCounts() async => Map.of(cardCounts);
 
   @override
-  Future<String?> readLastFreeStarterPackDate() async => lastFreeStarterPackDate;
+  Future<String?> readLastFreeStarterPackDate() async =>
+      lastFreeStarterPackDate;
 
   @override
   Future<void> writeStarterPackCount(int value) async =>

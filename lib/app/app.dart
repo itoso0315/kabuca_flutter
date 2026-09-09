@@ -10,6 +10,7 @@ import '../services/prediction_resolution_service.dart';
 import '../services/prediction_reward_service.dart';
 import '../services/pack_exchange_service.dart';
 import '../state/point_wallet.dart';
+import '../widgets/prediction_auto_check.dart';
 import 'app_theme.dart';
 
 class KabucaApp extends StatelessWidget {
@@ -83,7 +84,6 @@ class _MainScreenState extends State<MainScreen> {
       pointWallet: _pointWallet,
       gameState: widget.gameState,
     );
-    widget.predictionResolutionService?.resolveEligiblePredictions();
   }
 
   @override
@@ -111,32 +111,42 @@ class _MainScreenState extends State<MainScreen> {
         pointWallet: _pointWallet,
       ),
     ];
-    return Scaffold(
-      body: SafeArea(
-        child: IndexedStack(index: _selectedIndex, children: screens),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() => _selectedIndex = index);
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'ホーム',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.auto_awesome_mosaic_outlined),
-            selectedIcon: Icon(Icons.auto_awesome_mosaic_rounded),
-            label: '図鑑',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'マイページ',
-          ),
-        ],
+    return PredictionAutoCheck(
+      store: widget.predictionStore,
+      resolutionService: widget.predictionResolutionService,
+      child: Scaffold(
+        body: SafeArea(
+          child: IndexedStack(index: _selectedIndex, children: screens),
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (index) {
+            setState(() => _selectedIndex = index);
+            if (index == 0) {
+              widget.predictionStore.refreshTime();
+              widget.predictionResolutionService?.resolveEligiblePredictions(
+                automatic: true,
+              );
+            }
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home_rounded),
+              label: 'ホーム',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.auto_awesome_mosaic_outlined),
+              selectedIcon: Icon(Icons.auto_awesome_mosaic_rounded),
+              label: '図鑑',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded),
+              label: 'マイページ',
+            ),
+          ],
+        ),
       ),
     );
   }

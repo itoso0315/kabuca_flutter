@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../app/app_theme.dart';
+import '../../data/card_catalog.dart';
 import '../../models/company_card.dart';
 import '../../models/pack_type.dart';
 import '../../screens/card/card_detail_screen.dart';
@@ -11,6 +12,7 @@ import '../../state/game_state.dart';
 import '../../widgets/tearable_pack.dart';
 import '../../widgets/company_card_artwork.dart';
 import '../../widgets/kabuca_card_back.dart';
+import '../../widgets/new_company_reveal.dart';
 
 enum PackOpeningDestination { home, collection }
 
@@ -68,6 +70,8 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
   bool _showCompletion = false;
   bool _inputEnabled = false;
   bool _transitioning = false;
+  bool _showNewCompany = false;
+  int _newCompanyRarityCount = 0;
   int _cardIndex = 0;
 
   @override
@@ -107,144 +111,165 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
       },
       child: Scaffold(
         backgroundColor: AppColors.deepGreen,
-        body: SafeArea(
-          child: Stack(
-            children: [
-              const Positioned.fill(child: _GlowBackground()),
-              if ((_packFinished || _showCard) &&
-                  currentRarity == CardRarity.sr)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: _SrRevealAtmosphere(animation: _rarityController),
-                  ),
-                ),
-              if ((_packFinished || _showCard) &&
-                  currentRarity == CardRarity.ur)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: _UrRevealAtmosphere(animation: _rarityController),
-                  ),
-                ),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: _showCompletion
-                    ? _PackComplete(
-                        key: const ValueKey('complete'),
-                        cardCount: widget.cards.length,
-                        onShowCollection: () => Navigator.pop(
-                          context,
-                          PackOpeningResult(
-                            cards: widget.cards,
-                            destination: PackOpeningDestination.collection,
-                          ),
-                        ),
-                        onShowHome: () => Navigator.pop(
-                          context,
-                          PackOpeningResult(
-                            cards: widget.cards,
-                            destination: PackOpeningDestination.home,
-                          ),
-                        ),
-                      )
-                    : _showCard
-                    ? Center(
-                        key: const ValueKey('card'),
-                        child: Padding(
-                          padding: const EdgeInsets.all(28),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'CARD ${_cardIndex + 1} / ${widget.cards.length}',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 2,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'NEW CARD!',
-                                style: TextStyle(
-                                  color: AppColors.mutedGold,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 3,
-                                ),
-                              ),
-                              const SizedBox(height: 26),
-                              GestureDetector(
-                                key: const Key('card-confirmation-gesture'),
-                                behavior: HitTestBehavior.opaque,
-                                onTap: _handleCardTap,
-                                onLongPress: _openCardDetail,
-                                child: _CardFlipReveal(
-                                  key: ValueKey(widget.cards[_cardIndex].id),
-                                  animation: _controller,
-                                  rarityAnimation: _rarityController,
-                                  card: widget.cards[_cardIndex],
-                                ),
-                              ),
-                              const SizedBox(height: 22),
-                              FadeTransition(
-                                opacity: reveal,
-                                child: const Text(
-                                  'タップで次へ  ・  長押しで詳細',
-                                  key: Key('card-operation-hint'),
-                                  style: TextStyle(
-                                    color: Colors.white60,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : _packFinished
-                    ? _RarityPrelude(
-                        key: ValueKey(
-                          'prelude-${widget.cards[_cardIndex].rarity.name}',
-                        ),
-                        rarity: widget.cards[_cardIndex].rarity,
-                      )
-                    : Center(
-                        key: const ValueKey('pack'),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              TearablePack(
-                                onOpened: _handleOpened,
-                                packType: widget.packType,
-                              ),
-                            ],
+        body: _showNewCompany
+            ? NewCompanyReveal(
+                key: ValueKey('new-company-$_cardIndex'),
+                card: widget.cards[_cardIndex],
+                ownedRarityCount: _newCompanyRarityCount,
+                onViewCard: _finishNewCompanyReveal,
+              )
+            : SafeArea(
+                child: Stack(
+                  children: [
+                    const Positioned.fill(child: _GlowBackground()),
+                    if ((_packFinished || _showCard) &&
+                        currentRarity == CardRarity.sr)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: _SrRevealAtmosphere(
+                            animation: _rarityController,
                           ),
                         ),
                       ),
-              ),
-              if (!_packConsumed)
-                Positioned(
-                  left: 8,
-                  top: 8,
-                  child: IconButton(
-                    key: const Key('pack-back-button'),
-                    tooltip: '戻る',
-                    onPressed: () => Navigator.maybePop(context),
-                    style: IconButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: const Color(0x44000000),
+                    if ((_packFinished || _showCard) &&
+                        currentRarity == CardRarity.ur)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: _UrRevealAtmosphere(
+                            animation: _rarityController,
+                          ),
+                        ),
+                      ),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: _showCompletion
+                          ? _PackComplete(
+                              key: const ValueKey('complete'),
+                              cardCount: widget.cards.length,
+                              onShowCollection: () => Navigator.pop(
+                                context,
+                                PackOpeningResult(
+                                  cards: widget.cards,
+                                  destination:
+                                      PackOpeningDestination.collection,
+                                ),
+                              ),
+                              onShowHome: () => Navigator.pop(
+                                context,
+                                PackOpeningResult(
+                                  cards: widget.cards,
+                                  destination: PackOpeningDestination.home,
+                                ),
+                              ),
+                            )
+                          : _showCard
+                          ? Center(
+                              key: const ValueKey('card'),
+                              child: Padding(
+                                padding: const EdgeInsets.all(28),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'CARD ${_cardIndex + 1} / ${widget.cards.length}',
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'NEW CARD!',
+                                      style: TextStyle(
+                                        color: AppColors.mutedGold,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 3,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 26),
+                                    GestureDetector(
+                                      key: const Key(
+                                        'card-confirmation-gesture',
+                                      ),
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: _handleCardTap,
+                                      onLongPress: _openCardDetail,
+                                      child: _CardFlipReveal(
+                                        key: ValueKey(
+                                          widget.cards[_cardIndex].id,
+                                        ),
+                                        animation: _controller,
+                                        rarityAnimation: _rarityController,
+                                        card: widget.cards[_cardIndex],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 22),
+                                    FadeTransition(
+                                      opacity: reveal,
+                                      child: const Text(
+                                        'タップで次へ  ・  長押しで詳細',
+                                        key: Key('card-operation-hint'),
+                                        style: TextStyle(
+                                          color: Colors.white60,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : _packFinished
+                          ? _RarityPrelude(
+                              key: ValueKey(
+                                'prelude-${widget.cards[_cardIndex].rarity.name}',
+                              ),
+                              rarity: widget.cards[_cardIndex].rarity,
+                            )
+                          : Center(
+                              key: const ValueKey('pack'),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  24,
+                                  20,
+                                  12,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    TearablePack(
+                                      onOpened: _handleOpened,
+                                      packType: widget.packType,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                     ),
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                  ),
+                    if (!_packConsumed)
+                      Positioned(
+                        left: 8,
+                        top: 8,
+                        child: IconButton(
+                          key: const Key('pack-back-button'),
+                          tooltip: '戻る',
+                          onPressed: () => Navigator.maybePop(context),
+                          style: IconButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: const Color(0x44000000),
+                          ),
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                        ),
+                      ),
+                  ],
                 ),
-            ],
-          ),
-        ),
+              ),
       ),
     );
   }
@@ -328,6 +353,41 @@ class _PackOpeningScreenState extends State<PackOpeningScreen>
 
   Future<void> _revealCurrentCard() async {
     _inputEnabled = false;
+    _transitioning = true;
+    final card = widget.cards[_cardIndex];
+    final ownedCompanyCards = [...CardCatalog.cards, ...widget.cards].where(
+      (candidate) =>
+          candidate.companyId == card.companyId &&
+          widget.gameState.owns(candidate.id),
+    );
+    // Only earlier slots affect discovery. Later slots must not suppress it.
+    final alreadyDiscovered =
+        ownedCompanyCards.isNotEmpty ||
+        widget.cards
+            .take(_cardIndex)
+            .any((pending) => pending.companyId == card.companyId);
+    if (!alreadyDiscovered) {
+      // CardDetailScreen treats the entire opened pack as pending ownership.
+      // Count distinct rarities, including later slots, to match that screen.
+      _newCompanyRarityCount = {
+        ...ownedCompanyCards.map((owned) => owned.rarity),
+        ...widget.cards
+            .where((pending) => pending.companyId == card.companyId)
+            .map((pending) => pending.rarity),
+      }.length;
+      setState(() => _showNewCompany = true);
+      return;
+    }
+    await _revealNormalCard();
+  }
+
+  Future<void> _finishNewCompanyReveal() async {
+    if (!_showNewCompany) return;
+    setState(() => _showNewCompany = false);
+    await _revealNormalCard();
+  }
+
+  Future<void> _revealNormalCard() async {
     final rarity = widget.cards[_cardIndex].rarity;
 
     _rarityController.stop();

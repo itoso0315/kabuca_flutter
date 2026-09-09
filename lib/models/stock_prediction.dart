@@ -31,6 +31,7 @@ class StockPrediction {
     required this.status,
     this.basePrice,
     this.basePriceAt,
+    this.basePriceDate,
     this.targetDate,
     this.resultPrice,
     this.resultPriceAt,
@@ -43,6 +44,7 @@ class StockPrediction {
     this.correctStreak,
     this.pointsClaimed,
     this.pointsClaimedAt,
+    this.resultSeen = false,
   });
 
   final String id;
@@ -55,6 +57,8 @@ class StockPrediction {
   final PredictionStatus status;
   final double? basePrice;
   final DateTime? basePriceAt;
+  /// Trading date of the starting close. Null for legacy current-price entries.
+  final DateTime? basePriceDate;
   final DateTime? targetDate;
   final double? resultPrice;
   final DateTime? resultPriceAt;
@@ -67,6 +71,7 @@ class StockPrediction {
   final int? correctStreak;
   final bool? pointsClaimed;
   final DateTime? pointsClaimedAt;
+  final bool resultSeen;
 
   StockPrediction copyWith({
     PredictionStatus? status,
@@ -81,6 +86,7 @@ class StockPrediction {
     int? correctStreak,
     bool? pointsClaimed,
     DateTime? pointsClaimedAt,
+    bool? resultSeen,
   }) => StockPrediction(
     id: id,
     companyId: companyId,
@@ -92,6 +98,7 @@ class StockPrediction {
     status: status ?? this.status,
     basePrice: basePrice,
     basePriceAt: basePriceAt,
+    basePriceDate: basePriceDate,
     targetDate: targetDate,
     resultPrice: resultPrice ?? this.resultPrice,
     resultPriceAt: resultPriceAt ?? this.resultPriceAt,
@@ -104,6 +111,7 @@ class StockPrediction {
     correctStreak: correctStreak ?? this.correctStreak,
     pointsClaimed: pointsClaimed ?? this.pointsClaimed,
     pointsClaimedAt: pointsClaimedAt ?? this.pointsClaimedAt,
+    resultSeen: resultSeen ?? this.resultSeen,
   );
 
   Map<String, Object> toJson() {
@@ -116,8 +124,10 @@ class StockPrediction {
       'horizon': horizon.name,
       'createdAt': createdAt.toIso8601String(),
       'status': status.name,
+      'resultSeen': resultSeen,
       'basePrice': ?basePrice,
       if (basePriceAt != null) 'basePriceAt': basePriceAt!.toIso8601String(),
+      if (basePriceDate != null) 'basePriceDate': basePriceDate!.toIso8601String(),
       if (targetDate != null) 'targetDate': targetDate!.toIso8601String(),
       'resultPrice': ?resultPrice,
       if (resultPriceAt != null)
@@ -147,10 +157,14 @@ class StockPrediction {
       horizon: PredictionHorizon.values.byName(json['horizon']! as String),
       createdAt: DateTime.parse(json['createdAt']! as String),
       status: PredictionStatus.values.byName(json['status']! as String),
+      resultSeen: json['resultSeen'] as bool? ?? false,
       basePrice: (json['basePrice'] as num?)?.toDouble(),
       basePriceAt: json['basePriceAt'] == null
           ? null
           : DateTime.parse(json['basePriceAt']! as String),
+      basePriceDate: json['basePriceDate'] == null
+          ? null
+          : DateTime.parse(json['basePriceDate']! as String),
       targetDate: json['targetDate'] == null
           ? null
           : DateTime.parse(json['targetDate']! as String),

@@ -4,6 +4,7 @@ import '../../data/card_catalog.dart';
 import '../../models/pack_type.dart';
 import '../../widgets/daily_pack_card.dart';
 import '../../widgets/home_stat_card.dart';
+import '../../widgets/prediction_result_bell.dart';
 import '../../services/card_pack_service.dart';
 import '../../services/stock_price_service.dart';
 import '../../services/trading_calendar_service.dart';
@@ -15,8 +16,9 @@ import '../../state/notification_store.dart';
 import '../../state/prediction_store.dart';
 import '../../state/point_wallet.dart';
 import '../notifications/notification_screen.dart';
-import '../prediction/company_prediction_select_screen.dart';
+import '../prediction/prediction_category_select_screen.dart';
 import '../prediction/prediction_list_screen.dart';
+import '../prediction/prediction_result_list_screen.dart';
 import '../pack/pack_opening_screen.dart';
 import '../rewards/pack_exchange_screen.dart';
 
@@ -91,23 +93,9 @@ class HomeScreen extends StatelessWidget {
                             ? null
                             : () => _openExchange(context),
                       ),
-                      _NotificationBell(
-                        unreadCount: notificationStore.unreadCount,
-                        onPressed: () => Navigator.of(context).push<void>(
-                          MaterialPageRoute(
-                            builder: (_) => NotificationScreen(
-                              store: notificationStore,
-                              predictionStore: predictionStore,
-                              pointWallet: pointWallet,
-                              rewardService: rewardService,
-                              onPredictAgain: () => _openPrediction(context),
-                              onOpenExchange:
-                                  pointWallet == null || exchangeService == null
-                                  ? null
-                                  : () => _openExchange(context),
-                            ),
-                          ),
-                        ),
+                      PredictionResultBell(
+                        store: predictionStore,
+                        onPressed: () => _openPredictionResults(context),
                       ),
                     ],
                   ),
@@ -165,7 +153,7 @@ class HomeScreen extends StatelessWidget {
                             key: const Key('waiting-predictions-button'),
                             onPressed: () => _openPredictionList(context),
                             child: Text(
-                              '予想中を見る（${predictionStore.waitingPredictions.length}）',
+                              '予想中を見る（${predictionStore.pendingPredictions.length}）',
                             ),
                           ),
                         ],
@@ -298,14 +286,47 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _openPrediction(BuildContext context) =>
+  Future<void> _openPrediction(BuildContext context) {
+    predictionStore.refreshTime();
+    predictionResolutionService?.resolveEligiblePredictions(automatic: true);
+    return Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => PredictionCategorySelectScreen(
+          gameState: gameState,
+          predictionStore: predictionStore,
+          stockPriceService: stockPriceService,
+          tradingCalendarService: tradingCalendarService,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openPredictionResults(BuildContext context) =>
       Navigator.of(context).push<void>(
         MaterialPageRoute(
-          builder: (_) => CompanyPredictionSelectScreen(
-            gameState: gameState,
-            predictionStore: predictionStore,
-            stockPriceService: stockPriceService,
-            tradingCalendarService: tradingCalendarService,
+          builder: (_) => PredictionResultListScreen(
+            store: predictionStore,
+            resolutionService: predictionResolutionService,
+            pointWallet: pointWallet,
+            rewardService: rewardService,
+            onPredictAgain: () => _openPrediction(context),
+            onOpenExchange: pointWallet == null || exchangeService == null
+                ? null
+                : () => _openExchange(context),
+            onShowNotifications: () => Navigator.of(context).push<void>(
+              MaterialPageRoute(
+                builder: (_) => NotificationScreen(
+                  store: notificationStore,
+                  predictionStore: predictionStore,
+                  pointWallet: pointWallet,
+                  rewardService: rewardService,
+                  onPredictAgain: () => _openPrediction(context),
+                  onOpenExchange: pointWallet == null || exchangeService == null
+                      ? null
+                      : () => _openExchange(context),
+                ),
+              ),
+            ),
           ),
         ),
       );
@@ -320,6 +341,7 @@ class HomeScreen extends StatelessWidget {
             rewardService: rewardService,
             gameState: gameState,
             onPredict: () => _openPrediction(context),
+            onShowResults: () => _openPredictionResults(context),
             onOpenPack: () {
               Navigator.of(context).popUntil((route) => route.isFirst);
             },
@@ -575,48 +597,5 @@ class _PointBalanceButton extends StatelessWidget {
         ],
       ),
     ),
-  );
-}
-
-class _NotificationBell extends StatelessWidget {
-  const _NotificationBell({required this.unreadCount, required this.onPressed});
-
-  final int unreadCount;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => Stack(
-    clipBehavior: Clip.none,
-    children: [
-      IconButton(
-        key: const Key('notification-bell-button'),
-        tooltip: 'お知らせ',
-        onPressed: onPressed,
-        icon: const Icon(Icons.notifications_none_rounded),
-      ),
-      if (unreadCount > 0)
-        Positioned(
-          key: const Key('notification-unread-badge'),
-          right: 2,
-          top: 2,
-          child: Container(
-            constraints: const BoxConstraints(minWidth: 17, minHeight: 17),
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: const BoxDecoration(
-              color: Color(0xFFB7654F),
-              borderRadius: BorderRadius.all(Radius.circular(9)),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              unreadCount > 9 ? '9+' : '$unreadCount',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ),
-    ],
   );
 }

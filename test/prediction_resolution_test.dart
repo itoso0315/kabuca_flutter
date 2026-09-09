@@ -22,7 +22,7 @@ void main() {
         predictionStore: store,
         stockPriceService: StockPriceService(provider),
         notificationStore: notifications,
-        now: () => DateTime.utc(2026, 9, 2, 3),
+        now: () => DateTime.utc(2026, 9, 2, 7),
       );
 
       final first = await service.resolveEligiblePredictions();
@@ -68,7 +68,7 @@ void main() {
             _HistoricalProvider(close: close),
           ),
           notificationStore: NotificationStore.memory(),
-          now: () => DateTime.utc(2026, 9, 2),
+          now: () => DateTime.utc(2026, 9, 2, 7),
         );
         await service.resolveEligiblePredictions();
         return store.predictions.single;
@@ -197,7 +197,7 @@ void main() {
           predictionStore: store,
           stockPriceService: StockPriceService(provider),
           notificationStore: NotificationStore.memory(),
-          now: () => DateTime.utc(2026, 9, 2),
+          now: () => DateTime.utc(2026, 9, 2, 7),
         );
         await service.resolveEligiblePredictions();
         expect(store.predictions.single.status, PredictionStatus.waiting);
@@ -278,7 +278,7 @@ class _HistoricalProvider
       ticker: ticker,
       tradingDate: tradingDate,
       close: close,
-      fetchedAt: DateTime.utc(2026, 9, 2),
+      fetchedAt: DateTime.utc(2026, 9, 2, 7),
       splitDetected: splitDetected,
     );
   }

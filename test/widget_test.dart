@@ -9,6 +9,17 @@ import 'package:kabuca_flutter/state/prediction_store.dart';
 import 'package:kabuca_flutter/widgets/tearable_pack.dart';
 
 void main() {
+  Future<void> viewNewCompanyCard(WidgetTester tester) async {
+    final button = find.byKey(const Key('new-company-view-card'));
+    if (button.evaluate().isEmpty) return;
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    // SR/UR retain their existing staged reveal after the new-company screen.
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
+
   Future<void> finishOpening(WidgetTester tester) async {
     final packTopLeft = tester.getTopLeft(
       find.byKey(const Key('tearable-pack')),
@@ -84,6 +95,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'パックを開ける'));
     await tester.pumpAndSettle();
     await finishOpening(tester);
+    await viewNewCompanyCard(tester);
 
     expect(find.text('CARD 1 / 3'), findsOneWidget);
     expect(find.byKey(const Key('card-company-name')), findsOneWidget);
@@ -115,6 +127,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 900));
     await tester.pumpAndSettle();
+    await viewNewCompanyCard(tester);
     expect(find.text('CARD 2 / 3'), findsOneWidget);
     expect(find.text('CARD 3 / 3'), findsNothing);
     expect(find.byKey(const Key('card-title')), findsOneWidget);
@@ -127,6 +140,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 900));
     await tester.pumpAndSettle();
+    await viewNewCompanyCard(tester);
     expect(find.text('CARD 3 / 3'), findsOneWidget);
     expect(find.byKey(const Key('card-title')), findsOneWidget);
     expect(find.byKey(const Key('card-description')), findsOneWidget);

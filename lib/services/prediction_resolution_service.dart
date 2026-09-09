@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../models/app_notification.dart';
 import '../models/stock_prediction.dart';
 import '../state/notification_store.dart';
@@ -11,6 +13,7 @@ enum PredictionResolutionStatus {
   notEligible,
   legacyData,
   splitDetected,
+  awaitingClose,
   failed,
 }
 
@@ -20,21 +23,48 @@ class PredictionResolutionResult {
   final PredictionResolutionStatus status;
 }
 
-class PredictionResolutionService {
+class PredictionResolutionService extends ChangeNotifier {
   PredictionResolutionService({
     required this.predictionStore,
     required this.stockPriceService,
     required this.notificationStore,
+    TradingCalendarService? tradingCalendarService,
     DateTime Function()? now,
-  }) : _now = now ?? DateTime.now;
+  }) : _now = now ?? DateTime.now,
+       _tradingCalendar = tradingCalendarService ?? TradingCalendarService();
 
   final PredictionStore predictionStore;
   final StockPriceService stockPriceService;
   final NotificationStore notificationStore;
   final DateTime Function() _now;
+  final TradingCalendarService _tradingCalendar;
   final Set<String> _resolving = {};
+  final Map<String, DateTime> _lastAttemptAt = {};
+  final Map<String, PredictionResolutionStatus> _lastStatuses = {};
+  Future<List<PredictionResolutionResult>>? _activeCheck;
 
-  Future<List<PredictionResolutionResult>> resolveEligiblePredictions() async {
+  bool get isChecking => _activeCheck != null;
+  PredictionResolutionStatus? lastStatus(String id) => _lastStatuses[id];
+
+  Future<List<PredictionResolutionResult>> resolveEligiblePredictions({
+    bool automatic = false,
+  }) {
+    // Share the whole ordered batch, so concurrent screen/lifecycle checks
+    // cannot fetch the same cards twice or calculate streaks out of order.
+    if (_activeCheck case final active?) return active;
+    final check = _resolveEligiblePredictions(automatic: automatic);
+    final active = check.whenComplete(() {
+      _activeCheck = null;
+      notifyListeners();
+    });
+    _activeCheck = active;
+    notifyListeners();
+    return active;
+  }
+
+  Future<List<PredictionResolutionResult>> _resolveEligiblePredictions({
+    required bool automatic,
+  }) async {
     final candidates = List<StockPrediction>.of(
       predictionStore.waitingPredictions,
     );
@@ -48,7 +78,22 @@ class PredictionResolutionService {
     });
     final results = <PredictionResolutionResult>[];
     for (final prediction in candidates) {
-      results.add(await _resolve(prediction));
+      final lastAttempt = _lastAttemptAt[prediction.id];
+      if (automatic &&
+          lastAttempt != null &&
+          _now().difference(lastAttempt) < const Duration(minutes: 1)) {
+        continue;
+      }
+      // A snapshot may be stale after a prior awaited resolution.
+      if (predictionStore.findById(prediction.id)?.status !=
+          PredictionStatus.waiting) {
+        continue;
+      }
+      final result = await _resolve(prediction);
+      results.add(result);
+      if (result.status != PredictionResolutionStatus.notEligible) {
+        _lastStatuses[prediction.id] = result.status;
+      }
     }
     return results;
   }
@@ -66,18 +111,43 @@ class PredictionResolutionService {
       );
     }
     final today = JapanTime.dateOf(_now());
-    if (targetDate.isAfter(today) || !_resolving.add(prediction.id)) {
+    if (targetDate.isAfter(today)) {
+      return PredictionResolutionResult(
+        prediction.id,
+        PredictionResolutionStatus.notEligible,
+      );
+    }
+    final closeAt = _tradingCalendar.closingTime(targetDate);
+    if (!_tradingCalendar.isTradingDay(targetDate) ||
+        _now().isBefore(closeAt)) {
+      return PredictionResolutionResult(
+        prediction.id,
+        PredictionResolutionStatus.awaitingClose,
+      );
+    }
+    if (!_resolving.add(prediction.id)) {
       return PredictionResolutionResult(
         prediction.id,
         PredictionResolutionStatus.notEligible,
       );
     }
     try {
+      _lastAttemptAt[prediction.id] = _now();
       final historical = await stockPriceService.fetchClosingPrice(
         ticker: prediction.ticker,
         tradingDate: targetDate,
-        sinceDate: JapanTime.dateOf(basePriceAt),
+        sinceDate: prediction.basePriceDate?.add(const Duration(days: 1)) ??
+            JapanTime.dateOf(basePriceAt),
       );
+      if (historical.fetchedAt.isBefore(closeAt) ||
+          historical.tradingDate.year != targetDate.year ||
+          historical.tradingDate.month != targetDate.month ||
+          historical.tradingDate.day != targetDate.day) {
+        return PredictionResolutionResult(
+          prediction.id,
+          PredictionResolutionStatus.awaitingClose,
+        );
+      }
       if (historical.splitDetected) {
         return PredictionResolutionResult(
           prediction.id,
@@ -135,6 +205,13 @@ class PredictionResolutionService {
       return PredictionResolutionResult(
         prediction.id,
         PredictionResolutionStatus.completed,
+      );
+    } on StockPriceException catch (error) {
+      return PredictionResolutionResult(
+        prediction.id,
+        error.kind == StockPriceErrorKind.dataNotFound
+            ? PredictionResolutionStatus.awaitingClose
+            : PredictionResolutionStatus.failed,
       );
     } catch (_) {
       return PredictionResolutionResult(

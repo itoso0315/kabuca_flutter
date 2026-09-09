@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kabuca_flutter/models/app_notification.dart';
 import 'package:kabuca_flutter/models/stock_prediction.dart';
 import 'package:kabuca_flutter/screens/notifications/notification_screen.dart';
-import 'package:kabuca_flutter/screens/prediction/prediction_list_screen.dart';
+import 'package:kabuca_flutter/screens/prediction/prediction_result_list_screen.dart';
 import 'package:kabuca_flutter/state/notification_store.dart';
 import 'package:kabuca_flutter/state/prediction_store.dart';
 
@@ -12,14 +12,14 @@ void main() {
     final prediction = _completedPrediction();
     await tester.pumpWidget(
       MaterialApp(
-        home: PredictionListScreen(
+        home: PredictionResultListScreen(
           store: PredictionStore.memory(predictions: [prediction]),
         ),
       ),
     );
 
     expect(find.textContaining('結果を見る'), findsOneWidget);
-    await tester.tap(find.byKey(Key('prediction-${prediction.id}')));
+    await tester.tap(find.byKey(Key('prediction-result-${prediction.id}')));
     await tester.pumpAndSettle();
 
     expect(find.text('予想的中！'), findsOneWidget);

@@ -1,5 +1,9 @@
 import re
-from datetime import date
+import os
+from contextlib import asynccontextmanager
+from datetime import UTC, date, datetime
+from pathlib import Path
+from collections.abc import Callable
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel
@@ -12,6 +16,7 @@ from .providers import (
     YahooFinanceProvider,
 )
 from .services.market_data_service import MarketDataService
+from .poc.daily_market_cache import SQLiteMarketDataRepository
 
 _TICKER_PATTERN = re.compile(r"^[0-9A-Z]{4,10}(?:\.T)?$")
 
@@ -42,12 +47,27 @@ class SplitsResponse(BaseModel):
 
 
 def create_app(
-    provider: MarketDataProvider | None = None, *, provider_timeout_seconds: float = 9.0
+    provider: MarketDataProvider | None = None, *, provider_timeout_seconds: float = 9.0,
+    database_path: str = ":memory:",
+    repository: SQLiteMarketDataRepository | None = None,
+    now: Callable[[], datetime] | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="KABUCA Backend", version="1.0.0")
+    if repository is None and database_path != ":memory:":
+        Path(database_path).parent.mkdir(parents=True, exist_ok=True)
+    prices = repository or SQLiteMarketDataRepository(database_path)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        yield
+        if repository is None:
+            prices.close()
+
+    app = FastAPI(title="KABUCA Backend", version="1.0.0", lifespan=lifespan)
     service = MarketDataService(
         provider or YahooFinanceProvider(),
         provider_timeout_seconds=provider_timeout_seconds,
+        repository=prices,
+        now=now,
     )
 
     def get_service() -> MarketDataService:
@@ -76,11 +96,17 @@ def create_app(
     async def history(
         ticker: str,
         trading_date: date = Query(alias="tradingDate"),
+        fallback_trading_date: date | None = Query(default=None, alias="fallbackTradingDate"),
         market_data: MarketDataService = Depends(get_service),
     ) -> HistoryResponse:
         _validate_ticker(ticker)
+        if fallback_trading_date is not None and fallback_trading_date >= trading_date:
+            raise HTTPException(status_code=400, detail=_detail("invalid_range", False))
         try:
-            value = await market_data.get_closing_price(ticker, trading_date)
+            if fallback_trading_date is None:
+                value = await market_data.get_closing_price(ticker, trading_date)
+            else:
+                value = await market_data.get_starting_close(ticker, trading_date, fallback_trading_date)
             return HistoryResponse(
                 ticker=value.ticker,
                 tradingDate=value.trading_date,
@@ -139,4 +165,4 @@ def _api_error(error: Exception) -> HTTPException:
     return HTTPException(status_code=503, detail=_detail("temporarily_unavailable", True))
 
 
-app = create_app()
+app = create_app(database_path=os.environ.get("KABUCA_MARKET_DATA_DB", "/tmp/kabuca-market-data.sqlite3"))

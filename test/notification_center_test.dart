@@ -17,17 +17,20 @@ void main() {
     ),
   );
 
-  testWidgets('未読0件はバッジなしで、ベルから空の通知一覧へ進む', (tester) async {
+  testWidgets('未確認0件はバッジなしで、ベルの結果確認からお知らせも開ける', (tester) async {
     await tester.pumpWidget(home(NotificationStore.memory()));
     expect(find.byKey(const Key('notification-bell-button')), findsOneWidget);
     expect(find.byKey(const Key('notification-unread-badge')), findsNothing);
     await tester.tap(find.byKey(const Key('notification-bell-button')));
     await tester.pumpAndSettle();
+    expect(find.text('新しい結果はありません'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('prediction-result-notifications')));
+    await tester.pumpAndSettle();
     expect(find.text('お知らせ'), findsOneWidget);
     expect(find.byKey(const Key('notification-empty-state')), findsOneWidget);
   });
 
-  testWidgets('未読バッジを表示し、通知タップで既読化する', (tester) async {
+  testWidgets('対応予想がないお知らせは結果バッジに重複計上せず、通知タップで既読化する', (tester) async {
     final store = NotificationStore.memory(
       notifications: [
         AppNotification(
@@ -42,10 +45,11 @@ void main() {
       ],
     );
     await tester.pumpWidget(home(store));
-    expect(find.byKey(const Key('notification-unread-badge')), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.byKey(const Key('notification-unread-badge')), findsNothing);
 
     await tester.tap(find.byKey(const Key('notification-bell-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('prediction-result-notifications')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('notification-unread-dot')), findsOneWidget);
     await tester.tap(find.byKey(const Key('notification-result')));
@@ -74,6 +78,8 @@ void main() {
     );
     await tester.pumpWidget(home(store));
     await tester.tap(find.byKey(const Key('notification-bell-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('prediction-result-notifications')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('mark-all-notifications-read')));
     await tester.pumpAndSettle();

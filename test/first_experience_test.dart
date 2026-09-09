@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kabuca_flutter/app/app.dart';
 import 'package:kabuca_flutter/data/card_catalog.dart';
 import 'package:kabuca_flutter/models/stock_prediction.dart';
-import 'package:kabuca_flutter/screens/prediction/company_prediction_select_screen.dart';
+import 'package:kabuca_flutter/screens/prediction/prediction_category_select_screen.dart';
 import 'package:kabuca_flutter/screens/prediction/prediction_list_screen.dart';
 import 'package:kabuca_flutter/screens/prediction/prediction_result_screen.dart';
 import 'package:kabuca_flutter/screens/rewards/pack_exchange_screen.dart';
@@ -39,7 +39,7 @@ void main() {
   testWidgets('カード0枚の予想選択はパック収集を案内する', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: CompanyPredictionSelectScreen(
+        home: PredictionCategorySelectScreen(
           gameState: GameState.memory(),
           predictionStore: PredictionStore.memory(),
         ),

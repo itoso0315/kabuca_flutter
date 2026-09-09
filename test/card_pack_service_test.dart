@@ -26,15 +26,9 @@ void main() {
 
   test('通常枠はNまたはRのみで境界値が正しい', () {
     expect(CardPackService.normalSlotRarityForRoll(0), CardRarity.n);
-    expect(
-      CardPackService.normalSlotRarityForRoll(0.759999),
-      CardRarity.n,
-    );
+    expect(CardPackService.normalSlotRarityForRoll(0.759999), CardRarity.n);
     expect(CardPackService.normalSlotRarityForRoll(0.76), CardRarity.r);
-    expect(
-      CardPackService.normalSlotRarityForRoll(0.999999),
-      CardRarity.r,
-    );
+    expect(CardPackService.normalSlotRarityForRoll(0.999999), CardRarity.r);
   });
 
   test('スタートパック3枚目のレアリティ確率の境界値が正しい', () {

@@ -498,8 +498,8 @@ const _nikkei225Companies = <CompanyMasterEntry>[
     isNikkei225: true,
   ),
   CompanyMasterEntry(
-    companyId: 'concordia_financial_group',
-    companyName: 'コンコルディア・フィナンシャルグループ',
+    companyId: 'yokohama_financial_group',
+    companyName: '横浜フィナンシャルグループ',
     ticker: '7186',
     industry: '金融',
     isNikkei225: true,

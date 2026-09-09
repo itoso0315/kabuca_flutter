@@ -8,8 +8,10 @@ import '../../state/prediction_store.dart';
 import '../../state/point_wallet.dart';
 import '../../services/prediction_reward_service.dart';
 import '../../state/game_state.dart';
-import 'prediction_result_screen.dart';
+import '../../widgets/prediction_result_bell.dart';
+import 'prediction_result_list_screen.dart';
 
+/// The "予想中を見る" list: only waiting predictions with a future target date.
 class PredictionListScreen extends StatefulWidget {
   const PredictionListScreen({
     super.key,
@@ -21,6 +23,7 @@ class PredictionListScreen extends StatefulWidget {
     this.onPredict,
     this.onOpenPack,
     this.onOpenExchange,
+    this.onShowResults,
   });
   final PredictionStore store;
   final PredictionResolutionService? resolutionService;
@@ -30,53 +33,51 @@ class PredictionListScreen extends StatefulWidget {
   final VoidCallback? onPredict;
   final VoidCallback? onOpenPack;
   final VoidCallback? onOpenExchange;
+  final VoidCallback? onShowResults;
 
   @override
   State<PredictionListScreen> createState() => _PredictionListScreenState();
 }
 
 class _PredictionListScreenState extends State<PredictionListScreen> {
-  bool _checking = false;
-  bool _hadFailure = false;
-
-  Future<void> _checkResults() async {
-    final service = widget.resolutionService;
-    if (service == null || _checking) return;
-    setState(() => _checking = true);
-    final results = await service.resolveEligiblePredictions();
-    if (!mounted) return;
-    setState(() {
-      _checking = false;
-      _hadFailure = results.any(
-        (item) =>
-            item.status == PredictionResolutionStatus.failed ||
-            item.status == PredictionResolutionStatus.splitDetected,
-      );
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.store.refreshTime();
+      widget.resolutionService?.resolveEligiblePredictions(automatic: true);
     });
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('予想'),
+      title: const Text('予想中'),
       actions: [
-        IconButton(
-          key: const Key('check-prediction-results'),
-          tooltip: '結果を確認',
-          onPressed: _checking ? null : _checkResults,
-          icon: _checking
-              ? const SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.refresh_rounded),
+        PredictionResultBell(
+          store: widget.store,
+          onPressed:
+              widget.onShowResults ??
+              () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => PredictionResultListScreen(
+                    store: widget.store,
+                    resolutionService: widget.resolutionService,
+                    pointWallet: widget.pointWallet,
+                    rewardService: widget.rewardService,
+                    onPredictAgain: widget.onPredict,
+                    onOpenExchange: widget.onOpenExchange,
+                  ),
+                ),
+              ),
         ),
       ],
     ),
     body: ListenableBuilder(
       listenable: widget.store,
       builder: (context, _) {
-        final predictions = widget.store.predictions.reversed.toList();
+        final predictions = widget.store.pendingPredictions.reversed.toList();
         if (predictions.isEmpty) {
           final hasCards = (widget.gameState?.totalOwnedCardCount ?? 0) > 0;
           return _PredictionEmptyState(
@@ -84,40 +85,13 @@ class _PredictionListScreenState extends State<PredictionListScreen> {
             onAction: hasCards ? widget.onPredict : widget.onOpenPack,
           );
         }
-        return Column(
-          children: [
-            if (_hadFailure)
-              const Padding(
-                key: Key('prediction-resolution-retry-message'),
-                padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-                child: Text('一部の結果を確認できませんでした。時間をおいて再試行できます。'),
-              ),
-            Expanded(
-              child: ListView.separated(
-                key: const Key('prediction-list'),
-                padding: const EdgeInsets.all(20),
-                itemCount: predictions.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (context, index) => _PredictionTile(
-                  prediction: predictions[index],
-                  onTap: predictions[index].status == PredictionStatus.completed
-                      ? () => Navigator.of(context).push<void>(
-                          MaterialPageRoute(
-                            builder: (_) => PredictionResultScreen(
-                              prediction: predictions[index],
-                              predictionStore: widget.store,
-                              pointWallet: widget.pointWallet,
-                              rewardService: widget.rewardService,
-                              onPredictAgain: widget.onPredict,
-                              onOpenExchange: widget.onOpenExchange,
-                            ),
-                          ),
-                        )
-                      : null,
-                ),
-              ),
-            ),
-          ],
+        return ListView.separated(
+          key: const Key('prediction-list'),
+          padding: const EdgeInsets.all(20),
+          itemCount: predictions.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 12),
+          itemBuilder: (context, index) =>
+              _PredictionTile(prediction: predictions[index]),
         );
       },
     ),
@@ -145,7 +119,7 @@ class _PredictionEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Text(
-            'まだ予想はありません',
+            '現在予想中の企業はありません',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 5),
@@ -170,39 +144,27 @@ class _PredictionEmptyState extends StatelessWidget {
 }
 
 class _PredictionTile extends StatelessWidget {
-  const _PredictionTile({required this.prediction, this.onTap});
+  const _PredictionTile({required this.prediction});
   final StockPrediction prediction;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final up = prediction.direction == PredictionDirection.up;
-    final completed = prediction.status == PredictionStatus.completed;
     return Card(
       child: ListTile(
         key: Key('prediction-${prediction.id}'),
-        onTap: onTap,
         contentPadding: const EdgeInsets.all(16),
         leading: Icon(
-          completed
-              ? ((prediction.isCorrect ?? false)
-                    ? Icons.check_circle_rounded
-                    : Icons.cancel_rounded)
-              : (up ? Icons.trending_up_rounded : Icons.trending_down_rounded),
+          up ? Icons.trending_up_rounded : Icons.trending_down_rounded,
           color: AppColors.deepGreen,
           size: 34,
         ),
         title: Text(prediction.companyName),
-        trailing: completed ? const Icon(Icons.chevron_right_rounded) : null,
         subtitle: Text(
           '${prediction.ticker}  ・  ${prediction.horizon.label}\n'
-          '${prediction.direction.label}  ・  ${completed ? '結果を見る' : '結果待ち'}'
+          '${prediction.direction.label}  ・  予想中'
           '${prediction.basePrice == null ? '' : '\n基準 ${formatYen(prediction.basePrice!)}'}'
-          '${completed
-              ? '  ・  ${(prediction.changePercent ?? 0).toStringAsFixed(2)}%'
-              : prediction.targetDate == null
-              ? ''
-              : '  ・  ${formatDate(prediction.targetDate!, includeYear: false)} 答え合わせ予定'}',
+          '\n答え合わせ予定 ${formatDate(prediction.targetDate!, includeYear: false)}',
         ),
       ),
     );

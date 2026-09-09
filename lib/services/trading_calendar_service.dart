@@ -27,6 +27,19 @@ class TradingCalendarService {
 
   final TradingHolidayProvider holidayProvider;
 
+  /// TSE cash equities close at 15:30 JST since 2024-11-05 (15:00 before).
+  /// https://www.jpx.co.jp/equities/trading/domestic/01.html
+  DateTime closingTime(DateTime japanDate) {
+    final extended = !japanDate.isBefore(DateTime.utc(2024, 11, 5));
+    return DateTime.utc(
+      japanDate.year,
+      japanDate.month,
+      japanDate.day,
+      15,
+      extended ? 30 : 0,
+    ).subtract(JapanTime.offset);
+  }
+
   bool isTradingDay(DateTime japanDate) {
     final weekday = japanDate.weekday;
     return weekday != DateTime.saturday &&
@@ -40,6 +53,22 @@ class TradingCalendarService {
       candidate = candidate.add(const Duration(days: 1));
     }
     return candidate;
+  }
+
+  DateTime previousTradingDay(DateTime japanDate) {
+    var candidate = _dateOnly(japanDate).subtract(const Duration(days: 1));
+    while (!isTradingDay(candidate)) {
+      candidate = candidate.subtract(const Duration(days: 1));
+    }
+    return candidate;
+  }
+
+  DateTime latestClosedTradingDay(DateTime instant) {
+    final today = JapanTime.dateOf(instant);
+    if (isTradingDay(today) && !instant.isBefore(closingTime(today))) {
+      return today;
+    }
+    return previousTradingDay(today);
   }
 
   DateTime resolveTargetTradingDay(

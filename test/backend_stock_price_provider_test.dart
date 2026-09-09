@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -5,6 +9,171 @@ import 'package:kabuca_flutter/config/backend_config.dart';
 import 'package:kabuca_flutter/services/stock_price_service.dart';
 
 void main() {
+  final contractBody = File(
+    'test/fixtures/market_data_quote.json',
+  ).readAsStringSync();
+
+  test('Backendと共有するquote契約を読み込める', () async {
+    final provider = BackendStockPriceProvider(
+      client: MockClient((_) async => http.Response(contractBody, 200)),
+    );
+    final quote = await StockPriceService(
+      provider,
+    ).fetchCurrentPrice(ticker: '7203', companyId: 'toyota');
+    expect(quote.ticker, '7203');
+    expect(quote.price, 2915.5);
+    expect(quote.fetchedAt, DateTime.utc(2026, 9, 8, 6, 30));
+  });
+
+  for (final status in [503, 504]) {
+    test('$statusから1回の再試行でquoteを取得できる', () async {
+      var calls = 0;
+      final provider = BackendStockPriceProvider(
+        retryDelay: Duration.zero,
+        client: MockClient(
+          (_) async => ++calls == 1
+              ? http.Response('service unavailable', status)
+              : http.Response(contractBody, 200),
+        ),
+      );
+      final quote = await provider.fetchQuote(
+        ticker: '7203',
+        companyId: 'toyota',
+      );
+      expect(quote.price, 2915.5);
+      expect(calls, 2);
+    });
+  }
+
+  test('503が続いてもHTTPリクエストは最大2回', () async {
+    var calls = 0;
+    final provider = BackendStockPriceProvider(
+      retryDelay: Duration.zero,
+      client: MockClient((_) async {
+        calls++;
+        return http.Response('{}', 503);
+      }),
+    );
+    await expectLater(
+      provider.fetchQuote(ticker: '7203', companyId: 'toyota'),
+      throwsA(
+        isA<StockPriceException>().having(
+          (e) => e.retryable,
+          'retryable',
+          true,
+        ),
+      ),
+    );
+    expect(calls, 2);
+  });
+
+  test('timeoutを1回だけ再試行し、遅れて届くレスポンスも安全に無視する', () async {
+    var calls = 0;
+    final pending = <Completer<http.Response>>[];
+    final provider = BackendStockPriceProvider(
+      timeout: const Duration(milliseconds: 5),
+      retryDelay: Duration.zero,
+      client: MockClient((_) {
+        calls++;
+        final response = Completer<http.Response>();
+        pending.add(response);
+        return response.future;
+      }),
+    );
+    await expectLater(
+      provider.fetchQuote(ticker: '7203', companyId: 'toyota'),
+      throwsA(
+        isA<StockPriceException>().having(
+          (e) => e.message,
+          'message',
+          contains('タイムアウト'),
+        ),
+      ),
+    );
+    expect(calls, 2);
+    for (final response in pending) {
+      response.complete(http.Response(contractBody, 200));
+    }
+    await Future<void>.delayed(Duration.zero);
+  });
+
+  test('通信切断後は1回だけ再試行できる', () async {
+    var calls = 0;
+    final provider = BackendStockPriceProvider(
+      retryDelay: Duration.zero,
+      client: MockClient((_) async {
+        if (++calls == 1) throw http.ClientException('connection closed');
+        return http.Response(contractBody, 200);
+      }),
+    );
+    expect(
+      (await provider.fetchQuote(ticker: '7203', companyId: 'toyota')).price,
+      2915.5,
+    );
+    expect(calls, 2);
+  });
+
+  for (final status in [400, 404, 429, 502]) {
+    test('$statusはFlutterで自動再試行しない', () async {
+      var calls = 0;
+      final provider = BackendStockPriceProvider(
+        retryDelay: Duration.zero,
+        client: MockClient((_) async {
+          calls++;
+          return http.Response('{}', status);
+        }),
+      );
+      await expectLater(
+        provider.fetchQuote(ticker: '7203', companyId: 'toyota'),
+        throwsA(isA<StockPriceException>()),
+      );
+      expect(calls, 1);
+    });
+  }
+
+  final invalidPayloads = <String, String>{
+    'malformed JSON': '{',
+    'array': '[]',
+    'null price': jsonEncode({...jsonDecode(contractBody), 'price': null}),
+    'string price': jsonEncode({
+      ...jsonDecode(contractBody),
+      'price': '2915.5',
+    }),
+    'zero price': jsonEncode({...jsonDecode(contractBody), 'price': 0}),
+    'malformed date': jsonEncode({
+      ...jsonDecode(contractBody),
+      'fetchedAt': 'bad-date',
+    }),
+    'wrong ticker type': jsonEncode({
+      ...jsonDecode(contractBody),
+      'ticker': 7203,
+    }),
+    'different company': jsonEncode({
+      ...jsonDecode(contractBody),
+      'ticker': '6758',
+    }),
+  };
+  for (final entry in invalidPayloads.entries) {
+    test('${entry.key}は再試行できない形式エラーにする', () async {
+      var calls = 0;
+      final provider = BackendStockPriceProvider(
+        retryDelay: Duration.zero,
+        client: MockClient((_) async {
+          calls++;
+          return http.Response(entry.value, 200);
+        }),
+      );
+      await expectLater(
+        provider.fetchQuote(ticker: '7203', companyId: 'toyota'),
+        throwsA(
+          isA<StockPriceException>()
+              .having((e) => e.kind, 'kind', StockPriceErrorKind.invalidData)
+              .having((e) => e.retryable, 'retryable', false),
+        ),
+      );
+      expect(calls, 1);
+    });
+  }
   test('未指定時は本番Backend URLを使用する', () {
     final provider = BackendStockPriceProvider();
 

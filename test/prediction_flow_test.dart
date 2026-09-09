@@ -11,7 +11,7 @@ import 'package:kabuca_flutter/services/stock_price_service.dart';
 import 'package:kabuca_flutter/services/trading_calendar_service.dart';
 
 void main() {
-  testWidgets('所持情報だけを参照してUP予想を保存し結果待ち一覧で確認できる', (tester) async {
+  testWidgets('所持情報だけを参照してUP予想を保存し予想中一覧で確認できる', (tester) async {
     CompanyCard cardFor(CardRarity rarity) => CardCatalog.cards.firstWhere(
       (card) => card.companyId == 'toyota' && card.rarity == rarity,
     );
@@ -20,7 +20,9 @@ void main() {
     final gameState = GameState.memory(
       cardCounts: {toyotaN.id: 1, toyotaSr.id: 1},
     );
-    final predictionStore = PredictionStore.memory();
+    final predictionStore = PredictionStore.memory(
+      now: () => DateTime.utc(2026, 9, 1),
+    );
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -41,6 +43,11 @@ void main() {
       find.byKey(const Key('start-prediction-button')),
     );
     await tester.tap(find.byKey(const Key('start-prediction-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('prediction-category-list')), findsOneWidget);
+    await tester.tap(
+      find.byKey(Key('prediction-category-${toyotaN.industry}')),
+    );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('prediction-company-toyota')), findsOneWidget);
     expect(find.byKey(const Key('prediction-company-nintendo')), findsNothing);
@@ -76,6 +83,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('prediction-category-list')), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
     await tester.ensureVisible(
       find.byKey(const Key('waiting-predictions-button')),
     );
@@ -84,7 +94,7 @@ void main() {
     expect(find.byKey(const Key('prediction-list')), findsOneWidget);
     expect(find.text('トヨタ自動車'), findsOneWidget);
     expect(find.textContaining('1週間後'), findsOneWidget);
-    expect(find.textContaining('UP  ・  結果待ち'), findsOneWidget);
+    expect(find.textContaining('UP  ・  予想中'), findsOneWidget);
   });
 }
 

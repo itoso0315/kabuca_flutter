@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/app_theme.dart';
@@ -168,7 +169,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 SizedBox(width: 10),
-                Text('現在の株価を取得中…'),
+                Text('予想開始価格を確認しています…'),
               ],
             ),
             const SizedBox(height: 14),
@@ -184,6 +185,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
     final card = widget.company.representative;
     if (widget.predictionStore.hasWaiting(widget.company.companyId, _horizon)) {
       setState(() => _error = 'この企業・期間の予想はすでに結果待ちです');
@@ -193,25 +195,36 @@ class _PredictionScreenState extends State<PredictionScreen> {
       _saving = true;
       _error = null;
     });
+    var stage = 'startingClose';
     try {
       final priceService =
           widget.stockPriceService ?? StockPriceService.production();
-      final quote = await priceService.fetchCurrentPrice(
-        ticker: card.ticker,
-        companyId: widget.company.companyId,
-      );
       final calendar =
           widget.tradingCalendarService ?? TradingCalendarService();
+      final createdAt = priceService.clock().toUtc();
+      final startingPrice = await priceService.fetchStartingPrice(
+        ticker: card.ticker,
+        companyId: widget.company.companyId,
+        createdAt: createdAt,
+        calendar: calendar,
+      );
+      stage = 'calendar';
+      final targetDate = calendar.resolveTargetTradingDay(
+        createdAt,
+        _horizon,
+      );
+      stage = 'save';
       final prediction = await widget.predictionStore.addWaiting(
         companyId: widget.company.companyId,
         companyName: card.companyName,
         ticker: card.ticker,
         direction: _direction!,
         horizon: _horizon,
-        createdAt: quote.fetchedAt,
-        basePrice: quote.price,
-        basePriceAt: quote.fetchedAt,
-        targetDate: calendar.resolveTargetTradingDay(quote.fetchedAt, _horizon),
+        createdAt: createdAt,
+        basePrice: startingPrice.close,
+        basePriceAt: startingPrice.fetchedAt,
+        basePriceDate: startingPrice.tradingDate,
+        targetDate: targetDate,
       );
       if (!mounted) return;
       if (prediction == null) {
@@ -220,14 +233,35 @@ class _PredictionScreenState extends State<PredictionScreen> {
         setState(() => _saved = prediction);
       }
     } on StockPriceException catch (error) {
-      if (mounted) setState(() => _error = '${error.message}\n時間をおいて再試行してください');
-    } catch (_) {
+      _logSaveFailure(stage, error);
       if (mounted) {
-        setState(() => _error = '現在の株価を取得できませんでした\n再試行してください');
+        setState(
+          () => _error = error.retryable
+              ? '予想開始価格を取得できませんでした\n${error.message}\n時間をおいて再試行してください'
+              : '予想開始価格を取得できませんでした\n${error.message}',
+        );
+      }
+    } catch (error, stackTrace) {
+      _logSaveFailure(stage, error, stackTrace);
+      if (mounted) {
+        setState(
+          () => _error = stage == 'startingClose'
+              ? '予想開始価格を取得できませんでした\n時間をおいて再試行してください'
+              : '予想を保存できませんでした\n再試行してください',
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  void _logSaveFailure(String stage, Object error, [StackTrace? stackTrace]) {
+    if (!kDebugMode) return;
+    debugPrint(
+      '[Prediction] stage=$stage ticker=${widget.company.representative.ticker} '
+      'companyId=${widget.company.companyId} exception=${error.runtimeType}',
+    );
+    if (stackTrace != null) debugPrintStack(stackTrace: stackTrace);
   }
 }
 
@@ -328,11 +362,17 @@ class _Completion extends StatelessWidget {
               const SizedBox(height: 8),
               if (prediction.basePrice case final price?) ...[
                 Text(
-                  '基準株価  ${formatYen(price)}',
+                  '予想開始価格  ${formatYen(price)}',
                   key: const Key('completion-base-price'),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 5),
+                if (prediction.basePriceDate case final date?)
+                  Text(
+                    '${formatDate(date)} の確定終値',
+                    key: const Key('completion-base-price-date'),
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  ),
               ],
               if (prediction.targetDate case final target?)
                 Text(

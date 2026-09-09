@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/stock_prediction.dart';
+import '../services/trading_calendar_service.dart';
 
 abstract interface class PredictionStorage {
   Future<List<StockPrediction>> readPredictions();
@@ -36,25 +37,60 @@ class SharedPreferencesPredictionStorage implements PredictionStorage {
 }
 
 class PredictionStore extends ChangeNotifier {
-  PredictionStore._(this._storage, Iterable<StockPrediction> predictions)
-    : _predictions = List.of(predictions);
+  PredictionStore._(
+    this._storage,
+    Iterable<StockPrediction> predictions,
+    DateTime Function()? now,
+  ) : _predictions = List.of(predictions),
+      _now = now ?? DateTime.now;
 
   final PredictionStorage _storage;
   final List<StockPrediction> _predictions;
+  final DateTime Function() _now;
+  Future<void> _mutationTail = Future<void>.value();
+
+  DateTime get now => _now();
+
+  // targetDate is a Japanese calendar date encoded as UTC midnight, not an
+  // instant at UTC midnight. Use the same date convention as the resolver.
+  bool isPending(StockPrediction prediction) =>
+      prediction.status == PredictionStatus.waiting &&
+      prediction.targetDate != null &&
+      prediction.targetDate!.isAfter(JapanTime.dateOf(now));
+
+  List<StockPrediction> get pendingPredictions =>
+      _predictions.where(isPending).toList(growable: false);
+
+  // Old waiting records without a target date stay visible on the result side.
+  List<StockPrediction> get resultPredictions => _predictions
+      .where((prediction) => !isPending(prediction))
+      .toList(growable: false);
+
+  int get unseenResultCount => resultPredictions
+      .where((prediction) => !prediction.resultSeen)
+      .map((prediction) => prediction.id)
+      .toSet()
+      .length;
+
+  void refreshTime() => notifyListeners();
 
   List<StockPrediction> get predictions => List.unmodifiable(_predictions);
   List<StockPrediction> get waitingPredictions => _predictions
       .where((prediction) => prediction.status == PredictionStatus.waiting)
       .toList(growable: false);
 
-  static Future<PredictionStore> load({PredictionStorage? storage}) async {
+  static Future<PredictionStore> load({
+    PredictionStorage? storage,
+    DateTime Function()? now,
+  }) async {
     final target = storage ?? SharedPreferencesPredictionStorage();
-    return PredictionStore._(target, await target.readPredictions());
+    return PredictionStore._(target, await target.readPredictions(), now);
   }
 
   static PredictionStore memory({
     Iterable<StockPrediction> predictions = const [],
-  }) => PredictionStore._(_MemoryPredictionStorage(), predictions);
+    DateTime Function()? now,
+  }) => PredictionStore._(_MemoryPredictionStorage(), predictions, now);
 
   bool hasWaiting(String companyId, PredictionHorizon horizon) =>
       _predictions.any(
@@ -102,7 +138,7 @@ class PredictionStore extends ChangeNotifier {
     required int movementBonus,
     required int streakBonus,
     required int correctStreak,
-  }) async {
+  }) => _mutate(() async {
     final index = _predictions.indexWhere((item) => item.id == id);
     if (index < 0 || _predictions[index].status != PredictionStatus.waiting) {
       return null;
@@ -119,18 +155,18 @@ class PredictionStore extends ChangeNotifier {
       streakBonus: streakBonus,
       correctStreak: correctStreak,
       pointsClaimed: false,
+      // A result that finishes after its resolving row was seen is new again.
+      resultSeen: false,
     );
-    _predictions[index] = completed;
-    notifyListeners();
-    await _storage.writePredictions(_predictions);
+    await _commit(List<StockPrediction>.of(_predictions)..[index] = completed);
     return completed;
-  }
+  });
 
   Future<StockPrediction?> markPointsClaimed(
     String id, {
     required bool claimed,
     DateTime? claimedAt,
-  }) async {
+  }) => _mutate(() async {
     final index = _predictions.indexWhere((item) => item.id == id);
     if (index < 0 || _predictions[index].status != PredictionStatus.completed) {
       return null;
@@ -140,10 +176,29 @@ class PredictionStore extends ChangeNotifier {
       pointsClaimedAt: claimed ? claimedAt ?? DateTime.now().toUtc() : null,
     );
     final next = List<StockPrediction>.of(_predictions)..[index] = updated;
-    await _storage.writePredictions(next);
-    _predictions[index] = updated;
-    notifyListeners();
+    await _commit(next);
     return updated;
+  });
+
+  /// Acknowledge only the state actually shown. If a waiting row completes
+  /// while this write is queued, its newly available result stays unseen.
+  Future<void> markResultsSeen(Iterable<StockPrediction> viewed) {
+    final versions = {
+      for (final prediction in viewed) prediction.id: prediction.status,
+    };
+    return _mutate(() async {
+      var changed = false;
+      final next = _predictions.map((prediction) {
+        if (versions[prediction.id] != prediction.status ||
+            prediction.resultSeen ||
+            isPending(prediction)) {
+          return prediction;
+        }
+        changed = true;
+        return prediction.copyWith(resultSeen: true);
+      }).toList();
+      if (changed) await _commit(next);
+    });
   }
 
   Future<StockPrediction?> addWaiting({
@@ -155,8 +210,9 @@ class PredictionStore extends ChangeNotifier {
     required double basePrice,
     required DateTime basePriceAt,
     required DateTime targetDate,
+    DateTime? basePriceDate,
     DateTime? createdAt,
-  }) async {
+  }) => _mutate(() async {
     if (hasWaiting(companyId, horizon)) return null;
     final timestamp = createdAt ?? DateTime.now();
     final prediction = StockPrediction(
@@ -170,18 +226,32 @@ class PredictionStore extends ChangeNotifier {
       status: PredictionStatus.waiting,
       basePrice: basePrice,
       basePriceAt: basePriceAt,
+      basePriceDate: basePriceDate,
       targetDate: targetDate,
     );
-    _predictions.add(prediction);
-    notifyListeners();
-    await _storage.writePredictions(_predictions);
+    await _commit([..._predictions, prediction]);
     return prediction;
+  });
+
+  Future<void> resetDevelopmentData() => _mutate(() => _commit([]));
+
+  // Seen-state, resolution and reward writes must not overwrite each other's
+  // fields when automatic checks and user actions happen at the same time.
+  Future<T> _mutate<T>(Future<T> Function() action) {
+    final result = _mutationTail.then((_) => action());
+    _mutationTail = result.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return result;
   }
 
-  Future<void> resetDevelopmentData() async {
-    _predictions.clear();
+  Future<void> _commit(List<StockPrediction> next) async {
+    await _storage.writePredictions(next);
+    _predictions
+      ..clear()
+      ..addAll(next);
     notifyListeners();
-    await _storage.writePredictions(_predictions);
   }
 }
 

@@ -1,4 +1,1 @@
-enum PackType {
-  starter,
-  premium,
-}
+enum PackType { starter, premium }

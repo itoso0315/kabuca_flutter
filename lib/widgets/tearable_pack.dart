@@ -215,80 +215,83 @@ class _PackLayers extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           if (completionLift > 0)
-  Positioned(
-    left: 2,
-    right: 2,
-    top: tearY - 62,
-    height: 150,
-    child: IgnorePointer(
-      child: Opacity(
-        opacity: openingGlow,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: const Alignment(0, -0.08),
-              radius: 0.72,
-              colors: [
-                const Color(0xFFFFFBE8).withValues(
-                  alpha: 0.94 * openingGlow,
+            Positioned(
+              left: 2,
+              right: 2,
+              top: tearY - 62,
+              height: 150,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: openingGlow,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        center: const Alignment(0, -0.08),
+                        radius: 0.72,
+                        colors: [
+                          const Color(
+                            0xFFFFFBE8,
+                          ).withValues(alpha: 0.94 * openingGlow),
+                          (isPremium
+                                  ? const Color(0xFFFFD66B)
+                                  : const Color(0xFFFFE4A0))
+                              .withValues(alpha: 0.62 * openingGlow),
+                          const Color(
+                            0xFFFFD66B,
+                          ).withValues(alpha: 0.20 * openingGlow),
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.24, 0.52, 1.0],
+                      ),
+                    ),
+                  ),
                 ),
-                (isPremium
-                        ? const Color(0xFFFFD66B)
-                        : const Color(0xFFFFE4A0))
-                    .withValues(alpha: 0.62 * openingGlow),
-                const Color(0xFFFFD66B).withValues(
-                  alpha: 0.20 * openingGlow,
-                ),
-                Colors.transparent,
-              ],
-              stops: const [0.0, 0.24, 0.52, 1.0],
+              ),
             ),
-          ),
-        ),
-      ),
-    ),
-  ),
 
-if (completionLift > 0)
-  Positioned(
-    left: 18,
-    right: 18,
-    top: tearY - 5,
-    height: 12,
-    child: IgnorePointer(
-      child: Opacity(
-        opacity: openingFlash,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFFFF2B8)
-                    .withValues(alpha: 0.95),
-                blurRadius: 22,
-                spreadRadius: 6,
+          if (completionLift > 0)
+            Positioned(
+              left: 18,
+              right: 18,
+              top: tearY - 5,
+              height: 12,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: openingFlash,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(
+                            0xFFFFF2B8,
+                          ).withValues(alpha: 0.95),
+                          blurRadius: 22,
+                          spreadRadius: 6,
+                        ),
+                        BoxShadow(
+                          color: const Color(
+                            0xFFFFD66B,
+                          ).withValues(alpha: 0.65),
+                          blurRadius: 42,
+                          spreadRadius: 13,
+                        ),
+                      ],
+                      color: const Color(0xFFFFF9DC),
+                    ),
+                  ),
+                ),
               ),
-              BoxShadow(
-                color: const Color(0xFFFFD66B)
-                    .withValues(alpha: 0.65),
-                blurRadius: 42,
-                spreadRadius: 13,
-              ),
-            ],
-            color: const Color(0xFFFFF9DC),
-          ),
-        ),
-      ),
-    ),
-  ),
+            ),
           if (progress > .7)
             Positioned(
               left: 35,
               top: 56 - completionLift * 22,
               child: Opacity(
-                opacity: (((progress - .7) / .3).clamp(0, 1) * .9 +
-                        completionLift * .1)
-                     .clamp(0.0, 1.0),
+                opacity:
+                    (((progress - .7) / .3).clamp(0, 1) * .9 +
+                            completionLift * .1)
+                        .clamp(0.0, 1.0),
                 child: const KabucaCardBack(width: 210, height: 294),
               ),
             ),
@@ -423,23 +426,13 @@ class _PackBody extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isPremium
-              ? const [
-                  Color(0xFF1A1D1C),
-                  Color(0xFF0C0F0E),
-                  Color(0xFF020303),
-                ]
-              : const [
-                  Color(0xFF123C31),
-                  Color(0xFF071B16),
-                  Color(0xFF030A08),
-                ],
+              ? const [Color(0xFF1A1D1C), Color(0xFF0C0F0E), Color(0xFF020303)]
+              : const [Color(0xFF123C31), Color(0xFF071B16), Color(0xFF030A08)],
           stops: const [0, .58, 1],
         ),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isPremium
-              ? const Color(0xFFD9B75E)
-              : const Color(0xFF8D6C2E),
+          color: isPremium ? const Color(0xFFD9B75E) : const Color(0xFF8D6C2E),
           width: isPremium ? 1.5 : 1.2,
         ),
         boxShadow: [
@@ -455,9 +448,7 @@ class _PackBody extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(
-            child: CustomPaint(
-              painter: _PackBodyPainter(isPremium: isPremium),
-            ),
+            child: CustomPaint(painter: _PackBodyPainter(isPremium: isPremium)),
           ),
           if (isPremium)
             Positioned.fill(
@@ -716,11 +707,7 @@ class _TearEdgePainter extends CustomPainter {
       ..color = const Color(0xFFFFF7D8)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
     canvas.drawCircle(tip, 5 + tension * 3, tipGlow);
-    canvas.drawCircle(
-      tip,
-      2.2,
-      Paint()..color = const Color(0xFFFFFDF1),
-    );
+    canvas.drawCircle(tip, 2.2, Paint()..color = const Color(0xFFFFFDF1));
   }
 
   @override
@@ -736,9 +723,7 @@ class _PackBodyPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = isPremium
-          ? const Color(0x26F1D28A)
-          : const Color(0x20D8B45E)
+      ..color = isPremium ? const Color(0x26F1D28A) : const Color(0x20D8B45E)
       ..style = PaintingStyle.stroke;
     for (double y = 76; y < size.height - 40; y += 28) {
       for (double x = -14; x < size.width; x += 28) {
@@ -764,9 +749,7 @@ class _PackBodyPainter extends CustomPainter {
     canvas.drawPath(
       chart,
       paint
-        ..color = isPremium
-            ? const Color(0xB8F1D28A)
-            : const Color(0x99D8B45E)
+        ..color = isPremium ? const Color(0xB8F1D28A) : const Color(0x99D8B45E)
         ..strokeWidth = 1.6,
     );
   }
