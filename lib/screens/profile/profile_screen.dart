@@ -213,20 +213,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     label: const Text('予想結果を確認'),
                   ),
                   TextButton.icon(
-                    key: const Key('add-100-kabu-button'),
+                    key: const Key('add-1000-kabu-button'),
+
                     onPressed: widget.pointWallet == null
                         ? null
                         : () async {
-                            await widget.pointWallet!.refund(100);
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('開発用に100 KABU追加しました'),
-                              ),
-                            );
+                            await widget.pointWallet!.refund(1000);
                           },
-                    icon: const Icon(Icons.stars_rounded),
-                    label: const Text('+100 KABU'),
+
+                    icon: const Icon(Icons.auto_awesome_rounded),
+
+                    label: const Text('+1000 KABU'),
                   ),
                   TextButton.icon(
                     key: const Key('add-sample-notification-button'),

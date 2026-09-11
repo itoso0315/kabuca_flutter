@@ -50,9 +50,25 @@ class CompanyCardArtwork extends StatelessWidget {
             borderRadius: BorderRadius.circular(radius + 4),
             boxShadow: [
               BoxShadow(
-                color: rarity.border.withValues(alpha: rarity.glowAlpha),
-                blurRadius: card.rarity == CardRarity.ur ? 28 : 15,
-                spreadRadius: card.rarity.index >= CardRarity.sr.index ? 2 : 0,
+                color: rarity.border.withValues(
+                  alpha: card.rarity == CardRarity.ur
+                      ? .78
+                      : card.rarity == CardRarity.sr
+                      ? .58
+                      : rarity.glowAlpha,
+                ),
+
+                blurRadius: card.rarity == CardRarity.ur
+                    ? 42
+                    : card.rarity == CardRarity.sr
+                    ? 28
+                    : 15,
+
+                spreadRadius: card.rarity == CardRarity.ur
+                    ? 5
+                    : card.rarity == CardRarity.sr
+                    ? 3
+                    : 0,
               ),
               const BoxShadow(
                 color: Color(0x66000000),
@@ -97,6 +113,8 @@ class CompanyCardArtwork extends StatelessWidget {
                   const Positioned.fill(child: _SuperRareSparkle()),
                 if (card.rarity == CardRarity.ur)
                   const Positioned.fill(child: _UltraGloss()),
+                if (card.rarity == CardRarity.ur)
+                  const Positioned.fill(child: _UltraSparkleOverlay()),
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     compact ? 9 : 15,
@@ -390,25 +408,18 @@ class _SuperRareSparklePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: .48)
-      ..strokeWidth = 1.1
-      ..strokeCap = StrokeCap.round;
-    const positions = [
-      Offset(.18, .18),
-      Offset(.74, .16),
-      Offset(.56, .34),
-      Offset(.84, .52),
-      Offset(.28, .62),
-      Offset(.68, .78),
-      Offset(.16, .86),
-    ];
-    for (var i = 0; i < positions.length; i++) {
+    final random = math.Random(73);
+    for (var i = 0; i < 34; i++) {
       final center = Offset(
-        positions[i].dx * size.width,
-        positions[i].dy * size.height,
+        random.nextDouble() * size.width,
+        random.nextDouble() * size.height,
       );
-      final length = i.isEven ? 8.0 : 5.5;
+      final length = 2.5 + random.nextDouble() * 8.5;
+      final alpha = .28 + random.nextDouble() * .42;
+      final paint = Paint()
+        ..color = Colors.white.withValues(alpha: alpha)
+        ..strokeWidth = .7 + random.nextDouble() * 1.2
+        ..strokeCap = StrokeCap.round;
       canvas.drawLine(
         center.translate(-length, 0),
         center.translate(length, 0),
@@ -419,15 +430,25 @@ class _SuperRareSparklePainter extends CustomPainter {
         center.translate(0, length),
         paint,
       );
-      canvas.drawCircle(center, 1.6, Paint()..color = Colors.white);
+      canvas.drawCircle(
+        center,
+        .8 + random.nextDouble() * 1.8,
+        Paint()
+          ..color = Colors.white.withValues(alpha: math.min(alpha + .2, 1)),
+      );
     }
-
     final sheen = Paint()
       ..shader = const LinearGradient(
-        begin: Alignment(-1.2, -1),
-        end: Alignment(1.1, 1),
-        colors: [Colors.transparent, Color(0x24FFFFFF), Colors.transparent],
-        stops: [.28, .5, .72],
+        begin: Alignment(-1.35, -1),
+        end: Alignment(1.25, 1),
+        colors: [
+          Color(0x00FFFFFF),
+          Color(0x22FF8FD8),
+          Color(0x2C8FE7FF),
+          Color(0x24FFF3A1),
+          Color(0x00FFFFFF),
+        ],
+        stops: [.12, .34, .5, .66, .88],
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, sheen);
   }
@@ -438,40 +459,170 @@ class _SuperRareSparklePainter extends CustomPainter {
 
 class _UltraGloss extends StatelessWidget {
   const _UltraGloss();
-
   @override
   Widget build(BuildContext context) => IgnorePointer(
     child: DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment(-1.1, -1),
-          end: Alignment(1.05, 1),
+          begin: Alignment(-1.25, -1),
+          end: Alignment(1.15, 1),
           colors: [
             Color(0x00FFFFFF),
-            Color(0x20FFF4C2),
-            Color(0x14BDEBFF),
-            Color(0x2BFFFFFF),
+            Color(0x34FFF0A8),
+            Color(0x30FF8FD8),
+            Color(0x348FE7FF),
+            Color(0x40FFFFFF),
             Color(0x00FFFFFF),
           ],
-          stops: [0, .28, .46, .58, 1],
+          stops: [0, .20, .36, .50, .62, 1],
         ),
       ),
     ),
   );
 }
 
+class _UltraSparkleOverlay extends StatelessWidget {
+  const _UltraSparkleOverlay();
+
+  @override
+  Widget build(BuildContext context) =>
+      IgnorePointer(child: CustomPaint(painter: _UltraSparklePainter()));
+}
+
+class _UltraSparklePainter extends CustomPainter {
+  const _UltraSparklePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(991);
+
+    for (var i = 0; i < 90; i++) {
+      final center = Offset(
+        random.nextDouble() * size.width,
+
+        random.nextDouble() * size.height,
+      );
+
+      final radius = .5 + random.nextDouble() * 1.8;
+
+      final alpha = .16 + random.nextDouble() * .42;
+
+      canvas.drawCircle(
+        center,
+
+        radius,
+
+        Paint()
+          ..blendMode = BlendMode.screen
+          ..color = Colors.white.withValues(alpha: alpha),
+      );
+    }
+
+    for (var i = 0; i < 18; i++) {
+      final center = Offset(
+        random.nextDouble() * size.width,
+
+        random.nextDouble() * size.height,
+      );
+
+      final length = 4 + random.nextDouble() * 10;
+
+      final paint = Paint()
+        ..blendMode = BlendMode.screen
+        ..color = Colors.white.withValues(alpha: .72)
+        ..strokeWidth = 1.2
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawLine(
+        center.translate(-length, 0),
+
+        center.translate(length, 0),
+
+        paint,
+      );
+
+      canvas.drawLine(
+        center.translate(0, -length),
+
+        center.translate(0, length),
+
+        paint,
+      );
+
+      canvas.drawCircle(center, 1.8, paint);
+    }
+
+    final flare = Paint()
+      ..blendMode = BlendMode.screen
+      ..shader = const LinearGradient(
+        begin: Alignment(-1.2, -.35),
+
+        end: Alignment(1.2, .35),
+
+        colors: [
+          Color(0x00FFFFFF),
+
+          Color(0x22FFFFFF),
+
+          Color(0x66FFF4C2),
+
+          Color(0x30FFFFFF),
+
+          Color(0x00FFFFFF),
+        ],
+
+        stops: [0, .38, .5, .62, 1],
+      ).createShader(Offset.zero & size);
+
+    canvas.drawRect(Offset.zero & size, flare);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class _UltraFrame extends StatelessWidget {
   const _UltraFrame();
+
   @override
   Widget build(BuildContext context) => IgnorePointer(
-    child: Padding(
-      padding: const EdgeInsets.all(6),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xAAFFE39B)),
-          borderRadius: BorderRadius.circular(10),
+    child: Stack(
+      children: [
+        Positioned.fill(
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFFFE7A6), width: 2.2),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x99FFE08A),
+                    blurRadius: 16,
+                    spreadRadius: 1.5,
+                  ),
+                  BoxShadow(
+                    color: Color(0x668FE7FF),
+                    blurRadius: 24,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-      ),
+        Positioned.fill(
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0x99FFFFFF), width: .8),
+                borderRadius: BorderRadius.circular(9),
+              ),
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }
