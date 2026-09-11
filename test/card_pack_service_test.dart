@@ -1,11 +1,21 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kabuca_flutter/data/card_catalog.dart';
 import 'package:kabuca_flutter/models/company_card.dart';
 import 'package:kabuca_flutter/services/card_pack_service.dart';
 import 'package:kabuca_flutter/models/pack_type.dart';
 
 void main() {
+  test('CardCatalogは日経225社×4レアリティの900枚を持つ', () {
+    expect(CardCatalog.cards, hasLength(225 * CardRarity.values.length));
+  });
+
+  test('CardCatalogには225社すべてのcompanyIdが含まれる', () {
+    final companyIds = CardCatalog.cards.map((card) => card.companyId).toSet();
+    expect(companyIds, hasLength(225));
+  });
+
   test('1パック3枚で同一企業は重複しない', () {
     for (var seed = 0; seed < 100; seed++) {
       final cards = CardPackService(random: Random(seed)).openPack();

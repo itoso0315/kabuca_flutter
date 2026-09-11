@@ -12,6 +12,7 @@ import 'state/prediction_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   runApp(
     MaterialApp(
       title: 'KABUCA',

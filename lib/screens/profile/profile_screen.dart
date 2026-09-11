@@ -1,14 +1,15 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../../app/app_theme.dart';
 import '../../data/card_catalog.dart';
 import '../../models/app_notification.dart';
 import '../../models/stock_prediction.dart';
+import '../../services/prediction_local_notification_service.dart';
 import '../../state/game_state.dart';
 import '../../state/notification_store.dart';
-import '../../state/prediction_store.dart';
 import '../../state/point_wallet.dart';
+import '../../state/prediction_store.dart';
 import '../debug/company_art_preview_screen.dart';
 import '../prediction/prediction_result_screen.dart';
 
@@ -32,6 +33,14 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _resetting = false;
+  bool _predictionNotificationsEnabled = false;
+  bool _loadingNotificationSetting = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationSetting();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +77,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
+            ),
+          ),
+          const SizedBox(height: 28),
+          Card(
+            child: SwitchListTile(
+              key: const Key('prediction-notification-switch'),
+              value: _predictionNotificationsEnabled,
+              onChanged: _loadingNotificationSetting
+                  ? null
+                  : _changePredictionNotifications,
+              secondary: const Icon(Icons.notifications_active_rounded),
+              title: const Text(
+                '予想結果の通知',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: const Text('答え合わせ予定日の17:00にお知らせします'),
             ),
           ),
           const SizedBox(height: 28),
@@ -164,6 +189,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: const Icon(Icons.add_alert_rounded),
                     label: const Text('サンプル通知を追加'),
                   ),
+                  TextButton.icon(
+                    key: const Key('test-local-notification-button'),
+                    onPressed: _scheduleTestLocalNotification,
+                    icon: const Icon(Icons.notifications_active_rounded),
+                    label: const Text('1分後にテスト通知'),
+                  ),
                 ],
               ],
             ),
@@ -171,6 +202,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _loadNotificationSetting() async {
+    final enabled = await PredictionLocalNotificationService.instance
+        .isEnabled();
+
+    if (!mounted) return;
+
+    setState(() {
+      _predictionNotificationsEnabled = enabled;
+      _loadingNotificationSetting = false;
+    });
+  }
+
+  Future<void> _changePredictionNotifications(bool enabled) async {
+    if (enabled) {
+      final granted = await PredictionLocalNotificationService.instance
+          .enable();
+
+      if (!mounted) return;
+
+      setState(() {
+        _predictionNotificationsEnabled = granted;
+      });
+
+      if (granted) {
+        await PredictionLocalNotificationService.instance.scheduleAll(
+          widget.predictionStore.pendingPredictions,
+        );
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('予想結果の通知をONにしました')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('通知が許可されていません')),
+        );
+      }
+    } else {
+      await PredictionLocalNotificationService.instance.disable();
+
+      if (!mounted) return;
+
+      setState(() {
+        _predictionNotificationsEnabled = false;
+      });
+    }
   }
 
   Future<void> _confirmReset() async {
@@ -243,6 +323,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       MaterialPageRoute<void>(
         builder: (context) => PredictionResultScreen(prediction: prediction),
       ),
+    );
+  }
+
+  Future<void> _scheduleTestLocalNotification() async {
+    await PredictionLocalNotificationService.instance
+        .scheduleTestNotification();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('1分後のテスト通知を予約しました')),
     );
   }
 

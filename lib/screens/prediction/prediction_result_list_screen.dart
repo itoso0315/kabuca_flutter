@@ -133,7 +133,18 @@ class _PredictionResultListScreenState
                       : status == PredictionResolutionStatus.splitDetected
                       ? '株式分割の影響を確認中です'
                       : '終値の更新を待っています';
+                  final cardColor = !completed
+                      ? Colors.white
+                      : prediction.isCorrect == true
+                      ? const Color(0xFFE8F5E9)
+                      : const Color(0xFFFFEBEE);
+                  final resultColor = !completed
+                      ? AppColors.deepGreen
+                      : prediction.isCorrect == true
+                      ? const Color(0xFF2E7D32)
+                      : const Color(0xFFC62828);
                   return Card(
+                    color: cardColor,
                     child: ListTile(
                       key: Key('prediction-result-${prediction.id}'),
                       contentPadding: const EdgeInsets.all(16),
@@ -143,7 +154,7 @@ class _PredictionResultListScreenState
                                   ? Icons.check_circle_rounded
                                   : Icons.cancel_rounded)
                             : Icons.schedule_rounded,
-                        color: AppColors.deepGreen,
+                        color: resultColor,
                       ),
                       title: Text(prediction.companyName),
                       subtitle: Column(

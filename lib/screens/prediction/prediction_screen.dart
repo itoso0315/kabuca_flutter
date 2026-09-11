@@ -6,6 +6,7 @@ import '../../models/company_card.dart';
 import '../../models/stock_prediction.dart';
 import '../../services/owned_company_service.dart';
 import '../../services/prediction_formatters.dart';
+import '../../services/prediction_local_notification_service.dart';
 import '../../services/stock_price_service.dart';
 import '../../services/trading_calendar_service.dart';
 import '../../state/prediction_store.dart';
@@ -209,10 +210,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
         calendar: calendar,
       );
       stage = 'calendar';
-      final targetDate = calendar.resolveTargetTradingDay(
-        createdAt,
-        _horizon,
-      );
+      final targetDate = calendar.resolveTargetTradingDay(createdAt, _horizon);
       stage = 'save';
       final prediction = await widget.predictionStore.addWaiting(
         companyId: widget.company.companyId,
@@ -226,10 +224,20 @@ class _PredictionScreenState extends State<PredictionScreen> {
         basePriceDate: startingPrice.tradingDate,
         targetDate: targetDate,
       );
-      if (!mounted) return;
       if (prediction == null) {
         setState(() => _error = 'この企業・期間の予想はすでに結果待ちです');
       } else {
+        try {
+          await PredictionLocalNotificationService.instance.scheduleFor(
+            prediction,
+          );
+        } catch (error, stackTrace) {
+          if (kDebugMode) {
+            debugPrint('[PredictionNotification] schedule failed: $error');
+            debugPrintStack(stackTrace: stackTrace);
+          }
+        }
+        if (!mounted) return;
         setState(() => _saved = prediction);
       }
     } on StockPriceException catch (error) {
@@ -331,65 +339,70 @@ class _Completion extends StatelessWidget {
   final StockPrediction prediction;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(
-      child: Center(
-        key: const Key('prediction-complete'),
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.schedule_rounded,
-                color: AppColors.deepGreen,
-                size: 58,
-              ),
-              const SizedBox(height: 18),
-              Text(
-                '予想を記録しました',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 18),
-              Text(
-                prediction.companyName,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              Text(
-                '${prediction.horizon.label}  ${prediction.direction.label}',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              const SizedBox(height: 8),
-              if (prediction.basePrice case final price?) ...[
-                Text(
-                  '予想開始価格  ${formatYen(price)}',
-                  key: const Key('completion-base-price'),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          key: const Key('prediction-complete'),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.schedule_rounded,
+                  color: AppColors.deepGreen,
+                  size: 58,
                 ),
-                const SizedBox(height: 5),
-                if (prediction.basePriceDate case final date?)
+                const SizedBox(height: 18),
+                Text(
+                  '予想を記録しました',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  prediction.companyName,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                Text(
+                  '${prediction.horizon.label}  ${prediction.direction.label}',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 8),
+                if (prediction.basePrice case final price?) ...[
                   Text(
-                    '${formatDate(date)} の確定終値',
-                    key: const Key('completion-base-price-date'),
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    '予想開始価格  ${formatYen(price)}',
+                    key: const Key('completion-base-price'),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
-              ],
-              if (prediction.targetDate case final target?)
-                Text(
-                  '答え合わせ予定  ${formatDate(target)}',
-                  key: const Key('completion-target-date'),
+                  const SizedBox(height: 5),
+                  if (prediction.basePriceDate case final date?)
+                    Text(
+                      '${formatDate(date)} の確定終値',
+                      key: const Key('completion-base-price-date'),
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
+                if (prediction.targetDate case final target?)
+                  Text(
+                    '答え合わせ予定  ${formatDate(target)}',
+                    key: const Key('completion-target-date'),
+                  ),
+                const SizedBox(height: 8),
+                const Text('結果を待とう'),
+                const SizedBox(height: 28),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('企業一覧へ戻る'),
                 ),
-              const SizedBox(height: 8),
-              const Text('結果を待とう'),
-              const SizedBox(height: 28),
-              FilledButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('企業一覧へ戻る'),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/card_catalog.dart';
 import '../../models/pack_type.dart';
@@ -52,134 +53,137 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _LifecycleRefresh(
-      builder: (context) => ListenableBuilder(
-        listenable: Listenable.merge([
-          gameState,
-          predictionStore,
-          notificationStore,
-          ?pointWallet,
-        ]),
-        builder: (context, _) => SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Semantics(
-                          header: true,
-                          child: const Text(
-                            'KABUCA',
-                            key: Key('home-brand-logo'),
-                            style: TextStyle(
-                              color: Color(0xFF123D33),
-                              fontSize: 31,
-                              height: 1,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 6.2,
+    return _FirstLaunchOnboarding(
+      child: _LifecycleRefresh(
+        builder: (context) => ListenableBuilder(
+          listenable: Listenable.merge([
+            gameState,
+            predictionStore,
+            notificationStore,
+            ?pointWallet,
+          ]),
+          builder: (context, _) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Semantics(
+                            header: true,
+                            child: const Text(
+                              'KABUCA',
+                              key: Key('home-brand-logo'),
+                              style: TextStyle(
+                                color: Color(0xFF123D33),
+                                fontSize: 31,
+                                height: 1,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 6.2,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      _PointBalanceButton(
-                        points: pointWallet?.currentPoints ?? 0,
-                        onPressed:
-                            pointWallet == null || exchangeService == null
-                            ? null
-                            : () => _openExchange(context),
-                      ),
-                      PredictionResultBell(
-                        store: predictionStore,
-                        onPressed: () => _openPredictionResults(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    gameState.totalOwnedCardCount == 0
-                        ? '企業を集めて、未来を予想しよう。'
-                        : '集めよう、日本の企業。',
-                    key: const Key('home-guidance-copy'),
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 28),
-                  if (gameState.hasFreeStarterPackToday) ...[
-                    _DailyFreePackBanner(
-                      onOpen: () => _openDailyFreeStarterPack(context),
+                        _PointBalanceButton(
+                          points: pointWallet?.currentPoints ?? 0,
+                          onPressed:
+                              pointWallet == null || exchangeService == null
+                              ? null
+                              : () => _openExchange(context),
+                        ),
+                        PredictionResultBell(
+                          store: predictionStore,
+                          onPressed: () => _openPredictionResults(context),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 4),
+                    Text(
+                      gameState.totalOwnedCardCount == 0
+                          ? '企業を集めて、未来を予想しよう。'
+                          : '集めよう、日本の企業。',
+                      key: const Key('home-guidance-copy'),
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 28),
+                    if (gameState.hasFreeStarterPackToday) ...[
+                      _DailyFreePackBanner(
+                        onOpen: () => _openDailyFreeStarterPack(context),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    _PackCarousel(
+                      starterPackCount: gameState.starterPackCount,
+                      premiumPackCount: gameState.premiumPackCount,
+                      kabuBalance: pointWallet?.currentPoints ?? 0,
+                      canExchange:
+                          pointWallet != null && exchangeService != null,
+                      onOpenStarter: () => _openPack(context, PackType.starter),
+                      onOpenPremium: () => _openPack(context, PackType.premium),
+                      onBuyStarter: () =>
+                          _openPackWithKabu(context, PackType.starter),
+                      onBuyPremium: () =>
+                          _openPackWithKabu(context, PackType.premium),
+                    ),
+                    const SizedBox(height: 18),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              '株価予想',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 5),
+                            const Text(
+                              '持っている企業から未来を予想しよう',
+                              style: TextStyle(color: Color(0xFF66736C)),
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              key: const Key('start-prediction-button'),
+                              onPressed: () => _openPrediction(context),
+                              icon: const Icon(Icons.insights_rounded),
+                              label: const Text('予想する'),
+                            ),
+                            TextButton(
+                              key: const Key('waiting-predictions-button'),
+                              onPressed: () => _openPredictionList(context),
+                              child: Text(
+                                '予想中を見る（${predictionStore.pendingPredictions.length}）',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: HomeStatCard(
+                            label: '所持カード',
+                            value: '${gameState.totalOwnedCardCount}枚',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: HomeStatCard(
+                            label: '図鑑コンプリート率',
+                            value:
+                                '${gameState.registeredCardCount * 100 ~/ CardCatalog.cards.length}%',
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
-                  _PackCarousel(
-                    starterPackCount: gameState.starterPackCount,
-                    premiumPackCount: gameState.premiumPackCount,
-                    kabuBalance: pointWallet?.currentPoints ?? 0,
-                    canExchange: pointWallet != null && exchangeService != null,
-                    onOpenStarter: () => _openPack(context, PackType.starter),
-                    onOpenPremium: () => _openPack(context, PackType.premium),
-                    onBuyStarter: () =>
-                        _openPackWithKabu(context, PackType.starter),
-                    onBuyPremium: () =>
-                        _openPackWithKabu(context, PackType.premium),
-                  ),
-                  const SizedBox(height: 18),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            '株価予想',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 5),
-                          const Text(
-                            '持っている企業から未来を予想しよう',
-                            style: TextStyle(color: Color(0xFF66736C)),
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton.icon(
-                            key: const Key('start-prediction-button'),
-                            onPressed: () => _openPrediction(context),
-                            icon: const Icon(Icons.insights_rounded),
-                            label: const Text('予想する'),
-                          ),
-                          TextButton(
-                            key: const Key('waiting-predictions-button'),
-                            onPressed: () => _openPredictionList(context),
-                            child: Text(
-                              '予想中を見る（${predictionStore.pendingPredictions.length}）',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: HomeStatCard(
-                          label: '所持カード',
-                          value: '${gameState.totalOwnedCardCount}枚',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: HomeStatCard(
-                          label: '図鑑コンプリート率',
-                          value:
-                              '${gameState.registeredCardCount * 100 ~/ CardCatalog.cards.length}%',
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -375,6 +379,131 @@ class HomeScreen extends StatelessWidget {
   void _consumePack(PackType type) {
     gameState.consumePack(type);
   }
+}
+
+class _FirstLaunchOnboarding extends StatefulWidget {
+  const _FirstLaunchOnboarding({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_FirstLaunchOnboarding> createState() => _FirstLaunchOnboardingState();
+}
+
+class _FirstLaunchOnboardingState extends State<_FirstLaunchOnboarding> {
+  static const _completedKey = 'onboarding.home_intro_completed';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showIfNeeded();
+    });
+  }
+
+  Future<void> _showIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    final completed = prefs.getBool(_completedKey) ?? false;
+    if (completed || !mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        key: const Key('first-launch-onboarding-dialog'),
+        icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFB39450)),
+        title: const Text('KABUCAへようこそ！'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _OnboardingItem(
+              icon: Icons.inventory_2_rounded,
+              title: 'まずは無料パック3個！',
+              description: '最初から3パック持っています。さっそく企業カードを集めよう。',
+            ),
+            SizedBox(height: 16),
+            _OnboardingItem(
+              icon: Icons.insights_rounded,
+              title: '株価予想でKABUを貯めよう',
+              description: '企業の株価が上がるか下がるか予想。結果に応じてKABUを獲得できます。',
+            ),
+            SizedBox(height: 16),
+            _OnboardingItem(
+              icon: Icons.menu_book_rounded,
+              title: '図鑑を埋めよう',
+              description: 'ゲットした企業カードは図鑑に登録されます。日本の企業をどんどん集めよう。',
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            key: const Key('complete-first-launch-onboarding-button'),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('KABUCAをはじめる'),
+          ),
+        ],
+      ),
+    );
+
+    await prefs.setBool(_completedKey, true);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+class _OnboardingItem extends StatelessWidget {
+  const _OnboardingItem({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4E9C8),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: const Color(0xFFA67D2D), size: 21),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Color(0xFF123D33),
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              description,
+              style: const TextStyle(
+                color: Color(0xFF66736C),
+                fontSize: 13,
+                height: 1.45,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 class _LifecycleRefresh extends StatefulWidget {
