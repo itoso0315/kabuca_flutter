@@ -122,7 +122,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('50 KABU'), findsOneWidget);
     expect(gameState.packCount, 4);
-    expect(find.text('スタートパックを1個獲得しました'), findsOneWidget);
+    expect(find.text('START PACKを1個獲得しました'), findsOneWidget);
     expect(find.byKey(const Key('pack-exchange-open-button')), findsOneWidget);
     await tester.tap(find.byKey(const Key('pack-exchange-open-button')));
     await tester.pumpAndSettle();

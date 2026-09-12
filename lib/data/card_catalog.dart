@@ -1,4 +1,5 @@
 import '../models/company_card.dart';
+import '../models/company_quiz_meta.dart';
 import 'company_master.dart';
 
 abstract final class CardCatalog {
@@ -34,6 +35,14 @@ abstract final class CardCatalog {
   );
 
   static int get companyCount => _enabledCompanyIds.length;
+
+  static final Map<String, CompanyQuizMeta> quizMetadata = {
+    for (final companyId in _enabledCompanyIds)
+      companyId:
+          (_detailedContentById[companyId] ??
+                  _CompanyCardContent.generic(CompanyMaster.byId(companyId)!))
+              .toQuizMeta(CompanyMaster.byId(companyId)!),
+  };
 
   /// Shares the N-card overview without maintaining separate reveal copy.
   static String? companyOverview(String companyId) {
@@ -93,6 +102,14 @@ class _CompanyCardContent {
     CardRarity.sr => strength,
     CardRarity.ur => story,
   };
+
+  CompanyQuizMeta toQuizMeta(CompanyMasterEntry company) => CompanyQuizMeta(
+    companyId: companyId,
+    industry: company.industry,
+    mainBusiness: businessTitle,
+    businessTags: List.unmodifiable([company.industry]),
+    quizFacts: List.unmodifiable([business, strength]),
+  );
 }
 
 final List<String> _enabledCompanyIds = List.unmodifiable(

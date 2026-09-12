@@ -7,6 +7,7 @@ import '../../app/app_theme.dart';
 import '../../models/app_notification.dart';
 import '../../models/stock_prediction.dart';
 import '../../services/prediction_local_notification_service.dart';
+import '../../services/quiz_daily_progress_store.dart';
 import '../../state/game_state.dart';
 import '../../state/notification_store.dart';
 import '../../state/point_wallet.dart';
@@ -22,18 +23,21 @@ class ProfileScreen extends StatefulWidget {
     required this.predictionStore,
     required this.notificationStore,
     this.pointWallet,
+    this.dailyProgressStore,
   });
 
   final GameState gameState;
   final PredictionStore predictionStore;
   final NotificationStore notificationStore;
   final PointWallet? pointWallet;
+  final QuizDailyProgressStore? dailyProgressStore;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  late final QuizDailyProgressStore _dailyProgressStore;
   bool _resetting = false;
   bool _predictionNotificationsEnabled = false;
   bool _loadingNotificationSetting = true;
@@ -43,6 +47,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _dailyProgressStore =
+        widget.dailyProgressStore ?? SharedPreferencesQuizDailyProgressStore();
     _loadNotificationSetting();
     _loadAppInfo();
   }
@@ -197,6 +203,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    key: const Key('quiz-daily-limit-reset-button'),
+                    onPressed: _resetting ? null : _resetQuizDailyLimit,
+                    icon: const Icon(Icons.quiz_rounded),
+                    label: const Text('クイズ1日上限をリセット'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF8C493C),
+                      side: const BorderSide(color: Color(0xFFC98F80)),
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   TextButton.icon(
                     key: const Key('company-art-preview-button'),
                     onPressed: () => Navigator.of(context).push(
@@ -296,6 +314,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: '図鑑を埋めよう',
               description: 'ゲットした企業カードは図鑑に登録されます。日本の企業をどんどん集めよう。',
             ),
+            SizedBox(height: 16),
+            _GuideItem(
+              icon: Icons.quiz_rounded,
+              title: '企業クイズに挑戦しよう',
+              description: '同じレアリティ・同じ業種の企業カード2枚でクイズに挑戦できます。1日10問まで遊べます。',
+            ),
           ],
         ),
         actions: [
@@ -394,6 +418,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('開発用データを初期化しました')));
+  }
+
+  Future<void> _resetQuizDailyLimit() async {
+    setState(() => _resetting = true);
+    await _dailyProgressStore.reset();
+    if (!mounted) return;
+    setState(() => _resetting = false);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('クイズの1日上限をリセットしました')));
   }
 
   void _openPredictionResultPreview() {

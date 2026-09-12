@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kabuca_flutter/app/app.dart';
 import 'package:kabuca_flutter/data/card_catalog.dart';
+import 'package:kabuca_flutter/data/company_quiz_meta_repository.dart';
 import 'package:kabuca_flutter/models/company_card.dart';
+import 'package:kabuca_flutter/models/company_quiz_meta.dart';
 import 'package:kabuca_flutter/models/company_stats.dart';
-import 'package:kabuca_flutter/models/quiz_question.dart';
 import 'package:kabuca_flutter/data/company_stats_repository.dart';
 import 'package:kabuca_flutter/screens/quiz/quiz_screen.dart';
 import 'package:kabuca_flutter/services/quiz_service.dart';
@@ -25,6 +26,15 @@ class _MemoryStatsRepository implements CompanyStatsRepository {
   Future<Map<String, CompanyStats>> load() async => stats;
 }
 
+class _MemoryQuizMetaRepository implements CompanyQuizMetaRepository {
+  _MemoryQuizMetaRepository(this.metadata);
+
+  final Map<String, CompanyQuizMeta> metadata;
+
+  @override
+  Future<Map<String, CompanyQuizMeta>> load() async => metadata;
+}
+
 CompanyStats _stats(String companyId, double base) => CompanyStats(
   companyId: companyId,
   revenue: base,
@@ -32,6 +42,18 @@ CompanyStats _stats(String companyId, double base) => CompanyStats(
   employees: base + 2,
   equityRatio: base + 3,
   fiscalYear: '2026-03',
+);
+
+CompanyQuizMeta _meta(
+  String companyId,
+  String fact, {
+  String industry = 'その他',
+}) => CompanyQuizMeta(
+  companyId: companyId,
+  industry: industry,
+  mainBusiness: fact,
+  businessTags: [industry],
+  quizFacts: [fact],
 );
 
 final _toyota = CardCatalog.cards.firstWhere(
@@ -45,6 +67,9 @@ final _toyotaSr = CardCatalog.cards.firstWhere(
 );
 final _hondaSr = CardCatalog.cards.firstWhere(
   (card) => card.companyId == 'honda' && card.rarity == CardRarity.sr,
+);
+final _nintendo = CardCatalog.cards.firstWhere(
+  (card) => card.companyId == 'nintendo' && card.rarity == CardRarity.n,
 );
 void main() {
   testWidgets('クイズタブを開くと所持カード不足の空状態が表示される', (tester) async {
@@ -62,7 +87,7 @@ void main() {
 
     expect(find.byKey(const Key('quiz-screen')), findsOneWidget);
     expect(find.byKey(const Key('quiz-empty-message')), findsOneWidget);
-    expect(find.text('クイズに挑戦するには、まず2社以上のカードを集めよう'), findsOneWidget);
+    expect(find.text('クイズに挑戦するには、まず2社以上の企業カードを集めよう'), findsOneWidget);
   });
 
   testWidgets('所持カード2社を比較し、回答後に数値と次の問題を表示できる', (tester) async {
@@ -97,7 +122,7 @@ void main() {
     expect(find.byKey(const Key('quiz-question-text')), findsOneWidget);
     expect(find.byKey(const Key('quiz-choice-toyota')), findsOneWidget);
     expect(find.byKey(const Key('quiz-choice-honda')), findsOneWidget);
-    expect(find.text('クイズに挑戦するには、まず2社以上のカードを集めよう'), findsNothing);
+    expect(find.byKey(const Key('quiz-empty-message')), findsNothing);
 
     final leftChoice = find.byKey(const Key('quiz-choice-toyota'));
     await tester.ensureVisible(leftChoice);
@@ -120,103 +145,166 @@ void main() {
         .onPressed!();
     await tester.pump();
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('quiz-question-text')), findsNothing);
-    expect(find.byKey(const Key('quiz-complete-message')), findsOneWidget);
+    expect(find.byKey(const Key('quiz-question-text')), findsOneWidget);
+    expect(find.byKey(const Key('quiz-complete-message')), findsNothing);
   });
 
-  test('クイズサービスは所持していない企業を出題せず、企業を重複させない', () async {
+  testWidgets('出題終了後に同じレアリティのカードを集めると再び挑戦できる', (tester) async {
+    final gameState = GameState.memory(
+      cardCounts: {_toyota.id: 1, _honda.id: 1},
+    );
     final service = QuizService(
-      repository: _MemoryStatsRepository(const {}),
+      metaRepository: _MemoryQuizMetaRepository({
+        'toyota': _meta('toyota', '自動車を手がける'),
+        'honda': const CompanyQuizMeta(
+          companyId: 'honda',
+          industry: 'その他',
+          mainBusiness: '自動車',
+          businessTags: ['自動車'],
+          quizFacts: [],
+        ),
+        'nintendo': _meta('nintendo', 'ゲームを手がける'),
+      }),
       random: Random(1),
     );
-    final stats = {
-      'toyota': _stats('toyota', 100),
-      'honda': _stats('honda', 50),
-      'nintendo': _stats('nintendo', 25),
-    };
 
+    await tester.pumpWidget(
+      MaterialApp(
+        home: QuizScreen(
+          gameState: gameState,
+          quizService: service,
+          dailyProgressStore: MemoryQuizDailyProgressStore(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('quiz-start-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('quiz-choice-toyota')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const Key('quiz-next-button'), skipOffstage: false),
+    );
+    tester
+        .widget<FilledButton>(find.byKey(const Key('quiz-next-button')))
+        .onPressed!();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('quiz-complete-message')), findsOneWidget);
+    await gameState.addCards([_nintendo]);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('quiz-start-button')), findsOneWidget);
+    expect(find.byKey(const Key('quiz-complete-message')), findsNothing);
+  });
+
+  test('クイズは所持していない企業を出題せず、同じ企業を比較しない', () {
+    final service = QuizService(random: Random(1));
     final question = service.generateQuestion(
       ownedCards: [_toyota, _honda],
-      stats: stats,
+      metadata: {
+        'toyota': _meta('toyota', '自動車を手がける'),
+        'honda': _meta('honda', '二輪車を手がける'),
+        'nintendo': _meta('nintendo', 'ゲームを手がける'),
+      },
     );
 
     expect(question, isNotNull);
     expect(question!.leftCard.companyId, isNot('nintendo'));
     expect(question.rightCard.companyId, isNot('nintendo'));
     expect(question.leftCard.companyId, isNot(question.rightCard.companyId));
-    expect(question.correctSide, QuizSide.left);
   });
 
-  test('同値しかない比較は出題しない', () {
-    final service = QuizService(
-      repository: _MemoryStatsRepository(const {}),
-      random: Random(1),
-    );
-    final sameStats = {
-      'toyota': _stats('toyota', 100),
-      'honda': _stats('honda', 100),
-    };
-
-    final question = service.generateQuestion(
+  test('同じレアリティのカードを2社分集めると最低1問は出題できる', () {
+    final question = QuizService(random: Random(1)).generateQuestion(
       ownedCards: [_toyota, _honda],
-      stats: sameStats,
+      metadata: {
+        'toyota': _meta('toyota', '自動車を手がける'),
+        'honda': _meta('honda', '二輪車を手がける'),
+      },
+    );
+
+    expect(question, isNotNull);
+  });
+
+  test('異なる業種のカード同士は出題しない', () {
+    final question = QuizService(random: Random(1)).generateQuestion(
+      ownedCards: [_toyota, _honda],
+      metadata: {
+        'toyota': _meta('toyota', '自動車を手がける', industry: '自動車'),
+        'honda': _meta('honda', '二輪車を手がける', industry: '輸送用機器'),
+      },
     );
 
     expect(question, isNull);
   });
 
-  test('出題済み問題は次の問題として再生成しない', () {
-    final service = QuizService(
-      repository: _MemoryStatsRepository(const {}),
-      random: Random(1),
+  test('異なるレアリティのカード同士は出題しない', () {
+    final question = QuizService(random: Random(1)).generateQuestion(
+      ownedCards: [_toyota, _hondaSr],
+      metadata: {
+        'toyota': _meta('toyota', '自動車を手がける'),
+        'honda': _meta('honda', '二輪車を手がける'),
+      },
     );
-    final stats = {
-      'toyota': _stats('toyota', 100),
-      'honda': _stats('honda', 50),
+
+    expect(question, isNull);
+  });
+
+  test('両社に共通する事実だけでは出題しない', () {
+    final question = QuizService(random: Random(1)).generateQuestion(
+      ownedCards: [_toyota, _honda],
+      metadata: {
+        'toyota': _meta('toyota', 'モビリティを手がける'),
+        'honda': _meta('honda', 'モビリティを手がける'),
+      },
+    );
+
+    expect(question, isNull);
+  });
+
+  test('出題済み問題を除外し、次の問題を生成できる', () {
+    final service = QuizService(random: Random(1));
+    final metadata = {
+      'toyota': CompanyQuizMeta(
+        companyId: 'toyota',
+        industry: '自動車',
+        mainBusiness: '自動車',
+        businessTags: ['自動車'],
+        quizFacts: ['自動車を手がける', '金融サービスを展開する'],
+      ),
+      'honda': _meta('honda', '二輪車を手がける', industry: '自動車'),
     };
     final first = service.generateQuestion(
       ownedCards: [_toyota, _honda],
-      stats: stats,
+      metadata: metadata,
     );
-
     final next = service.generateQuestion(
       ownedCards: [_toyota, _honda],
-      stats: stats,
+      metadata: metadata,
       excludedQuestionKeys: {service.questionKey(first!)},
     );
 
-    expect(next, isNull);
+    expect(next, isNotNull);
+    expect(service.questionKey(next!), isNot(service.questionKey(first)));
   });
 
-  test('レアリティが混在していても同じレアリティ同士だけを出題する', () {
-    final service = QuizService(
-      repository: _MemoryStatsRepository(const {}),
-      random: Random(1),
+  test('2社未満ではクラッシュせず出題しない', () {
+    final question = QuizService().generateQuestion(
+      ownedCards: [_toyota],
+      metadata: {'toyota': _meta('toyota', '自動車を手がける')},
     );
-    final stats = {
-      'toyota': _stats('toyota', 100),
-      'honda': _stats('honda', 50),
-    };
 
-    for (var attempt = 0; attempt < 20; attempt++) {
-      final question = service.generateQuestion(
-        ownedCards: [_toyota, _honda, _toyotaSr, _hondaSr],
-        stats: stats,
-      );
-      expect(question, isNotNull);
-      expect(question!.leftCard.rarity, question.rightCard.rarity);
-      expect(question.leftCard.companyId, isNot(question.rightCard.companyId));
-    }
+    expect(question, isNull);
   });
 
-  test('高レアリティの正解報酬は大きい', () {
-    final service = QuizService(
-      repository: _MemoryStatsRepository(const {}),
-      random: Random(1),
-    );
-    final question = service.generateQuestion(
+  test('高レアリティのカードは高い報酬を維持する', () {
+    final question = QuizService(random: Random(1)).generateQuestion(
       ownedCards: [_toyotaSr, _hondaSr],
-      stats: {'toyota': _stats('toyota', 100), 'honda': _stats('honda', 50)},
+      metadata: {
+        'toyota': _meta('toyota', '自動車を手がける'),
+        'honda': _meta('honda', '二輪車を手がける'),
+      },
     );
 
     expect(question!.rewardKabu, 20);

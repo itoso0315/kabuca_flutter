@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class QuizDailyProgress {
@@ -10,12 +11,13 @@ class QuizDailyProgress {
   final Set<String> usedKeys;
 }
 
-abstract interface class QuizDailyProgressStore {
+abstract interface class QuizDailyProgressStore implements Listenable {
   Future<QuizDailyProgress> load();
   Future<void> record(String questionKey);
+  Future<void> reset();
 }
 
-class SharedPreferencesQuizDailyProgressStore
+class SharedPreferencesQuizDailyProgressStore extends ChangeNotifier
     implements QuizDailyProgressStore {
   static const _dateKey = 'quiz.daily.date';
   static const _countKey = 'quiz.daily.answeredCount';
@@ -51,6 +53,15 @@ class SharedPreferencesQuizDailyProgressStore
     await preferences.setStringList(_usedKeysKey, usedKeys.toList());
   }
 
+  @override
+  Future<void> reset() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_dateKey);
+    await preferences.remove(_countKey);
+    await preferences.remove(_usedKeysKey);
+    notifyListeners();
+  }
+
   static String _dateKeyFor(DateTime value) {
     final local = value.toLocal();
     return '${local.year}-${local.month.toString().padLeft(2, '0')}-'
@@ -58,7 +69,8 @@ class SharedPreferencesQuizDailyProgressStore
   }
 }
 
-class MemoryQuizDailyProgressStore implements QuizDailyProgressStore {
+class MemoryQuizDailyProgressStore extends ChangeNotifier
+    implements QuizDailyProgressStore {
   QuizDailyProgress _progress = const QuizDailyProgress(
     answeredCount: 0,
     usedKeys: {},
@@ -73,5 +85,11 @@ class MemoryQuizDailyProgressStore implements QuizDailyProgressStore {
       answeredCount: _progress.answeredCount + 1,
       usedKeys: {..._progress.usedKeys, questionKey},
     );
+  }
+
+  @override
+  Future<void> reset() async {
+    _progress = const QuizDailyProgress(answeredCount: 0, usedKeys: {});
+    notifyListeners();
   }
 }

@@ -42,7 +42,7 @@ void main() {
     expect(resetRestored.registeredCardCount, 0);
   });
 
-  test('同じ日は無料スタートパックを2回受け取れない', () async {
+  test('同じ日は無料START PACKを2回受け取れない', () async {
     final storage = _FakeStorage();
     final state = await GameState.load(storage: storage);
     final now = DateTime(2026, 9, 6, 10, 0);
@@ -60,7 +60,7 @@ void main() {
     expect(storage.lastFreeStarterPackDate, '2026-09-06');
   });
 
-  test('翌日になれば無料スタートパックを再び受け取れる', () async {
+  test('翌日になれば無料START PACKを再び受け取れる', () async {
     final storage = _FakeStorage();
     final state = await GameState.load(storage: storage);
 

@@ -14,7 +14,7 @@ void main() {
     (card) => card.companyId == 'toyota' && card.rarity == rarity,
   );
 
-  testWidgets('プレミアムパックにSTART PACK・OPEN・3 CARDSを表示する', (tester) async {
+  testWidgets('PREMIUM PACKにSTART PACK・OPEN・3 CARDSを表示する', (tester) async {
     await tester.pumpWidget(MaterialApp(home: TearablePack(onOpened: () {})));
 
     expect(find.textContaining('OPEN'), findsOneWidget);

@@ -6,6 +6,7 @@ import 'package:kabuca_flutter/screens/home/home_screen.dart';
 import 'package:kabuca_flutter/state/game_state.dart';
 import 'package:kabuca_flutter/state/notification_store.dart';
 import 'package:kabuca_flutter/state/prediction_store.dart';
+import 'package:kabuca_flutter/services/quiz_daily_progress_store.dart';
 import 'package:kabuca_flutter/widgets/tearable_pack.dart';
 
 void main() {
@@ -58,7 +59,7 @@ void main() {
     expect(find.byKey(const Key('home-brand-logo')), findsOneWidget);
     expect(find.text('企業を集めて、未来を予想しよう。'), findsOneWidget);
     expect(find.text('KABUCA PACK'), findsNothing);
-    expect(find.text('スタートパック'), findsOneWidget);
+    expect(find.text('START PACK'), findsOneWidget);
     expect(find.byKey(const Key('home-brand-logo')), findsOneWidget);
     final homeLogo = tester.widget<Text>(
       find.byKey(const Key('home-brand-logo')),
@@ -68,7 +69,6 @@ void main() {
     expect(find.byKey(const Key('notification-bell-button')), findsOneWidget);
     expect(find.byKey(const Key('home-point-balance')), findsOneWidget);
     expect(find.text('0 KABU'), findsOneWidget);
-    expect(find.text('所持パック  3'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'パックを開ける'), findsOneWidget);
     expect(find.text('0枚'), findsOneWidget);
 
@@ -88,7 +88,6 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('pack-back-button')));
     await tester.pumpAndSettle();
-    expect(find.text('所持パック  3'), findsOneWidget);
 
     await tester.ensureVisible(find.widgetWithText(FilledButton, 'パックを開ける'));
     await tester.pumpAndSettle();
@@ -158,7 +157,6 @@ void main() {
 
     await tester.tap(find.text('ホーム'));
     await tester.pumpAndSettle();
-    expect(find.text('所持パック  2'), findsOneWidget);
     expect(find.text('3枚'), findsOneWidget);
 
     await tester.tap(find.text('図鑑'));
@@ -176,12 +174,39 @@ void main() {
     await tester.pumpAndSettle();
     grid = tester.widget<SliverGrid>(find.byKey(const Key('collection-grid')));
     expect(grid.delegate.estimatedChildCount, companyCount);
+    expect(
+      (grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
+          .crossAxisCount,
+      2,
+    );
+    await tester.tap(find.byKey(const Key('collection-layout-toggle')));
+    await tester.tap(find.text('4列'));
+    await tester.pumpAndSettle();
+    grid = tester.widget<SliverGrid>(find.byKey(const Key('collection-grid')));
+    expect(
+      (grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
+          .crossAxisCount,
+      4,
+    );
+    await tester.tap(find.text('ホーム'));
+    await tester.pumpAndSettle();
+    final ownedCardsStat = find.text('所持カード');
+    await tester.ensureVisible(ownedCardsStat);
+    await tester.tap(ownedCardsStat);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('collection-scroll')), findsOneWidget);
+    await tester.tap(find.text('ホーム'));
+    await tester.pumpAndSettle();
+    final completionStat = find.text('図鑑コンプリート率');
+    await tester.ensureVisible(completionStat);
+    await tester.tap(completionStat);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('collection-scroll')), findsOneWidget);
     await tester.tap(find.text('マイページ'));
     await tester.pumpAndSettle();
     expect(find.text('マイページ'), findsNWidgets(2));
     await tester.tap(find.text('ホーム'));
     await tester.pumpAndSettle();
-    expect(find.text('所持パック  2'), findsOneWidget);
   });
 
   testWidgets('所持パック0かつKABU不足ではKABU開封できない', (tester) async {
@@ -197,12 +222,34 @@ void main() {
       ),
     );
 
-    expect(find.text('所持パック  0'), findsOneWidget);
     expect(find.text('100 KABUで開ける'), findsOneWidget);
     expect(find.text('あと100 KABUで開けられます'), findsOneWidget);
     final button = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, '100 KABUで開ける'),
     );
     expect(button.onPressed, isNull);
+  });
+
+  testWidgets('画面下部のタブを左右スワイプで移動できる', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MainScreen(
+          gameState: GameState.memory(),
+          predictionStore: PredictionStore.memory(),
+          notificationStore: NotificationStore.memory(),
+          dailyProgressStore: MemoryQuizDailyProgressStore(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('クイズ'));
+    await tester.pumpAndSettle();
+    final pageView = find.byKey(const Key('main-page-view'));
+    await tester.drag(pageView, const Offset(-500, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('collection-scroll')), findsOneWidget);
+    expect(find.text('図鑑'), findsNWidgets(2));
   });
 }

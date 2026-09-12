@@ -3,14 +3,20 @@ import 'package:flutter/material.dart';
 import '../app/app_theme.dart';
 
 class HomeStatCard extends StatelessWidget {
-  const HomeStatCard({super.key, required this.label, required this.value});
+  const HomeStatCard({
+    super.key,
+    required this.label,
+    required this.value,
+    this.onTap,
+  });
 
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final card = Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -39,5 +45,16 @@ class HomeStatCard extends StatelessWidget {
         ],
       ),
     );
+    return onTap == null
+        ? card
+        : Semantics(
+            button: true,
+            label: '$labelを開く',
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(16),
+              child: card,
+            ),
+          );
   }
 }

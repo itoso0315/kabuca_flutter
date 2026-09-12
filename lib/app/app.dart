@@ -75,9 +75,36 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  final PageController _pageController = PageController();
   late final PointWallet _pointWallet;
   late final PredictionRewardService _rewardService;
   late final PackExchangeService _exchangeService;
+  late final QuizDailyProgressStore _dailyProgressStore;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _goToPage(int index) {
+    setState(() => _selectedIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _handlePageChanged(int index) {
+    setState(() => _selectedIndex = index);
+    if (index == 0) {
+      widget.predictionStore.refreshTime();
+      widget.predictionResolutionService?.resolveEligiblePredictions(
+        automatic: true,
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -91,6 +118,8 @@ class _MainScreenState extends State<MainScreen> {
       pointWallet: _pointWallet,
       gameState: widget.gameState,
     );
+    _dailyProgressStore =
+        widget.dailyProgressStore ?? SharedPreferencesQuizDailyProgressStore();
   }
 
   @override
@@ -104,23 +133,24 @@ class _MainScreenState extends State<MainScreen> {
         pointWallet: _pointWallet,
         rewardService: _rewardService,
         exchangeService: _exchangeService,
-        onShowCollection: () => setState(() => _selectedIndex = 2),
+        onShowCollection: () => _goToPage(2),
       ),
       QuizScreen(
         gameState: widget.gameState,
         pointWallet: _pointWallet,
-        dailyProgressStore: widget.dailyProgressStore,
+        dailyProgressStore: _dailyProgressStore,
       ),
       CollectionScreen(
         gameState: widget.gameState,
         predictionStore: widget.predictionStore,
-        onOpenPack: () => setState(() => _selectedIndex = 0),
+        onOpenPack: () => _goToPage(0),
       ),
       ProfileScreen(
         gameState: widget.gameState,
         predictionStore: widget.predictionStore,
         notificationStore: widget.notificationStore,
         pointWallet: _pointWallet,
+        dailyProgressStore: _dailyProgressStore,
       ),
     ];
     return PredictionAutoCheck(
@@ -128,19 +158,16 @@ class _MainScreenState extends State<MainScreen> {
       resolutionService: widget.predictionResolutionService,
       child: Scaffold(
         body: SafeArea(
-          child: IndexedStack(index: _selectedIndex, children: screens),
+          child: PageView(
+            key: const Key('main-page-view'),
+            controller: _pageController,
+            onPageChanged: _handlePageChanged,
+            children: screens,
+          ),
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _selectedIndex,
-          onDestinationSelected: (index) {
-            setState(() => _selectedIndex = index);
-            if (index == 0) {
-              widget.predictionStore.refreshTime();
-              widget.predictionResolutionService?.resolveEligiblePredictions(
-                automatic: true,
-              );
-            }
-          },
+          onDestinationSelected: _goToPage,
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.home_outlined),

@@ -26,6 +26,7 @@ class CollectionScreen extends StatefulWidget {
 class _CollectionScreenState extends State<CollectionScreen> {
   CardRarity? _filter;
   String _query = '';
+  int _gridColumnCount = 2;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -51,7 +52,28 @@ class _CollectionScreenState extends State<CollectionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('図鑑', style: Theme.of(context).textTheme.headlineMedium),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '図鑑',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                      ),
+                      SegmentedButton<int>(
+                        key: const Key('collection-layout-toggle'),
+                        segments: const [
+                          ButtonSegment<int>(value: 2, label: Text('2列')),
+                          ButtonSegment<int>(value: 4, label: Text('4列')),
+                        ],
+                        selected: {_gridColumnCount},
+                        onSelectionChanged: (selected) {
+                          setState(() => _gridColumnCount = selected.first);
+                        },
+                        showSelectedIcon: false,
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     '$registered / ${CardCatalog.cards.length}  ・  コンプリート率 $completion%',
@@ -109,8 +131,8 @@ class _CollectionScreenState extends State<CollectionScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
             sliver: SliverGrid.builder(
               key: const Key('collection-grid'),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: _gridColumnCount,
                 childAspectRatio: 2.5 / 3.5,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,

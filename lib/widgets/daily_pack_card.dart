@@ -11,7 +11,7 @@ class DailyPackCard extends StatelessWidget {
     this.onOpenWithKabu,
     this.kabuBalance = 0,
     this.kabuCost = 100,
-    this.packName = 'スタートパック',
+    this.packName = 'START PACK',
     this.isPremium = false,
   });
 
@@ -45,15 +45,6 @@ class DailyPackCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '所持パック  $packCount',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.4,
-              ),
             ),
             const SizedBox(height: 22),
             _CardStackVisual(isPremium: isPremium),
@@ -123,7 +114,9 @@ class _CardStackVisual extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       image: true,
-      label: isPremium ? 'KABUCAプレミアムパックのカード3枚' : 'KABUCAスタートパックのカード3枚',
+      label: isPremium
+          ? 'KABUCA PREMIUM PACKのカード3枚'
+          : 'KABUCA START PACKのカード3枚',
       child: SizedBox(
         width: 230,
         height: 210,

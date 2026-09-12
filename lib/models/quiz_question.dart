@@ -1,5 +1,4 @@
 import 'company_card.dart';
-import 'company_stats.dart';
 
 enum QuizSide { left, right }
 
@@ -7,21 +6,16 @@ class QuizQuestion {
   const QuizQuestion({
     required this.leftCard,
     required this.rightCard,
-    required this.metric,
-    required this.leftValue,
-    required this.rightValue,
+    required this.fact,
+    required this.correctSide,
     required this.explanation,
   });
 
   final CompanyCard leftCard;
   final CompanyCard rightCard;
-  final QuizMetric metric;
-  final double leftValue;
-  final double rightValue;
+  final String fact;
+  final QuizSide correctSide;
   final String explanation;
-
-  QuizSide get correctSide =>
-      leftValue > rightValue ? QuizSide.left : QuizSide.right;
 
   CardRarity get rarity => leftCard.rarity;
 

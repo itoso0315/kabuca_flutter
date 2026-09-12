@@ -171,6 +171,7 @@ class HomeScreen extends StatelessWidget {
                           child: HomeStatCard(
                             label: '所持カード',
                             value: '${gameState.totalOwnedCardCount}枚',
+                            onTap: onShowCollection,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -179,6 +180,7 @@ class HomeScreen extends StatelessWidget {
                             label: '図鑑コンプリート率',
                             value:
                                 '${gameState.registeredCardCount * 100 ~/ CardCatalog.cards.length}%',
+                            onTap: onShowCollection,
                           ),
                         ),
                       ],
@@ -222,8 +224,7 @@ class HomeScreen extends StatelessWidget {
               ? 'open-premium-pack-with-kabu-confirm-dialog'
               : 'open-pack-with-kabu-confirm-dialog',
         ),
-        icon: const KabuMark(size: 32, color: Color(0xFFB39450)),
-        title: Text(isPremium ? 'プレミアムパックを開けますか？' : 'パックを開けますか？'),
+        title: Text(isPremium ? 'PREMIUM PACKを開けますか？' : 'パックを開けますか？'),
         content: KabuCurrencyText(
           text:
               '$cost KABUを使います\n\n'
@@ -270,7 +271,7 @@ class HomeScreen extends StatelessWidget {
         builder: (dialogContext) => AlertDialog(
           key: const Key('pack-exchange-success-dialog'),
           icon: const Icon(Icons.inventory_2_rounded, color: Color(0xFFB39450)),
-          title: const Text('スタートパックを1個獲得しました'),
+          title: const Text('START PACKを1個獲得しました'),
           actions: [
             TextButton(
               key: const Key('pack-exchange-later-button'),
@@ -582,7 +583,7 @@ class _DailyFreePackBanner extends StatelessWidget {
               ),
               SizedBox(height: 2),
               Text(
-                'スタートパックを1回無料で開封できます',
+                'START PACKを1回無料で開封できます',
                 style: TextStyle(
                   color: Color(0xFF786A43),
                   fontSize: 11,
@@ -650,7 +651,7 @@ class _PackCarouselState extends State<_PackCarousel> {
             onPageChanged: (page) => setState(() => _page = page),
             children: [
               DailyPackCard(
-                packName: 'スタートパック',
+                packName: 'START PACK',
                 packCount: widget.starterPackCount,
                 kabuBalance: widget.kabuBalance,
                 kabuCost: PackExchangeRules.starterPackCost,
@@ -663,7 +664,7 @@ class _PackCarouselState extends State<_PackCarousel> {
                     : null,
               ),
               DailyPackCard(
-                packName: 'プレミアムパック',
+                packName: 'PREMIUM PACK',
                 isPremium: true,
                 packCount: widget.premiumPackCount,
                 kabuBalance: widget.kabuBalance,

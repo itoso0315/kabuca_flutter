@@ -3,9 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../data/card_catalog.dart';
-import '../../data/company_stats_repository.dart';
 import '../../models/company_card.dart';
-import '../../models/company_stats.dart';
+import '../../models/company_quiz_meta.dart';
 import '../../models/quiz_question.dart';
 import '../../services/quiz_service.dart';
 import '../../services/quiz_daily_progress_store.dart';
@@ -35,7 +34,7 @@ class QuizScreen extends StatefulWidget {
 class _QuizScreenState extends State<QuizScreen> {
   late final QuizService _quizService;
   late final QuizDailyProgressStore _dailyProgressStore;
-  Map<String, CompanyStats> _stats = const {};
+  Map<String, CompanyQuizMeta> _metadata = const {};
   QuizDailyProgress _dailyProgress = const QuizDailyProgress(
     answeredCount: 0,
     usedKeys: {},
@@ -49,31 +48,31 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   void initState() {
     super.initState();
-    _quizService =
-        widget.quizService ??
-        QuizService(repository: AssetCompanyStatsRepository());
+    _quizService = widget.quizService ?? QuizService();
     _dailyProgressStore =
         widget.dailyProgressStore ?? SharedPreferencesQuizDailyProgressStore();
     widget.gameState.addListener(_handleGameStateChanged);
-    _loadStats();
+    _dailyProgressStore.addListener(_handleDailyProgressChanged);
+    _loadMetadata();
   }
 
   @override
   void dispose() {
     widget.gameState.removeListener(_handleGameStateChanged);
+    _dailyProgressStore.removeListener(_handleDailyProgressChanged);
     super.dispose();
   }
 
-  Future<void> _loadStats() async {
+  Future<void> _loadMetadata() async {
     final results = await Future.wait<Object>([
-      _quizService.loadStats(),
+      _quizService.loadMetadata(),
       _dailyProgressStore.load(),
     ]);
-    final stats = results[0] as Map<String, CompanyStats>;
+    final metadata = results[0] as Map<String, CompanyQuizMeta>;
     final dailyProgress = results[1] as QuizDailyProgress;
     if (!mounted) return;
     setState(() {
-      _stats = stats;
+      _metadata = metadata;
       _dailyProgress = dailyProgress;
       _question = dailyProgress.answeredCount >= QuizService.maxDailyQuestions
           ? null
@@ -84,8 +83,32 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _handleGameStateChanged() {
-    if (!mounted || _loading || _question != null || _completed) return;
-    setState(() => _question = _createQuestion());
+    if (!mounted ||
+        _loading ||
+        _question != null ||
+        _dailyProgress.answeredCount >= QuizService.maxDailyQuestions) {
+      return;
+    }
+    final question = _createQuestion();
+    if (question == null) return;
+    setState(() {
+      _question = question;
+      _started = false;
+      _completed = false;
+    });
+  }
+
+  Future<void> _handleDailyProgressChanged() async {
+    final dailyProgress = await _dailyProgressStore.load();
+    if (!mounted) return;
+    setState(() {
+      _dailyProgress = dailyProgress;
+      _question = dailyProgress.answeredCount >= QuizService.maxDailyQuestions
+          ? null
+          : _createQuestion();
+      _started = false;
+      _completed = _question == null && dailyProgress.answeredCount > 0;
+    });
   }
 
   List<CompanyCard> get _ownedCards {
@@ -96,7 +119,7 @@ class _QuizScreenState extends State<QuizScreen> {
 
   QuizQuestion? _createQuestion() => _quizService.generateQuestion(
     ownedCards: _ownedCards,
-    stats: _stats,
+    metadata: _metadata,
     excludedQuestionKeys: _dailyProgress.usedKeys,
   );
 
@@ -153,7 +176,7 @@ class _QuizScreenState extends State<QuizScreen> {
                       _dailyProgress.answeredCount >=
                       QuizService.maxDailyQuestions,
                 )
-              : _QuizEmptyState(hasStats: _stats.isNotEmpty)
+              : _QuizEmptyState(hasMetadata: _metadata.isNotEmpty)
         else if (!_started)
           _QuizStartCard(onStart: _startQuiz)
         else
@@ -206,9 +229,9 @@ class _QuizStartCard extends StatelessWidget {
 }
 
 class _QuizEmptyState extends StatelessWidget {
-  const _QuizEmptyState({required this.hasStats});
+  const _QuizEmptyState({required this.hasMetadata});
 
-  final bool hasStats;
+  final bool hasMetadata;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -217,18 +240,18 @@ class _QuizEmptyState extends StatelessWidget {
       child: Column(
         children: [
           Icon(
-            hasStats ? Icons.style_outlined : Icons.cloud_off_rounded,
+            hasMetadata ? Icons.style_outlined : Icons.cloud_off_rounded,
             size: 44,
             color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(height: 14),
           Text(
-            hasStats ? 'クイズに挑戦するには、まず2社以上のカードを集めよう' : 'クイズデータを読み込めませんでした',
+            hasMetadata ? 'クイズに挑戦するには、まず2社以上の企業カードを集めよう' : 'クイズデータを読み込めませんでした',
             key: const Key('quiz-empty-message'),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          if (hasStats) ...[
+          if (hasMetadata) ...[
             const SizedBox(height: 8),
             const Text('ホームでパックを開けて、企業カードを集めよう。', textAlign: TextAlign.center),
           ],
@@ -294,7 +317,7 @@ class _QuizQuestionView extends StatelessWidget {
     return Column(
       children: [
         Text(
-          '${question.metric.label}が大きいのは？',
+          '「${question.fact}」に当てはまる企業はどっち？',
           key: const Key('quiz-question-text'),
           textAlign: TextAlign.center,
           style: Theme.of(
@@ -441,20 +464,11 @@ class _QuizAnswerSummary extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 14),
-            _StatComparison(
-              companyName: question.leftCard.companyName,
-              value: question.leftValue,
-              metric: question.metric,
-              winner: question.correctSide == QuizSide.left,
+            Text(
+              '正解：${question.correctSide == QuizSide.left ? question.leftCard.companyName : question.rightCard.companyName}',
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 8),
-            _StatComparison(
-              companyName: question.rightCard.companyName,
-              value: question.rightValue,
-              metric: question.metric,
-              winner: question.correctSide == QuizSide.right,
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Text(
               question.explanation,
               key: const Key('quiz-explanation'),
@@ -470,50 +484,5 @@ class _QuizAnswerSummary extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _StatComparison extends StatelessWidget {
-  const _StatComparison({
-    required this.companyName,
-    required this.value,
-    required this.metric,
-    required this.winner,
-  });
-
-  final String companyName;
-  final double value;
-  final QuizMetric metric;
-  final bool winner;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Expanded(
-        child: Text(
-          companyName,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-      ),
-      Text(
-        _formatValue(value, metric),
-        style: TextStyle(
-          fontWeight: winner ? FontWeight.w800 : FontWeight.w500,
-          color: winner ? Theme.of(context).colorScheme.primary : null,
-        ),
-      ),
-    ],
-  );
-}
-
-String _formatValue(double value, QuizMetric metric) {
-  switch (metric) {
-    case QuizMetric.revenue:
-      return '${(value / 1000000).toStringAsFixed(1)}兆円';
-    case QuizMetric.operatingMargin:
-    case QuizMetric.equityRatio:
-      return '${value.toStringAsFixed(1)}%';
-    case QuizMetric.employees:
-      return '${value.round()}人';
   }
 }

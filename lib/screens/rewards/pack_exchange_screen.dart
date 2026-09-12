@@ -107,7 +107,7 @@ class _PackExchangeScreenState extends State<PackExchangeScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'スタートパック',
+                      'START PACK',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),

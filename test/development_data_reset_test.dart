@@ -8,6 +8,7 @@ import 'package:kabuca_flutter/state/game_state.dart';
 import 'package:kabuca_flutter/state/prediction_store.dart';
 import 'package:kabuca_flutter/state/notification_store.dart';
 import 'package:kabuca_flutter/state/point_wallet.dart';
+import 'package:kabuca_flutter/services/quiz_daily_progress_store.dart';
 
 void main() {
   testWidgets('確認ダイアログのキャンセルではデータを残す', (tester) async {
@@ -106,6 +107,73 @@ void main() {
     await tester.pumpAndSettle();
     expect(states.notificationStore.notifications, hasLength(2));
     expect(states.notificationStore.unreadCount, 2);
+  });
+
+  testWidgets('クイズの1日上限をリセットできる', (tester) async {
+    final states = await _populatedStates();
+    final dailyProgressStore = MemoryQuizDailyProgressStore();
+    for (var index = 0; index < 10; index++) {
+      await dailyProgressStore.record('question-$index');
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ProfileScreen(
+            gameState: states.gameState,
+            predictionStore: states.predictionStore,
+            notificationStore: states.notificationStore,
+            pointWallet: states.pointWallet,
+            dailyProgressStore: dailyProgressStore,
+          ),
+        ),
+      ),
+    );
+    await tester.drag(
+      find.byKey(const Key('profile-screen')),
+      const Offset(0, -180),
+    );
+    await tester.pumpAndSettle();
+
+    final resetButton = find.byKey(
+      const Key('quiz-daily-limit-reset-button'),
+      skipOffstage: false,
+    );
+    await tester.ensureVisible(resetButton);
+    tester.widget<OutlinedButton>(resetButton).onPressed!();
+    await tester.pumpAndSettle();
+
+    expect((await dailyProgressStore.load()).answeredCount, 0);
+    expect(find.text('クイズの1日上限をリセットしました'), findsOneWidget);
+  });
+
+  testWidgets('初回ガイドに企業クイズの遊び方が表示される', (tester) async {
+    final states = await _populatedStates();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ProfileScreen(
+            gameState: states.gameState,
+            predictionStore: states.predictionStore,
+            notificationStore: states.notificationStore,
+            pointWallet: states.pointWallet,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('show-onboarding-guide-tile')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('profile-onboarding-guide-dialog')),
+      findsOneWidget,
+    );
+    expect(find.text('企業クイズに挑戦しよう'), findsOneWidget);
+    expect(
+      find.text('同じレアリティ・同じ業種の企業カード2枚でクイズに挑戦できます。1日10問まで遊べます。'),
+      findsOneWidget,
+    );
   });
 }
 

@@ -41,7 +41,7 @@ void main() {
     expect(CardPackService.normalSlotRarityForRoll(0.999999), CardRarity.r);
   });
 
-  test('スタートパック3枚目のレアリティ確率の境界値が正しい', () {
+  test('START PACK3枚目のレアリティ確率の境界値が正しい', () {
     expect(
       CardPackService.finalSlotRarityForRoll(0, type: PackType.starter),
       CardRarity.n,
@@ -76,7 +76,7 @@ void main() {
     );
   });
 
-  test('プレミアムパック3枚目のレアリティ確率の境界値が正しい', () {
+  test('PREMIUM PACK3枚目のレアリティ確率の境界値が正しい', () {
     expect(
       CardPackService.finalSlotRarityForRoll(0, type: PackType.premium),
       CardRarity.n,
