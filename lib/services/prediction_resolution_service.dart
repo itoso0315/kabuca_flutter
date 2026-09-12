@@ -136,7 +136,8 @@ class PredictionResolutionService extends ChangeNotifier {
       final historical = await stockPriceService.fetchClosingPrice(
         ticker: prediction.ticker,
         tradingDate: targetDate,
-        sinceDate: prediction.basePriceDate?.add(const Duration(days: 1)) ??
+        sinceDate:
+            prediction.basePriceDate?.add(const Duration(days: 1)) ??
             JapanTime.dateOf(basePriceAt),
       );
       if (historical.fetchedAt.isBefore(closeAt) ||

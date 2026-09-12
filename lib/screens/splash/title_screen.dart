@@ -29,6 +29,7 @@ class _TitleScreenState<T> extends State<TitleScreen<T>>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animation;
   T? _initializedValue;
+  Object? _initializationError;
   bool _finished = false;
   Timer? _minimumTimer;
   Timer? _maximumTimer;
@@ -54,7 +55,15 @@ class _TitleScreenState<T> extends State<TitleScreen<T>>
     await Future.any<void>([normalGate, maximum.future]);
     _minimumTimer?.cancel();
     _maximumTimer?.cancel();
-    final value = await initialization;
+    T? value;
+    try {
+      value = await initialization.timeout(const Duration(seconds: 10));
+    } catch (error) {
+      if (!mounted || _finished) return;
+      _finished = true;
+      setState(() => _initializationError = error);
+      return;
+    }
     if (!mounted || _finished) return;
     _finished = true;
     setState(() => _initializedValue = value);
@@ -79,6 +88,34 @@ class _TitleScreenState<T> extends State<TitleScreen<T>>
   @override
   Widget build(BuildContext context) {
     final value = _initializedValue;
+    final error = _initializationError;
+    if (error != null) {
+      return Scaffold(
+        key: const Key('title-screen-error'),
+        backgroundColor: AppColors.cream,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.cloud_off_rounded, size: 48),
+                const SizedBox(height: 16),
+                const Text(
+                  '起動に時間がかかっています。\nアプリをもう一度開いてください。',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => _restart(),
+                  child: const Text('再起動する'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     if (value != null) return widget.homeBuilder(value);
     return Scaffold(
       key: const Key('title-screen'),
@@ -105,6 +142,14 @@ class _TitleScreenState<T> extends State<TitleScreen<T>>
         ),
       ),
     );
+  }
+
+  void _restart() {
+    setState(() {
+      _initializationError = null;
+      _finished = false;
+    });
+    _start();
   }
 }
 

@@ -73,15 +73,17 @@ class StockPriceService {
     }
     final latest = calendar.latestClosedTradingDay(createdAt);
     final previous = calendar.previousTradingDay(latest);
-    final price = await (source as PredictionStartPriceProvider).fetchStartingPrice(
-      ticker: ticker,
-      companyId: companyId,
-      tradingDate: latest,
-      fallbackTradingDate: previous,
-    );
+    final price = await (source as PredictionStartPriceProvider)
+        .fetchStartingPrice(
+          ticker: ticker,
+          companyId: companyId,
+          tradingDate: latest,
+          fallbackTradingDate: previous,
+        );
     final date = price.tradingDate;
     if (price.ticker != ticker ||
-        !price.close.isFinite || price.close <= 0 ||
+        !price.close.isFinite ||
+        price.close <= 0 ||
         (date != latest && date != previous) ||
         price.fetchedAt.isBefore(calendar.closingTime(date))) {
       throw const StockPriceException(
@@ -138,7 +140,10 @@ class StockPriceService {
 }
 
 class BackendStockPriceProvider
-    implements StockPriceProvider, HistoricalStockPriceProvider, PredictionStartPriceProvider {
+    implements
+        StockPriceProvider,
+        HistoricalStockPriceProvider,
+        PredictionStartPriceProvider {
   BackendStockPriceProvider({
     http.Client? client,
     String? baseUrl,
@@ -226,8 +231,9 @@ class BackendStockPriceProvider
 
   static HistoricalStockPrice _historyResponse(
     Map<String, dynamic> historical,
-    String ticker, {bool splitDetected = false}
-  ) {
+    String ticker, {
+    bool splitDetected = false,
+  }) {
     final close = historical['close'];
     final responseDate = _dateValue(historical['tradingDate']);
     final fetchedAt = _dateValue(historical['fetchedAt']);
@@ -239,7 +245,11 @@ class BackendStockPriceProvider
     }
     return HistoricalStockPrice(
       ticker: ticker,
-      tradingDate: DateTime.utc(responseDate.year, responseDate.month, responseDate.day),
+      tradingDate: DateTime.utc(
+        responseDate.year,
+        responseDate.month,
+        responseDate.day,
+      ),
       close: close.toDouble(),
       fetchedAt: fetchedAt.toUtc(),
       splitDetected: splitDetected,

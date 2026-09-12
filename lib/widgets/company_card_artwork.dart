@@ -110,11 +110,13 @@ class CompanyCardArtwork extends StatelessWidget {
                 if (card.rarity == CardRarity.r)
                   const Positioned.fill(child: _RareGlitter()),
                 if (card.rarity == CardRarity.sr)
-                  const Positioned.fill(child: _SuperRareSparkle()),
+                  const Positioned.fill(child: _SuperRareTexture()),
                 if (card.rarity == CardRarity.ur)
-                  const Positioned.fill(child: _UltraGloss()),
+                  const Positioned.fill(child: _UltraTexture()),
+
                 if (card.rarity == CardRarity.ur)
-                  const Positioned.fill(child: _UltraSparkleOverlay()),
+                  const Positioned.fill(child: _UltraAnimatedSparkle()),
+
                 Padding(
                   padding: EdgeInsets.fromLTRB(
                     compact ? 9 : 15,
@@ -376,18 +378,35 @@ class _RareGlitterPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final random = math.Random(17);
-    for (var i = 0; i < 95; i++) {
-      final point = Offset(
-        random.nextDouble() * size.width,
-        random.nextDouble() * size.height,
+
+    final sparklePaint = Paint()..blendMode = BlendMode.screen;
+
+    for (var i = 0; i < 52; i++) {
+      final side = random.nextInt(4);
+
+      final inset = 3 + random.nextDouble() * 12;
+
+      late final Offset point;
+
+      switch (side) {
+        case 0:
+          point = Offset(random.nextDouble() * size.width, inset);
+
+        case 1:
+          point = Offset(size.width - inset, random.nextDouble() * size.height);
+
+        case 2:
+          point = Offset(random.nextDouble() * size.width, size.height - inset);
+
+        default:
+          point = Offset(inset, random.nextDouble() * size.height);
+      }
+
+      sparklePaint.color = Colors.white.withValues(
+        alpha: .10 + random.nextDouble() * .18,
       );
-      final radius = .45 + random.nextDouble() * 1.15;
-      final alpha = .12 + random.nextDouble() * .24;
-      canvas.drawCircle(
-        point,
-        radius,
-        Paint()..color = Colors.white.withValues(alpha: alpha),
-      );
+
+      canvas.drawCircle(point, .35 + random.nextDouble() * .9, sparklePaint);
     }
   }
 
@@ -395,190 +414,382 @@ class _RareGlitterPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _SuperRareSparkle extends StatelessWidget {
-  const _SuperRareSparkle();
+class _SuperRareTexture extends StatelessWidget {
+  const _SuperRareTexture();
 
   @override
   Widget build(BuildContext context) =>
-      IgnorePointer(child: CustomPaint(painter: _SuperRareSparklePainter()));
+      IgnorePointer(child: CustomPaint(painter: _SuperRareTexturePainter()));
 }
 
-class _SuperRareSparklePainter extends CustomPainter {
-  const _SuperRareSparklePainter();
+class _SuperRareTexturePainter extends CustomPainter {
+  const _SuperRareTexturePainter();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final random = math.Random(73);
-    for (var i = 0; i < 34; i++) {
-      final center = Offset(
-        random.nextDouble() * size.width,
-        random.nextDouble() * size.height,
+    final rect = Offset.zero & size;
+
+    final edgeMask = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(12)))
+      ..addRRect(
+        RRect.fromRectAndRadius(rect.deflate(18), const Radius.circular(8)),
       );
-      final length = 2.5 + random.nextDouble() * 8.5;
-      final alpha = .28 + random.nextDouble() * .42;
-      final paint = Paint()
-        ..color = Colors.white.withValues(alpha: alpha)
-        ..strokeWidth = .7 + random.nextDouble() * 1.2
-        ..strokeCap = StrokeCap.round;
-      canvas.drawLine(
-        center.translate(-length, 0),
-        center.translate(length, 0),
-        paint,
-      );
-      canvas.drawLine(
-        center.translate(0, -length),
-        center.translate(0, length),
-        paint,
-      );
-      canvas.drawCircle(
-        center,
-        .8 + random.nextDouble() * 1.8,
-        Paint()
-          ..color = Colors.white.withValues(alpha: math.min(alpha + .2, 1)),
-      );
-    }
-    final sheen = Paint()
+
+    canvas.save();
+
+    canvas.clipPath(edgeMask);
+
+    final satin = Paint()
+      ..blendMode = BlendMode.softLight
       ..shader = const LinearGradient(
-        begin: Alignment(-1.35, -1),
-        end: Alignment(1.25, 1),
+        begin: Alignment(-1.2, -1),
+
+        end: Alignment(1.2, 1),
+
         colors: [
           Color(0x00FFFFFF),
-          Color(0x22FF8FD8),
-          Color(0x2C8FE7FF),
-          Color(0x24FFF3A1),
+
+          Color(0x28FFF0A8),
+
+          Color(0x208FE7FF),
+
+          Color(0x24FF8FD8),
+
           Color(0x00FFFFFF),
         ],
-        stops: [.12, .34, .5, .66, .88],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, sheen);
+
+        stops: [0, .28, .48, .68, 1],
+      ).createShader(rect);
+
+    canvas.drawRect(rect, satin);
+
+    final linePaint = Paint()
+      ..blendMode = BlendMode.screen
+      ..color = Colors.white.withValues(alpha: .14)
+      ..strokeWidth = .7;
+
+    for (double offset = -size.height; offset < size.width; offset += 11) {
+      canvas.drawLine(
+        Offset(offset, 0),
+
+        Offset(offset + size.height, size.height),
+
+        linePaint,
+      );
+    }
+
+    final random = math.Random(73);
+
+    for (var i = 0; i < 65; i++) {
+      final side = random.nextInt(4);
+
+      final inset = 4 + random.nextDouble() * 10;
+
+      late final Offset center;
+
+      switch (side) {
+        case 0:
+          center = Offset(random.nextDouble() * size.width, inset);
+
+        case 1:
+          center = Offset(
+            size.width - inset,
+
+            random.nextDouble() * size.height,
+          );
+
+        case 2:
+          center = Offset(
+            random.nextDouble() * size.width,
+
+            size.height - inset,
+          );
+
+        default:
+          center = Offset(inset, random.nextDouble() * size.height);
+      }
+
+      canvas.drawCircle(
+        center,
+
+        .45 + random.nextDouble() * 1.0,
+
+        Paint()
+          ..blendMode = BlendMode.screen
+          ..color = Colors.white.withValues(
+            alpha: .22 + random.nextDouble() * .20,
+          ),
+      );
+    }
+
+    canvas.restore();
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _UltraGloss extends StatelessWidget {
-  const _UltraGloss();
+class _UltraTexture extends StatelessWidget {
+  const _UltraTexture();
+
+  @override
+  Widget build(BuildContext context) =>
+      IgnorePointer(child: CustomPaint(painter: _UltraTexturePainter()));
+}
+
+class _UltraTexturePainter extends CustomPainter {
+  const _UltraTexturePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+
+    final edgeMask = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(12)))
+      ..addRRect(
+        RRect.fromRectAndRadius(rect.deflate(30), const Radius.circular(7)),
+      );
+
+    canvas.save();
+
+    canvas.clipPath(edgeMask);
+
+    final prism = Paint()
+      ..blendMode = BlendMode.softLight
+      ..shader = const LinearGradient(
+        begin: Alignment(-1.25, -.9),
+
+        end: Alignment(1.2, .95),
+
+        colors: [
+          Color(0x00FFFFFF),
+
+          Color(0x32FFD86B),
+
+          Color(0x287BD7FF),
+
+          Color(0x2CFF8FD8),
+
+          Color(0x26A6FFB9),
+
+          Color(0x00FFFFFF),
+        ],
+
+        stops: [0, .18, .36, .54, .72, 1],
+      ).createShader(rect);
+
+    canvas.drawRect(rect, prism);
+
+    final gridPaint = Paint()
+      ..blendMode = BlendMode.screen
+      ..color = Colors.white.withValues(alpha: .12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+
+    const cell = 20.0;
+
+    for (double y = -cell; y < size.height + cell; y += cell) {
+      for (double x = -cell; x < size.width + cell; x += cell) {
+        final center = Offset(x, y);
+
+        final path = Path()
+          ..moveTo(center.dx, center.dy - cell * .30)
+          ..lineTo(center.dx + cell * .40, center.dy)
+          ..lineTo(center.dx, center.dy + cell * .30)
+          ..lineTo(center.dx - cell * .40, center.dy)
+          ..close();
+
+        canvas.drawPath(path, gridPaint);
+      }
+    }
+
+    final random = math.Random(991);
+
+    for (var i = 0; i < 110; i++) {
+      final side = random.nextInt(4);
+
+      final inset = 3 + random.nextDouble() * 14;
+
+      late final Offset center;
+
+      switch (side) {
+        case 0:
+          center = Offset(random.nextDouble() * size.width, inset);
+
+        case 1:
+          center = Offset(
+            size.width - inset,
+
+            random.nextDouble() * size.height,
+          );
+
+        case 2:
+          center = Offset(
+            random.nextDouble() * size.width,
+
+            size.height - inset,
+          );
+
+        default:
+          center = Offset(inset, random.nextDouble() * size.height);
+      }
+
+      final sparkle = Paint()
+        ..blendMode = BlendMode.screen
+        ..color = Colors.white.withValues(
+          alpha: .28 + random.nextDouble() * .28,
+        )
+        ..strokeCap = StrokeCap.round;
+
+      if (i % 9 == 0) {
+        final length = 2.5 + random.nextDouble() * 3.5;
+
+        sparkle.strokeWidth = .9;
+
+        canvas.drawLine(
+          center.translate(-length, 0),
+
+          center.translate(length, 0),
+
+          sparkle,
+        );
+
+        canvas.drawLine(
+          center.translate(0, -length),
+
+          center.translate(0, length),
+
+          sparkle,
+        );
+      } else {
+        canvas.drawCircle(center, .5 + random.nextDouble() * 1.2, sparkle);
+      }
+    }
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _UltraAnimatedSparkle extends StatefulWidget {
+  const _UltraAnimatedSparkle();
+
+  @override
+  State<_UltraAnimatedSparkle> createState() => _UltraAnimatedSparkleState();
+}
+
+class _UltraAnimatedSparkleState extends State<_UltraAnimatedSparkle>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+
+      duration: const Duration(seconds: 4),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => IgnorePointer(
-    child: DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment(-1.25, -1),
-          end: Alignment(1.15, 1),
-          colors: [
-            Color(0x00FFFFFF),
-            Color(0x34FFF0A8),
-            Color(0x30FF8FD8),
-            Color(0x348FE7FF),
-            Color(0x40FFFFFF),
-            Color(0x00FFFFFF),
-          ],
-          stops: [0, .20, .36, .50, .62, 1],
-        ),
-      ),
+    child: AnimatedBuilder(
+      animation: _controller,
+
+      builder: (context, child) =>
+          CustomPaint(painter: _UltraAnimatedSparklePainter(_controller.value)),
     ),
   );
 }
 
-class _UltraSparkleOverlay extends StatelessWidget {
-  const _UltraSparkleOverlay();
+class _UltraAnimatedSparklePainter extends CustomPainter {
+  const _UltraAnimatedSparklePainter(this.progress);
 
-  @override
-  Widget build(BuildContext context) =>
-      IgnorePointer(child: CustomPaint(painter: _UltraSparklePainter()));
-}
-
-class _UltraSparklePainter extends CustomPainter {
-  const _UltraSparklePainter();
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final random = math.Random(991);
+    final random = math.Random(31415);
 
-    for (var i = 0; i < 90; i++) {
-      final center = Offset(
-        random.nextDouble() * size.width,
+    final phase = progress * math.pi * 2;
 
-        random.nextDouble() * size.height,
-      );
+    for (var i = 0; i < 28; i++) {
+      final side = i % 4;
 
-      final radius = .5 + random.nextDouble() * 1.8;
+      final travel =
+          (random.nextDouble() + progress * (.18 + (i % 5) * .025)) % 1;
 
-      final alpha = .16 + random.nextDouble() * .42;
+      final inset = 5 + random.nextDouble() * 10;
 
-      canvas.drawCircle(
-        center,
+      late final Offset center;
 
-        radius,
+      switch (side) {
+        case 0:
+          center = Offset(size.width * travel, inset);
 
-        Paint()
-          ..blendMode = BlendMode.screen
-          ..color = Colors.white.withValues(alpha: alpha),
-      );
-    }
+        case 1:
+          center = Offset(size.width - inset, size.height * travel);
 
-    for (var i = 0; i < 18; i++) {
-      final center = Offset(
-        random.nextDouble() * size.width,
+        case 2:
+          center = Offset(size.width * (1 - travel), size.height - inset);
 
-        random.nextDouble() * size.height,
-      );
+        default:
+          center = Offset(inset, size.height * (1 - travel));
+      }
 
-      final length = 4 + random.nextDouble() * 10;
+      final pulse = (math.sin(phase + i * .9) + 1) / 2;
+
+      final alpha = .10 + pulse * .42;
+
+      final radius = .55 + pulse * 1.15;
 
       final paint = Paint()
         ..blendMode = BlendMode.screen
-        ..color = Colors.white.withValues(alpha: .72)
-        ..strokeWidth = 1.2
+        ..color = Colors.white.withValues(alpha: alpha)
         ..strokeCap = StrokeCap.round;
 
-      canvas.drawLine(
-        center.translate(-length, 0),
+      if (i % 7 == 0) {
+        final length = 2.5 + pulse * 4.0;
 
-        center.translate(length, 0),
+        paint.strokeWidth = .9;
 
-        paint,
-      );
+        canvas.drawLine(
+          center.translate(-length, 0),
 
-      canvas.drawLine(
-        center.translate(0, -length),
+          center.translate(length, 0),
 
-        center.translate(0, length),
+          paint,
+        );
 
-        paint,
-      );
+        canvas.drawLine(
+          center.translate(0, -length),
 
-      canvas.drawCircle(center, 1.8, paint);
+          center.translate(0, length),
+
+          paint,
+        );
+      } else {
+        canvas.drawCircle(center, radius, paint);
+      }
     }
-
-    final flare = Paint()
-      ..blendMode = BlendMode.screen
-      ..shader = const LinearGradient(
-        begin: Alignment(-1.2, -.35),
-
-        end: Alignment(1.2, .35),
-
-        colors: [
-          Color(0x00FFFFFF),
-
-          Color(0x22FFFFFF),
-
-          Color(0x66FFF4C2),
-
-          Color(0x30FFFFFF),
-
-          Color(0x00FFFFFF),
-        ],
-
-        stops: [0, .38, .5, .62, 1],
-      ).createShader(Offset.zero & size);
-
-    canvas.drawRect(Offset.zero & size, flare);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _UltraAnimatedSparklePainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
 
 class _UltraFrame extends StatelessWidget {
@@ -593,31 +804,30 @@ class _UltraFrame extends StatelessWidget {
             padding: const EdgeInsets.all(4),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFFFE7A6), width: 2.2),
+                border: Border.all(color: const Color(0xFFFFD86B), width: 2.2),
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x99FFE08A),
-                    blurRadius: 16,
-                    spreadRadius: 1.5,
-                  ),
-                  BoxShadow(
-                    color: Color(0x668FE7FF),
-                    blurRadius: 24,
-                    spreadRadius: 1,
-                  ),
-                ],
               ),
             ),
           ),
         ),
         Positioned.fill(
           child: Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(7),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0x99FFFFFF), width: .8),
-                borderRadius: BorderRadius.circular(9),
+                border: Border.all(color: const Color(0xFF7BD7FF), width: .9),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0x55FF8FD8), width: .7),
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
           ),

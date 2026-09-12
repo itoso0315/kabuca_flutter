@@ -4,6 +4,7 @@ import '../../app/app_theme.dart';
 import '../../services/pack_exchange_service.dart';
 import '../../state/game_state.dart';
 import '../../state/point_wallet.dart';
+import '../../widgets/kabu_currency.dart';
 
 class PackExchangeScreen extends StatefulWidget {
   const PackExchangeScreen({
@@ -58,10 +59,14 @@ class _PackExchangeScreenState extends State<PackExchangeScreen> {
               ),
               child: Column(
                 children: [
-                  const Text('所持KABU', style: TextStyle(color: Colors.white70)),
+                  const KabuCurrencyText(
+                    text: '所持KABU',
+                    markColor: Colors.white70,
+                    style: TextStyle(color: Colors.white70),
+                  ),
                   const SizedBox(height: 6),
-                  Text(
-                    '$points KABU',
+                  KabuCurrencyText(
+                    text: '$points KABU',
                     key: const Key('exchange-point-balance'),
                     style: const TextStyle(
                       color: AppColors.mutedGold,
@@ -107,9 +112,8 @@ class _PackExchangeScreenState extends State<PackExchangeScreen> {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 5),
-                    const Text(
-                      '${PackExchangeRules.standardPackCost} KABUで1パック',
-                      textAlign: TextAlign.center,
+                    const KabuCurrencyText(
+                      text: '${PackExchangeRules.standardPackCost} KABUで1パック',
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 7),
@@ -119,10 +123,9 @@ class _PackExchangeScreenState extends State<PackExchangeScreen> {
                     ),
                     if (shortage > 0) ...[
                       const SizedBox(height: 14),
-                      Text(
-                        'あと$shortage KABUで交換できます',
+                      KabuCurrencyText(
+                        text: 'あと$shortage KABUで交換できます',
                         key: const Key('pack-exchange-shortage'),
-                        textAlign: TextAlign.center,
                         style: const TextStyle(color: AppColors.textSecondary),
                       ),
                     ],

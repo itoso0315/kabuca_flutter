@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/app_theme.dart';
+import 'kabu_currency.dart';
 
 class DailyPackCard extends StatelessWidget {
   const DailyPackCard({
@@ -59,7 +60,7 @@ class DailyPackCard extends StatelessWidget {
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              child: FilledButton.icon(
+              child: FilledButton(
                 key: Key(
                   hasFreePack
                       ? 'open-free-pack-button'
@@ -70,28 +71,41 @@ class DailyPackCard extends StatelessWidget {
                     : canOpenWithKabu
                     ? onOpenWithKabu
                     : null,
-                icon: Icon(
-                  hasFreePack ? Icons.inventory_2_rounded : Icons.stars_rounded,
-                ),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                label: Text(hasFreePack ? 'パックを開ける' : '$kabuCost KABUで開ける'),
+                child: hasFreePack
+                    ? const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.inventory_2_rounded),
+                          SizedBox(width: 8),
+                          Text('パックを開ける'),
+                        ],
+                      )
+                    : KabuCurrencyText(text: '$kabuCost KABUで開ける'),
               ),
             ),
             if (!hasFreePack) ...[
               const SizedBox(height: 12),
-              Text(
-                kabuShortage > 0 ? 'あと$kabuShortage KABUで開けられます' : '3枚入り',
-                key: const Key('pack-kabu-guidance'),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
+              kabuShortage > 0
+                  ? KabuCurrencyText(
+                      key: const Key('pack-kabu-guidance'),
+                      text: 'あと$kabuShortage KABUで開けられます',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    )
+                  : Text(
+                      '3枚入り',
+                      key: const Key('pack-kabu-guidance'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
             ],
           ],
         ),

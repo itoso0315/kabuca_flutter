@@ -7,6 +7,7 @@ import '../../services/prediction_formatters.dart';
 import '../../services/prediction_reward_service.dart';
 import '../../state/point_wallet.dart';
 import '../../state/prediction_store.dart';
+import '../../widgets/kabu_currency.dart';
 
 class PredictionResultScreen extends StatefulWidget {
   const PredictionResultScreen({
@@ -118,8 +119,8 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        correct
+                      KabuCurrencyText(
+                        text: correct
                             ? claimed
                                   ? '$points KABU獲得済み'
                                   : '+$points KABU'
@@ -159,10 +160,10 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                       key: const Key('prediction-points-claimed'),
                       scale: _claimedPulse ? 1.06 : 1,
                       duration: const Duration(milliseconds: 180),
-                      child: const Center(
-                        child: Text(
-                          'KABUを受け取りました',
-                          style: TextStyle(
+                      child: Center(
+                        child: KabuCurrencyText(
+                          text: 'KABUを受け取りました',
+                          style: const TextStyle(
                             color: AppColors.deepGreen,
                             fontWeight: FontWeight.w700,
                           ),
@@ -173,14 +174,14 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                     FilledButton.icon(
                       key: const Key('claim-prediction-points-button'),
                       onPressed: _claiming ? null : _claimKabu,
-                      icon: const Icon(Icons.stars_rounded),
+                      icon: const KabuMark(size: 20, color: Colors.white),
                       label: Text('$points KABUを受け取る'),
                     ),
                 ] else if (!correct || points == 0) ...[
                   const SizedBox(height: 14),
                   const Center(
-                    child: Text(
-                      '獲得KABU 0',
+                    child: KabuCurrencyText(
+                      text: '獲得KABU 0',
                       key: Key('prediction-no-points'),
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
@@ -213,7 +214,10 @@ class _PredictionResultScreenState extends State<PredictionResultScreen> {
                           value: formatYen(prediction.basePrice ?? 0),
                         ),
                         if (prediction.basePriceDate case final date?)
-                          _ResultRow(label: '開始価格の取引日', value: formatDate(date)),
+                          _ResultRow(
+                            label: '開始価格の取引日',
+                            value: formatDate(date),
+                          ),
                         _ResultRow(
                           label: '判定価格',
                           value: formatYen(prediction.resultPrice ?? 0),
@@ -268,19 +272,26 @@ class _RewardBreakdownCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       child: Column(
         children: [
-          _ResultRow(label: '基本報酬', value: '+${prediction.baseReward} KABU'),
+          _ResultRow(
+            label: '基本報酬',
+            value: '+${prediction.baseReward} KABU',
+            currency: true,
+          ),
           _ResultRow(
             label: '値動きボーナス',
             value: '+${prediction.movementBonus} KABU',
+            currency: true,
           ),
           _ResultRow(
             label: '連続正解ボーナス',
             value: '+${prediction.streakBonus} KABU',
+            currency: true,
           ),
           const Divider(),
           _ResultRow(
             label: '合計KABU',
             value: '+${prediction.awardedPoints ?? 0} KABU',
+            currency: true,
           ),
         ],
       ),
@@ -289,9 +300,14 @@ class _RewardBreakdownCard extends StatelessWidget {
 }
 
 class _ResultRow extends StatelessWidget {
-  const _ResultRow({required this.label, required this.value});
+  const _ResultRow({
+    required this.label,
+    required this.value,
+    this.currency = false,
+  });
   final String label;
   final String value;
+  final bool currency;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -304,7 +320,13 @@ class _ResultRow extends StatelessWidget {
             style: const TextStyle(color: AppColors.textSecondary),
           ),
         ),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+        currency
+            ? KabuCurrencyText(
+                text: value,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+                markSize: 16,
+              )
+            : Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
       ],
     ),
   );

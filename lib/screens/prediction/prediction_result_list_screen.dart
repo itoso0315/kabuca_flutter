@@ -7,6 +7,7 @@ import '../../services/prediction_resolution_service.dart';
 import '../../services/prediction_reward_service.dart';
 import '../../state/point_wallet.dart';
 import '../../state/prediction_store.dart';
+import '../../widgets/kabu_currency.dart';
 import 'prediction_result_screen.dart';
 
 class PredictionResultListScreen extends StatefulWidget {
@@ -173,8 +174,10 @@ class _PredictionResultListScreenState
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            Text(
-                              '獲得ポイント ${prediction.awardedPoints ?? 0} KABU',
+                            KabuCurrencyText(
+                              text:
+                                  '獲得ポイント ${prediction.awardedPoints ?? 0} KABU',
+                              markSize: 16,
                             ),
                             const Text(
                               '結果を見る',

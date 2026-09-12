@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import '../screens/collection/collection_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/quiz/quiz_screen.dart';
 import '../state/game_state.dart';
 import '../state/notification_store.dart';
 import '../state/prediction_store.dart';
 import '../services/prediction_resolution_service.dart';
 import '../services/prediction_reward_service.dart';
 import '../services/pack_exchange_service.dart';
+import '../services/quiz_daily_progress_store.dart';
 import '../state/point_wallet.dart';
 import '../widgets/prediction_auto_check.dart';
 import 'app_theme.dart';
@@ -21,6 +23,7 @@ class KabucaApp extends StatelessWidget {
     required this.notificationStore,
     this.predictionResolutionService,
     this.pointWallet,
+    this.dailyProgressStore,
   });
 
   final GameState gameState;
@@ -28,6 +31,7 @@ class KabucaApp extends StatelessWidget {
   final NotificationStore notificationStore;
   final PredictionResolutionService? predictionResolutionService;
   final PointWallet? pointWallet;
+  final QuizDailyProgressStore? dailyProgressStore;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +45,7 @@ class KabucaApp extends StatelessWidget {
         notificationStore: notificationStore,
         predictionResolutionService: predictionResolutionService,
         pointWallet: pointWallet,
+        dailyProgressStore: dailyProgressStore,
       ),
     );
   }
@@ -54,6 +59,7 @@ class MainScreen extends StatefulWidget {
     required this.notificationStore,
     this.predictionResolutionService,
     this.pointWallet,
+    this.dailyProgressStore,
   });
 
   final GameState gameState;
@@ -61,6 +67,7 @@ class MainScreen extends StatefulWidget {
   final NotificationStore notificationStore;
   final PredictionResolutionService? predictionResolutionService;
   final PointWallet? pointWallet;
+  final QuizDailyProgressStore? dailyProgressStore;
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -97,7 +104,12 @@ class _MainScreenState extends State<MainScreen> {
         pointWallet: _pointWallet,
         rewardService: _rewardService,
         exchangeService: _exchangeService,
-        onShowCollection: () => setState(() => _selectedIndex = 1),
+        onShowCollection: () => setState(() => _selectedIndex = 2),
+      ),
+      QuizScreen(
+        gameState: widget.gameState,
+        pointWallet: _pointWallet,
+        dailyProgressStore: widget.dailyProgressStore,
       ),
       CollectionScreen(
         gameState: widget.gameState,
@@ -134,6 +146,11 @@ class _MainScreenState extends State<MainScreen> {
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home_rounded),
               label: 'ホーム',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.quiz_outlined),
+              selectedIcon: Icon(Icons.quiz_rounded),
+              label: 'クイズ',
             ),
             NavigationDestination(
               icon: Icon(Icons.auto_awesome_mosaic_outlined),

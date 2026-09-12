@@ -1,0 +1,75 @@
+{
+  "updatedAt": "2026-09-01",
+  "companies": {
+    "toyota": {
+      "revenue": 48036704,
+      "operatingMargin": 10.2,
+      "employees": 383853,
+      "equityRatio": 38.1,
+      "fiscalYear": "2026-03"
+    },
+    "honda": {
+      "revenue": 21688713,
+      "operatingMargin": 5.2,
+      "employees": 194173,
+      "equityRatio": 40.7,
+      "fiscalYear": "2026-03"
+    },
+    "sony": {
+      "revenue": 11700600,
+      "operatingMargin": 11.3,
+      "employees": 112300,
+      "equityRatio": 37.4,
+      "fiscalYear": "2026-03"
+    },
+    "nintendo": {
+      "revenue": 1698600,
+      "operatingMargin": 25.1,
+      "employees": 8656,
+      "equityRatio": 79.6,
+      "fiscalYear": "2026-03"
+    },
+    "mufg": {
+      "revenue": 13800000,
+      "operatingMargin": 18.4,
+      "employees": 145412,
+      "equityRatio": 4.8,
+      "fiscalYear": "2026-03"
+    },
+    "ntt": {
+      "revenue": 13170400,
+      "operatingMargin": 9.5,
+      "employees": 333840,
+      "equityRatio": 34.2,
+      "fiscalYear": "2026-03"
+    },
+    "kddi": {
+      "revenue": 5867000,
+      "operatingMargin": 16.0,
+      "employees": 65000,
+      "equityRatio": 45.9,
+      "fiscalYear": "2026-03"
+    },
+    "fast_retailing": {
+      "revenue": 3190000,
+      "operatingMargin": 16.8,
+      "employees": 59297,
+      "equityRatio": 53.5,
+      "fiscalYear": "2025-08"
+    },
+    "keyence": {
+      "revenue": 1059000,
+      "operatingMargin": 51.5,
+      "employees": 12462,
+      "equityRatio": 94.0,
+      "fiscalYear": "2026-03"
+    },
+    "tel": {
+      "revenue": 2429000,
+      "operatingMargin": 28.5,
+      "employees": 19300,
+      "equityRatio": 77.0,
+      "fiscalYear": "2026-03"
+    }
+  }
+}

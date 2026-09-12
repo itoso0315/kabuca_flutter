@@ -57,6 +57,7 @@ class StockPrediction {
   final PredictionStatus status;
   final double? basePrice;
   final DateTime? basePriceAt;
+
   /// Trading date of the starting close. Null for legacy current-price entries.
   final DateTime? basePriceDate;
   final DateTime? targetDate;
@@ -127,7 +128,8 @@ class StockPrediction {
       'resultSeen': resultSeen,
       'basePrice': ?basePrice,
       if (basePriceAt != null) 'basePriceAt': basePriceAt!.toIso8601String(),
-      if (basePriceDate != null) 'basePriceDate': basePriceDate!.toIso8601String(),
+      if (basePriceDate != null)
+        'basePriceDate': basePriceDate!.toIso8601String(),
       if (targetDate != null) 'targetDate': targetDate!.toIso8601String(),
       'resultPrice': ?resultPrice,
       if (resultPriceAt != null)

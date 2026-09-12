@@ -5,6 +5,7 @@ import '../../data/card_catalog.dart';
 import '../../models/pack_type.dart';
 import '../../widgets/daily_pack_card.dart';
 import '../../widgets/home_stat_card.dart';
+import '../../widgets/kabu_currency.dart';
 import '../../widgets/prediction_result_bell.dart';
 import '../../services/card_pack_service.dart';
 import '../../services/stock_price_service.dart';
@@ -221,11 +222,12 @@ class HomeScreen extends StatelessWidget {
               ? 'open-premium-pack-with-kabu-confirm-dialog'
               : 'open-pack-with-kabu-confirm-dialog',
         ),
-        icon: const Icon(Icons.stars_rounded, color: Color(0xFFB39450)),
+        icon: const KabuMark(size: 32, color: Color(0xFFB39450)),
         title: Text(isPremium ? 'プレミアムパックを開けますか？' : 'パックを開けますか？'),
-        content: Text(
-          '$cost KABUを使います\n\n'
-          '所持KABU ${wallet.currentPoints} → ${wallet.currentPoints - cost} KABU',
+        content: KabuCurrencyText(
+          text:
+              '$cost KABUを使います\n\n'
+              '所持KABU ${wallet.currentPoints} → ${wallet.currentPoints - cost} KABU',
         ),
         actions: [
           TextButton(
@@ -413,28 +415,36 @@ class _FirstLaunchOnboardingState extends State<_FirstLaunchOnboarding> {
         key: const Key('first-launch-onboarding-dialog'),
         icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFB39450)),
         title: const Text('KABUCAへようこそ！'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _OnboardingItem(
-              icon: Icons.inventory_2_rounded,
-              title: 'まずは無料パック3個！',
-              description: '最初から3パック持っています。さっそく企業カードを集めよう。',
-            ),
-            SizedBox(height: 16),
-            _OnboardingItem(
-              icon: Icons.insights_rounded,
-              title: '株価予想でKABUを貯めよう',
-              description: '企業の株価が上がるか下がるか予想。結果に応じてKABUを獲得できます。',
-            ),
-            SizedBox(height: 16),
-            _OnboardingItem(
-              icon: Icons.menu_book_rounded,
-              title: '図鑑を埋めよう',
-              description: 'ゲットした企業カードは図鑑に登録されます。日本の企業をどんどん集めよう。',
-            ),
-          ],
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _OnboardingItem(
+                icon: Icons.inventory_2_rounded,
+                title: 'まずは無料パック3個！',
+                description: '最初から3パック持っています。さっそく企業カードを集めよう。',
+              ),
+              SizedBox(height: 16),
+              _OnboardingItem(
+                icon: Icons.insights_rounded,
+                title: '株価予想でKABUを貯めよう',
+                description: '企業の株価が上がるか下がるか予想。結果に応じてKABUを獲得できます。',
+              ),
+              SizedBox(height: 16),
+              _OnboardingItem(
+                icon: Icons.quiz_rounded,
+                title: 'クイズでKABUを貯めよう',
+                description: '集めた企業カードで比較クイズに挑戦。正解するとKABUを獲得できます。',
+              ),
+              SizedBox(height: 16),
+              _OnboardingItem(
+                icon: Icons.menu_book_rounded,
+                title: '図鑑を埋めよう',
+                description: 'ゲットした企業カードは図鑑に登録されます。日本の企業をどんどん集めよう。',
+              ),
+            ],
+          ),
         ),
         actions: [
           FilledButton(
@@ -713,10 +723,8 @@ class _PointBalanceButton extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.stars_rounded, size: 15, color: Color(0xFFA67D2D)),
-          const SizedBox(width: 4),
-          Text(
-            '$points KABU',
+          KabuCurrencyText(
+            text: '$points KABU',
             style: const TextStyle(
               color: Color(0xFF5A481E),
               fontSize: 12,

@@ -10,6 +10,7 @@ import '../../services/prediction_local_notification_service.dart';
 import '../../state/game_state.dart';
 import '../../state/notification_store.dart';
 import '../../state/point_wallet.dart';
+import '../../widgets/kabu_currency.dart';
 import '../../state/prediction_store.dart';
 import '../debug/company_art_preview_screen.dart';
 import '../prediction/prediction_result_screen.dart';
@@ -221,7 +222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             await widget.pointWallet!.refund(1000);
                           },
 
-                    icon: const Icon(Icons.auto_awesome_rounded),
+                    icon: const KabuMark(size: 18),
 
                     label: const Text('+1000 KABU'),
                   ),
