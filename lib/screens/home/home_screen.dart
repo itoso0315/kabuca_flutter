@@ -129,6 +129,11 @@ class HomeScreen extends StatelessWidget {
                           _openPackWithKabu(context, PackType.starter),
                       onBuyPremium: () =>
                           _openPackWithKabu(context, PackType.premium),
+                      superPremiumUnlocked:
+                          gameState.totalOwnedCardCount >= 100,
+                      onOpenSuperPremium: () => _openSuperPremiumPack(context),
+                      onBuySuperPremium: () =>
+                          _openPackWithKabu(context, PackType.superPremium),
                     ),
                     const SizedBox(height: 18),
                     Card(
@@ -211,7 +216,10 @@ class HomeScreen extends StatelessWidget {
     if (wallet == null || service == null) return;
 
     final isPremium = type == PackType.premium;
-    final cost = isPremium
+    final isSuperPremium = type == PackType.superPremium;
+    final cost = isSuperPremium
+        ? PackExchangeRules.superPremiumPackCost
+        : isPremium
         ? PackExchangeRules.premiumPackCost
         : PackExchangeRules.starterPackCost;
     if (wallet.currentPoints < cost) return;
@@ -220,11 +228,19 @@ class HomeScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         key: Key(
-          isPremium
+          isSuperPremium
+              ? 'open-super-premium-pack-with-kabu-confirm-dialog'
+              : isPremium
               ? 'open-premium-pack-with-kabu-confirm-dialog'
               : 'open-pack-with-kabu-confirm-dialog',
         ),
-        title: Text(isPremium ? 'PREMIUM PACKを開けますか？' : 'パックを開けますか？'),
+        title: Text(
+          isSuperPremium
+              ? 'SUPER PREMIUM PACKを開けますか？'
+              : isPremium
+              ? 'PREMIUM PACKを開けますか？'
+              : 'パックを開けますか？',
+        ),
         content: KabuCurrencyText(
           text:
               '$cost KABUを使います\n\n'
@@ -247,7 +263,9 @@ class HomeScreen extends StatelessWidget {
 
     if (confirmed != true || !context.mounted) return;
 
-    final result = isPremium
+    final result = isSuperPremium
+        ? await service.exchangeSuperPremiumPack()
+        : isPremium
         ? await service.exchangePremiumPack()
         : await service.exchangeStarterPack();
     if (!context.mounted || result != PackExchangeResult.exchanged) return;
@@ -377,6 +395,21 @@ class HomeScreen extends StatelessWidget {
     if (result.destination == PackOpeningDestination.collection) {
       onShowCollection?.call();
     }
+  }
+
+  Future<void> _openSuperPremiumPack(BuildContext context) async {
+    final result = await Navigator.of(context).push<PackOpeningResult>(
+      PackOpeningRoute(
+        cards: (cardPackService ?? CardPackService()).openPack(
+          type: PackType.superPremium,
+        ),
+        onPackOpened: () {},
+        gameState: gameState,
+        packType: PackType.superPremium,
+      ),
+    );
+    if (result == null) return;
+    await gameState.addCards(result.cards);
   }
 
   void _consumePack(PackType type) {
@@ -614,6 +647,9 @@ class _PackCarousel extends StatefulWidget {
     required this.onOpenPremium,
     required this.onBuyStarter,
     required this.onBuyPremium,
+    required this.superPremiumUnlocked,
+    required this.onOpenSuperPremium,
+    required this.onBuySuperPremium,
   });
 
   final int starterPackCount;
@@ -624,6 +660,9 @@ class _PackCarousel extends StatefulWidget {
   final VoidCallback onOpenPremium;
   final VoidCallback onBuyStarter;
   final VoidCallback onBuyPremium;
+  final bool superPremiumUnlocked;
+  final VoidCallback onOpenSuperPremium;
+  final VoidCallback onBuySuperPremium;
 
   @override
   State<_PackCarousel> createState() => _PackCarouselState();
@@ -677,13 +716,29 @@ class _PackCarouselState extends State<_PackCarousel> {
                     ? widget.onBuyPremium
                     : null,
               ),
+              DailyPackCard(
+                packName: 'SUPER PREMIUM PACK',
+                isPremium: true,
+                isSuperPremium: true,
+                isLocked: !widget.superPremiumUnlocked,
+                packCount: 0,
+                kabuBalance: widget.kabuBalance,
+                kabuCost: PackExchangeRules.superPremiumPackCost,
+                onOpen: widget.superPremiumUnlocked
+                    ? widget.onOpenSuperPremium
+                    : null,
+                onOpenWithKabu:
+                    widget.superPremiumUnlocked && widget.canExchange
+                    ? widget.onBuySuperPremium
+                    : null,
+              ),
             ],
           ),
         ),
         const SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(2, (index) {
+          children: List.generate(3, (index) {
             final selected = index == _page;
             return AnimatedContainer(
               duration: const Duration(milliseconds: 180),

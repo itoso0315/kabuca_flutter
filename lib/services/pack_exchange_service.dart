@@ -5,6 +5,7 @@ import '../state/point_wallet.dart';
 abstract final class PackExchangeRules {
   static const starterPackCost = 100;
   static const premiumPackCost = 300;
+  static const superPremiumPackCost = 500;
 
   @Deprecated('Use starterPackCost instead.')
   static const standardPackCost = starterPackCost;
@@ -30,6 +31,13 @@ class PackExchangeService {
     return _exchangePack(
       type: PackType.premium,
       cost: PackExchangeRules.premiumPackCost,
+    );
+  }
+
+  Future<PackExchangeResult> exchangeSuperPremiumPack() {
+    return _exchangePack(
+      type: PackType.superPremium,
+      cost: PackExchangeRules.superPremiumPackCost,
     );
   }
 

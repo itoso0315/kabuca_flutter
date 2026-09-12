@@ -23,7 +23,9 @@ class CardPackService {
     final selected = <CompanyCard>[];
     while (selected.length < cardCount) {
       final slotIndex = selected.length;
-      final rarity = slotIndex == cardCount - 1
+      final rarity = type == PackType.superPremium
+          ? superPremiumSlotRarityForRoll(_random.nextDouble())
+          : slotIndex == cardCount - 1
           ? finalSlotRarityForRoll(_random.nextDouble(), type: type)
           : normalSlotRarityForRoll(_random.nextDouble());
       final candidates = _catalog
@@ -70,7 +72,21 @@ class CardPackService {
         if (roll < 0.50) return CardRarity.r;
         if (roll < 0.92) return CardRarity.sr;
         return CardRarity.ur;
+
+      case PackType.superPremium:
+        if (roll < 0.20) return CardRarity.r;
+        if (roll < 0.75) return CardRarity.sr;
+        return CardRarity.ur;
     }
+  }
+
+  static CardRarity superPremiumSlotRarityForRoll(double roll) {
+    if (roll < 0 || roll >= 1) {
+      throw RangeError.range(roll, 0, 1, 'roll', '0以上1未満');
+    }
+    if (roll < 0.20) return CardRarity.r;
+    if (roll < 0.75) return CardRarity.sr;
+    return CardRarity.ur;
   }
 
   @Deprecated('Use finalSlotRarityForRoll for the third card slot.')

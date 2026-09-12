@@ -6,6 +6,7 @@ import 'package:kabuca_flutter/screens/pack/pack_opening_screen.dart';
 import 'package:kabuca_flutter/state/game_state.dart';
 import 'package:kabuca_flutter/theme/company_theme.dart';
 import 'package:kabuca_flutter/widgets/company_card_artwork.dart';
+import 'package:kabuca_flutter/widgets/daily_pack_card.dart';
 import 'package:kabuca_flutter/widgets/kabuca_card_back.dart';
 import 'package:kabuca_flutter/widgets/tearable_pack.dart';
 
@@ -21,6 +22,48 @@ void main() {
     expect(find.text('START PACK'), findsOneWidget);
     expect(find.text('3 CARDS'), findsOneWidget);
     expect(find.byKey(const Key('pack-open-guidance')), findsOneWidget);
+  });
+
+  testWidgets('PREMIUM PACKにSR・UR排出率の違いを表示する', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DailyPackCard(
+          onOpen: () {},
+          packCount: 1,
+          packName: 'PREMIUM PACK',
+          isPremium: true,
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('premium-pack-rarity-guidance')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('SR 42% / UR 8%  (START PACK: SR 19% / UR 3%)'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('SUPER PREMIUM PACKにR以上の排出率を表示する', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DailyPackCard(
+          onOpen: () {},
+          packCount: 1,
+          packName: 'SUPER PREMIUM PACK',
+          isPremium: true,
+          isSuperPremium: true,
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('super-premium-pack-rarity-guidance')),
+      findsOneWidget,
+    );
+    expect(find.text('R 20% / SR 55% / UR 25%'), findsOneWidget);
   });
 
   testWidgets('パック開封後にカード表面を表示する', (tester) async {

@@ -179,6 +179,8 @@ class GameState extends ChangeNotifier {
         _premiumPackCount--;
         notifyListeners();
         await _storage.writePremiumPackCount(_premiumPackCount);
+      case PackType.superPremium:
+        return;
     }
   }
 
@@ -196,6 +198,8 @@ class GameState extends ChangeNotifier {
         final next = _premiumPackCount + count;
         await _storage.writePremiumPackCount(next);
         _premiumPackCount = next;
+      case PackType.superPremium:
+        return;
     }
     notifyListeners();
   }

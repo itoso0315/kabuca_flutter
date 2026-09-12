@@ -111,6 +111,24 @@ void main() {
     );
   });
 
+  test('SUPER PREMIUM PACKは全枠R以上でPREMIUMより上位確率が高い', () {
+    expect(CardPackService.superPremiumSlotRarityForRoll(0), CardRarity.r);
+    expect(CardPackService.superPremiumSlotRarityForRoll(0.20), CardRarity.sr);
+    expect(CardPackService.superPremiumSlotRarityForRoll(0.75), CardRarity.ur);
+
+    for (var seed = 0; seed < 100; seed++) {
+      final cards = CardPackService(
+        random: Random(seed),
+      ).openPack(type: PackType.superPremium);
+      expect(
+        cards,
+        everyElement(
+          predicate<CompanyCard>((card) => card.rarity != CardRarity.n),
+        ),
+      );
+    }
+  });
+
   test('SRまたはURが出る場合は必ず3枚目に入る', () {
     for (var seed = 0; seed < 500; seed++) {
       final cards = CardPackService(random: Random(seed)).openPack();

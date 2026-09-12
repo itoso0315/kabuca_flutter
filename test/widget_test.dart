@@ -6,6 +6,8 @@ import 'package:kabuca_flutter/screens/home/home_screen.dart';
 import 'package:kabuca_flutter/state/game_state.dart';
 import 'package:kabuca_flutter/state/notification_store.dart';
 import 'package:kabuca_flutter/state/prediction_store.dart';
+import 'package:kabuca_flutter/state/point_wallet.dart';
+import 'package:kabuca_flutter/services/pack_exchange_service.dart';
 import 'package:kabuca_flutter/services/quiz_daily_progress_store.dart';
 import 'package:kabuca_flutter/widgets/tearable_pack.dart';
 
@@ -228,6 +230,75 @@ void main() {
       find.widgetWithText(FilledButton, '100 KABUで開ける'),
     );
     expect(button.onPressed, isNull);
+  });
+
+  testWidgets('所持カード100枚でSUPER PREMIUM PACKが解放される', (tester) async {
+    final cards = CardCatalog.cards.take(101).toList();
+
+    Future<void> pumpWithCardCount(int count) async {
+      final gameState = GameState.memory(
+        cardCounts: {for (final card in cards.take(count)) card.id: 1},
+      );
+      final pointWallet = PointWallet.memory(currentPoints: 500);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeScreen(
+              gameState: gameState,
+              predictionStore: PredictionStore.memory(),
+              notificationStore: NotificationStore.memory(),
+              pointWallet: pointWallet,
+              exchangeService: PackExchangeService(
+                pointWallet: pointWallet,
+                gameState: gameState,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const Key('home-pack-carousel')),
+        const Offset(-500, 0),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const Key('home-pack-carousel')),
+        const Offset(-500, 0),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await pumpWithCardCount(99);
+    expect(find.text('SUPER PREMIUM PACK'), findsOneWidget);
+    expect(
+      find.byKey(const Key('super-premium-pack-lock-guidance')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const Key('super-premium-locked-button')),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    await pumpWithCardCount(100);
+    expect(find.text('SUPER PREMIUM PACK'), findsOneWidget);
+    expect(
+      find.byKey(const Key('super-premium-pack-lock-guidance')),
+      findsNothing,
+    );
+    expect(find.text('500 KABUで開ける'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const Key('open-super-premium-pack-button')),
+          )
+          .onPressed,
+      isNotNull,
+    );
   });
 
   testWidgets('画面下部のタブを左右スワイプで移動できる', (tester) async {
